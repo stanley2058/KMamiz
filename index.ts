@@ -27,6 +27,11 @@ app.use(Routes.getInstance().getRoutes());
   const dependencyMapping =
     ZipkinService.getInstance().retrieveEndpointDependenciesFromZipkin(traces);
   console.log(dependencyMapping);
+  console.log(
+    ZipkinService.getInstance().transformEndpointDependenciesToGraphData(
+      dependencyMapping
+    )
+  );
 
   const namespaces = await EnvoyLogAnalyzer.getInstance().getNamespaces();
   console.log(namespaces[0]);
