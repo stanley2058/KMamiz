@@ -1,6 +1,4 @@
 import { Axios } from "axios";
-import { group } from "console";
-import { stringify } from "querystring";
 import EndpointDependency from "../interfaces/EndpointDependency";
 import GraphData from "../interfaces/GraphData";
 import Trace from "../interfaces/Trace";
@@ -22,9 +20,13 @@ export default class ZipkinService {
     if (!this.zipkinHost) throw new Error("Variable [ZIPKIN_URL] not set");
   }
 
-  async getTraceListFromZipkinByServiceName(serviceName: string, time: number) {
+  async getTraceListFromZipkinByServiceName(
+    serviceName: string,
+    time: number,
+    lookback: number = 86400000 * 7 // 1 week
+  ) {
     const response = await this.zipkinClient.get<Trace[][]>(
-      `/traces?serviceName=${serviceName}&endTs=${time}&lookback=86400000&limit=1000`
+      `/traces?serviceName=${serviceName}&endTs=${time}&lookback=${lookback}&limit=1000`
     );
     return response.data;
   }
@@ -164,5 +166,23 @@ export default class ZipkinService {
       });
       return prev;
     }, initialGraphData);
+  }
+
+  async queryAndAggregateHistoryData() {
+    const today = new Date(new Date().toLocaleDateString());
+    // start from a week ago, and look back a month
+    const startTime = new Date(today.getTime() - 86400000 * 7).getTime();
+    const lookback = 86400000 * 30;
+
+    const services = await ZipkinService.getInstance().getServicesFromZipkin();
+    const traces = services
+      .map((s) =>
+        ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
+          s,
+          startTime,
+          lookback
+        )
+      )
+      .map(async (traceList) => await traceList);
   }
 }
