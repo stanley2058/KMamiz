@@ -1,7 +1,9 @@
 import { Axios } from "axios";
+import GlobalSettings from "../GlobalSettings";
 import EnvoyLog from "../interfaces/EnvoyLog";
 import { PodList } from "../interfaces/PodList";
 import { ServiceList } from "../interfaces/ServiceList";
+import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 
 export default class KubernetesService {
   private static instance?: KubernetesService;
@@ -75,7 +77,7 @@ export default class KubernetesService {
   async getEnvoyLogs(
     namespace: string,
     podName: string,
-    limit: number = 10000
+    limit: number = 100000
   ) {
     const { data } = await this.logClient.get<string>(
       `/namespaces/${namespace}/pods/${podName}/log?container=istio-proxy&tailLines=${limit}`,
@@ -86,7 +88,12 @@ export default class KubernetesService {
     const logs = data
       .split("\n")
       .filter((line) => line.includes("script log: "))
-      .map((line) => line.replace("\twarning	envoy lua\tscript log: ", "\t"));
+      .map((line) =>
+        line.replace(
+          `\t${GlobalSettings.envoyLogLevel}\tenvoy lua\tscript log: `,
+          "\t"
+        )
+      );
 
     return KubernetesService.getInstance().parseEnvoyLogs(
       logs,
@@ -104,6 +111,7 @@ export default class KubernetesService {
       const [, method, path] =
         log.match(/(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) ([^\]]+)/) || [];
       const [, body] = log.match(/\[Body\] (.*)/) || [];
+
       return {
         timestamp: new Date(time),
         type: requestRid ? "Request" : "Response",
@@ -117,5 +125,82 @@ export default class KubernetesService {
         podName,
       } as EnvoyLog;
     });
+  }
+
+  structureEnvoyLogs(logs: EnvoyLog[]) {
+    const logsMap = new Map<string, EnvoyLog[]>();
+    let currentRequestId = logs[0].requestId;
+    let entropy = 0;
+    let currentLogStack = [];
+    for (const log of logs) {
+      if (log.requestId !== "NO_ID" && currentRequestId !== log.requestId) {
+        if (entropy === 0) logsMap.set(currentRequestId, currentLogStack);
+        currentLogStack = [];
+        currentRequestId = log.requestId;
+      }
+      if (log.type === "Request") entropy++;
+      if (log.type === "Response") entropy--;
+      currentLogStack.push(log);
+    }
+
+    const structuredEnvoyLogs: StructuredEnvoyLog[] = [];
+    for (const [requestId, logs] of logsMap.entries()) {
+      const traces: {
+        traceId: string;
+        request: EnvoyLog;
+        response: EnvoyLog;
+      }[] = [];
+
+      const traceStack = [];
+      for (const log of logs) {
+        if (log.type === "Request") traceStack.push(log);
+        if (log.type === "Response") {
+          const req = traceStack.pop();
+          if (!req) throw new Error("Mismatch request response in logs");
+          traces.push({
+            traceId:
+              req.traceId!.length === 32 ? req.traceId! : `0${req.traceId!}`,
+            request: req,
+            response: log,
+          });
+        }
+      }
+
+      structuredEnvoyLogs.push({
+        requestId,
+        traces,
+      });
+    }
+
+    return structuredEnvoyLogs;
+  }
+
+  combineStructuredEnvoyLogs(logs: StructuredEnvoyLog[][]) {
+    const logMap = new Map<
+      string,
+      {
+        traceId: string;
+        request: EnvoyLog;
+        response: EnvoyLog;
+      }[]
+    >();
+
+    logs.forEach((serviceLog) =>
+      serviceLog.forEach((log) => {
+        logMap.set(log.requestId, [
+          ...(logMap.get(log.requestId) || []),
+          ...log.traces,
+        ]);
+      })
+    );
+
+    const combinedLogs: StructuredEnvoyLog[] = [];
+    for (const [requestId, traces] of logMap.entries()) {
+      combinedLogs.push({
+        requestId,
+        traces: traces.sort((t) => t.request.timestamp.getTime()),
+      });
+    }
+    return combinedLogs;
   }
 }
