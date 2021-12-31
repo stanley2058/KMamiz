@@ -26,7 +26,7 @@ export default class ZipkinService {
     lookback: number = 86400000 * 7 // 1 week
   ) {
     const response = await this.zipkinClient.get<Trace[][]>(
-      `/traces?serviceName=${serviceName}&endTs=${time}&lookback=${lookback}&limit=1000`
+      `/traces?serviceName=${serviceName}&endTs=${time}&lookback=${lookback}&limit=100000`
     );
     return response.data;
   }

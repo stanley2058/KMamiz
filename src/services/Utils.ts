@@ -17,4 +17,26 @@ export default class Utils {
         }, {} as any);
     return JsonToTS(sortObject(object), { rootName: name }).join("\n");
   }
+
+  static NormalizeNumbers(
+    input: number[],
+    strategy: (input: number[]) => number[]
+  ) {
+    return strategy(input);
+  }
+  static readonly NormalizeStrategy = {
+    BetweenFixedNumber(input: number[]) {
+      // format to [0.1 ~ 1]
+      const baseLine = 0.1;
+      const ratio = 1 - baseLine;
+      const max = Math.max(...input);
+      const min = Math.min(...input);
+      return input.map(
+        (value) => ((value - min) / (max - min)) * ratio + baseLine
+      );
+    },
+    Sigmoid(input: number[]) {
+      return input.map((value) => 1 / (1 + Math.exp(-value)));
+    },
+  };
 }
