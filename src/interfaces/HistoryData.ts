@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 
 export default interface HistoryData {
-  _id: Types.ObjectId;
+  _id?: Types.ObjectId;
   date: Date;
   services: {
     name: string;
