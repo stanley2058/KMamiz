@@ -4,10 +4,13 @@ import EnvoyLog from "../interfaces/EnvoyLog";
 import { PodList } from "../interfaces/PodList";
 import { ServiceList } from "../interfaces/ServiceList";
 import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
+import DataTransformer from "../utils/DataTransformer";
 
 export default class KubernetesService {
   private static instance?: KubernetesService;
   static getInstance = () => this.instance || (this.instance = new this());
+
+  private DEFAULT_LOG_LIMIT = 100000;
 
   private kubeApiHost: string;
   private logClient: Axios;
@@ -39,7 +42,7 @@ export default class KubernetesService {
   }
 
   async getReplicasFromPodList(namespace: string) {
-    const pods = await KubernetesService.getInstance().getPodList(namespace);
+    const pods = await this.getPodList(namespace);
     const podNameList = pods.items.map((p) => ({
       deploy: p.metadata.name.split(
         `-${p.metadata.labels["pod-template-hash"]}`
@@ -61,9 +64,9 @@ export default class KubernetesService {
   }
 
   async getPodNames(namespace: string) {
-    return (
-      await KubernetesService.getInstance().getPodList(namespace)
-    ).items.map((pod) => pod.metadata.name);
+    return (await this.getPodList(namespace)).items.map(
+      (pod) => pod.metadata.name
+    );
   }
 
   async getNamespaces() {
@@ -77,7 +80,7 @@ export default class KubernetesService {
   async getEnvoyLogs(
     namespace: string,
     podName: string,
-    limit: number = 100000
+    limit: number = (this.DEFAULT_LOG_LIMIT = 100000)
   ) {
     const { data } = await this.logClient.get<string>(
       `/namespaces/${namespace}/pods/${podName}/log?container=istio-proxy&tailLines=${limit}`,
@@ -95,14 +98,20 @@ export default class KubernetesService {
         )
       );
 
-    return KubernetesService.getInstance().parseEnvoyLogs(
-      logs,
-      namespace,
-      podName
+    return KubernetesService.ParseEnvoyLogs(logs, namespace, podName);
+  }
+
+  async getStructuredEnvoyLogs(
+    namespace: string,
+    podName: string,
+    limit: number = (this.DEFAULT_LOG_LIMIT = 100000)
+  ) {
+    return DataTransformer.EnvoyLogsToStructureEnvoyLogs(
+      await this.getEnvoyLogs(namespace, podName, limit)
     );
   }
 
-  parseEnvoyLogs(logs: string[], namespace: string, podName: string) {
+  static ParseEnvoyLogs(logs: string[], namespace: string, podName: string) {
     return logs.map((l) => {
       const [time, log] = l.split("\t");
       const [, requestRid, traceId, responseRid] =
@@ -125,82 +134,5 @@ export default class KubernetesService {
         podName,
       } as EnvoyLog;
     });
-  }
-
-  structureEnvoyLogs(logs: EnvoyLog[]) {
-    const logsMap = new Map<string, EnvoyLog[]>();
-    let currentRequestId = logs[0].requestId;
-    let entropy = 0;
-    let currentLogStack = [];
-    for (const log of logs) {
-      if (log.requestId !== "NO_ID" && currentRequestId !== log.requestId) {
-        if (entropy === 0) logsMap.set(currentRequestId, currentLogStack);
-        currentLogStack = [];
-        currentRequestId = log.requestId;
-      }
-      if (log.type === "Request") entropy++;
-      if (log.type === "Response") entropy--;
-      currentLogStack.push(log);
-    }
-
-    const structuredEnvoyLogs: StructuredEnvoyLog[] = [];
-    for (const [requestId, logs] of logsMap.entries()) {
-      const traces: {
-        traceId: string;
-        request: EnvoyLog;
-        response: EnvoyLog;
-      }[] = [];
-
-      const traceStack = [];
-      for (const log of logs) {
-        if (log.type === "Request") traceStack.push(log);
-        if (log.type === "Response") {
-          const req = traceStack.pop();
-          if (!req) throw new Error("Mismatch request response in logs");
-          traces.push({
-            traceId:
-              req.traceId!.length === 32 ? req.traceId! : `0${req.traceId!}`,
-            request: req,
-            response: log,
-          });
-        }
-      }
-
-      structuredEnvoyLogs.push({
-        requestId,
-        traces,
-      });
-    }
-
-    return structuredEnvoyLogs;
-  }
-
-  combineStructuredEnvoyLogs(logs: StructuredEnvoyLog[][]) {
-    const logMap = new Map<
-      string,
-      {
-        traceId: string;
-        request: EnvoyLog;
-        response: EnvoyLog;
-      }[]
-    >();
-
-    logs.forEach((serviceLog) =>
-      serviceLog.forEach((log) => {
-        logMap.set(log.requestId, [
-          ...(logMap.get(log.requestId) || []),
-          ...log.traces,
-        ]);
-      })
-    );
-
-    const combinedLogs: StructuredEnvoyLog[] = [];
-    for (const [requestId, traces] of logMap.entries()) {
-      combinedLogs.push({
-        requestId,
-        traces: traces.sort((t) => t.request.timestamp.getTime()),
-      });
-    }
-    return combinedLogs;
   }
 }

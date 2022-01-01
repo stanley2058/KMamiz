@@ -1,10 +1,11 @@
 import AggregateData from "../interfaces/AggregateData";
 import RealtimeData from "../interfaces/RealtimeData";
 import ServiceDependency from "../interfaces/ServiceDependency";
-import Trace from "../interfaces/Trace";
 import Utils from "./Utils";
 
 export default class RiskAnalyzer {
+  private static readonly MINIMUM_PROB = 0.1;
+
   static RealtimeRisk(
     data: RealtimeData[],
     dependencies: ServiceDependency[],
@@ -13,18 +14,37 @@ export default class RiskAnalyzer {
     const impacts = this.Impact(dependencies, replicas);
     const probabilities = this.Probability(data);
 
-    return data.map(({ serviceName, serviceVersion }) => {
-      const s = `${serviceName}-${serviceVersion}`;
-      const impact = impacts.find(({ service }) => service === s)?.impact || 0;
-      const probability =
-        probabilities.find(({ service }) => service === s)?.probability || 0;
+    const risks = [
+      ...data
+        .map(
+          ({ serviceName, serviceVersion }) =>
+            `${serviceName}\t${serviceVersion}`
+        )
+        .reduce((acc, cur) => acc.add(cur), new Set<string>()),
+    ]
+      .map((s) => s.split("\t"))
+      .map(([serviceName, serviceVersion]) => {
+        const s = `${serviceName}-${serviceVersion}`;
+        const impact =
+          impacts.find(({ service }) => service === s)?.impact ||
+          this.MINIMUM_PROB;
+        const probability =
+          probabilities.find(({ service }) => service === s)?.probability ||
+          this.MINIMUM_PROB;
 
-      return {
-        service: serviceName,
-        version: serviceVersion,
-        risk: impact * probability,
-      };
-    });
+        return {
+          service: serviceName,
+          version: serviceVersion,
+          risk: impact * probability,
+        };
+      });
+
+    const normRisk = Utils.NormalizeNumbers(
+      risks.map(({ risk }) => risk),
+      Utils.NormalizeStrategy.BetweenFixedNumber
+    );
+
+    return risks.map((r, i) => ({ ...r, norm: normRisk[i] }));
   }
 
   static CombinedRisk(
@@ -38,7 +58,7 @@ export default class RiskAnalyzer {
       const currentRisk =
         realtimeRisk.find(
           ({ service, version }) => service === s.name && version === s.version
-        )?.risk || 0;
+        )?.risk || this.MINIMUM_PROB;
       return {
         service: s.name,
         version: s.version,
@@ -51,37 +71,48 @@ export default class RiskAnalyzer {
     dependencies: ServiceDependency[],
     replicas: { service: string; replica: number }[]
   ) {
-    return this.RelyingFactor(dependencies).map(({ service, factor }) => ({
-      service,
-      impact:
-        factor /
-        (replicas.find(({ service }) => service === service)?.replica || 1),
-    }));
+    const rawImpact = this.RelyingFactor(dependencies).map(
+      ({ service, factor }) => ({
+        service,
+        impact:
+          factor /
+          (replicas.find(({ service }) => service === service)?.replica || 1),
+      })
+    );
+
+    const normImpact = Utils.NormalizeNumbers(
+      rawImpact.map(({ impact }) => impact),
+      Utils.NormalizeStrategy.BetweenFixedNumber
+    );
+
+    return rawImpact.map((i, iIndex) => ({ ...i, impact: normImpact[iIndex] }));
   }
 
   static Probability(data: RealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
     const invokePossibilityAndErrorRate = this.PossibilityAndErrorRate(data);
-    return data.map(({ serviceName, serviceVersion }) => ({
+    const rawProb = data.map(({ serviceName, serviceVersion }) => ({
       service: `${serviceName}-${serviceVersion}`,
       probability:
         (reliabilityMetric.find(
           (m) => m.service === `${serviceName}-${serviceVersion}`
-        )?.metric || 0) *
+        )?.norm || this.MINIMUM_PROB) *
         (invokePossibilityAndErrorRate.find(
           (m) => m.service === `${serviceName}-${serviceVersion}`
-        )?.possibility || 0),
+        )?.possibility || this.MINIMUM_PROB),
     }));
+
+    const normProb = Utils.NormalizeNumbers(
+      rawProb.map(({ probability }) => probability),
+      Utils.NormalizeStrategy.BetweenFixedNumber
+    );
+    return rawProb.map((p, i) => ({ ...p, probability: normProb[i] }));
   }
 
   static RelyingFactor(dependencies: ServiceDependency[]) {
     return dependencies.map(({ service, links }) => ({
       service,
-      factor: links.reduce(
-        (acc, cur) =>
-          (acc += cur.links.reduce((ac, cu) => ac + cu.count / cu.distance, 0)),
-        0
-      ),
+      factor: links.reduce((acc, cur) => acc + cur.count / cur.distance, 0),
     }));
   }
 

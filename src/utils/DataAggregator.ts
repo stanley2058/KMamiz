@@ -1,3 +1,4 @@
+import EnvoyLog from "../interfaces/EnvoyLog";
 import RealtimeData from "../interfaces/RealtimeData";
 import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import Trace from "../interfaces/Trace";
@@ -43,5 +44,34 @@ export default class DataAggregator {
         } as RealtimeData;
       })
       .filter((data) => !!data) as RealtimeData[];
+  }
+
+  static CombineStructuredEnvoyLogs(logs: StructuredEnvoyLog[][]) {
+    const logMap = new Map<
+      string,
+      {
+        traceId: string;
+        request: EnvoyLog;
+        response: EnvoyLog;
+      }[]
+    >();
+
+    logs.forEach((serviceLog) =>
+      serviceLog.forEach((log) => {
+        logMap.set(log.requestId, [
+          ...(logMap.get(log.requestId) || []),
+          ...log.traces,
+        ]);
+      })
+    );
+
+    const combinedLogs: StructuredEnvoyLog[] = [];
+    for (const [requestId, traces] of logMap.entries()) {
+      combinedLogs.push({
+        requestId,
+        traces: traces.sort((t) => t.request.timestamp.getTime()),
+      });
+    }
+    return combinedLogs;
   }
 }

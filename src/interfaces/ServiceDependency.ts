@@ -4,12 +4,14 @@ import EndpointDependency from "./EndpointDependency";
 export default interface ServiceDependency {
   _id?: Types.ObjectId;
   service: string;
+  namespace: string;
+  version: string;
   dependency: EndpointDependency[];
   links: {
-    target: string;
-    links: {
-      distance: number;
-      count: number;
-    }[];
+    service: string;
+    namespace: string;
+    version: string;
+    distance: number;
+    count: number;
   }[];
 }

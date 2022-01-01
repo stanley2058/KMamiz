@@ -10,6 +10,7 @@ import RealtimeData from "./src/interfaces/RealtimeData";
 import EnvoyLog from "./src/interfaces/EnvoyLog";
 import DataAggregator from "./src/utils/DataAggregator";
 import StructuredEnvoyLog from "./src/interfaces/StructuredEnvoyLog";
+import DataTransformer from "./src/utils/DataTransformer";
 
 const app = express();
 app.use(express.json());
@@ -26,28 +27,47 @@ app.use(Routes.getInstance().getRoutes());
       86400000 * 30
     );
 
-  // ZipkinService.getInstance().retrieveEndpointDependenciesFromZipkin(traces);
+  // console.log(
+  //   JSON.stringify(DataTransformer.TracesToEndpointDependencies(traces))
+  // );
 
-  const envoyLogs: StructuredEnvoyLog[][] = [];
-  for (const podName of await KubernetesService.getInstance().getPodNames(
-    namespace
-  )) {
-    const logs = await KubernetesService.getInstance().getEnvoyLogs(
-      namespace,
-      podName
+  // const envoyLogs: StructuredEnvoyLog[][] = [];
+  // for (const podName of await KubernetesService.getInstance().getPodNames(
+  //   namespace
+  // )) {
+  //   envoyLogs.push(
+  //     await KubernetesService.getInstance().getStructuredEnvoyLogs(
+  //       namespace,
+  //       podName
+  //     )
+  //   );
+  // }
+
+  // const realtimeData = DataAggregator.TracesAndLogsToRealtimeData(
+  //   traces,
+  //   DataAggregator.CombineStructuredEnvoyLogs(envoyLogs)
+  // );
+  // console.log(realtimeData);
+
+  const realtimeData = DataTransformer.TracesToRealTimeData(traces);
+  const serviceDependency =
+    DataTransformer.EndpointDependenciesToServiceDependencies(
+      DataTransformer.TracesToEndpointDependencies(traces)
     );
 
-    envoyLogs.push(KubernetesService.getInstance().structureEnvoyLogs(logs));
-  }
+  // console.log(realtimeData);
+  // console.log(serviceDependency);
 
-  const realtimeData = DataAggregator.TracesAndLogsToRealtimeData(
-    traces,
-    KubernetesService.getInstance().combineStructuredEnvoyLogs(envoyLogs)
+  const risk = RiskAnalyzer.RealtimeRisk(
+    realtimeData,
+    serviceDependency,
+    (await KubernetesService.getInstance().getServiceList(namespace)).items.map(
+      (s) => ({ service: s.metadata.labels.app, replica: 1 })
+    )
   );
-  // console.log(realtimeData.length);
-  // console.log(RiskAnalyzer.CalculateReliabilityMetric(realtimeData));
+  console.log(risk);
 
-  const risk = Utils.NormalizeNumbers(
+  const impact = Utils.NormalizeNumbers(
     [1, 1, 1, 1, 1, 3],
     Utils.NormalizeStrategy.BetweenFixedNumber
   );
@@ -55,10 +75,10 @@ app.use(Routes.getInstance().getRoutes());
     [0.000174, 0.000555, 0.000605, 0.000433, 0.000056, 0.000081],
     Utils.NormalizeStrategy.BetweenFixedNumber
   );
-  console.log(risk.map((r, i) => r * prob[i]));
+  console.log(impact.map((r, i) => r * prob[i]));
   console.log(
     Utils.NormalizeNumbers(
-      risk.map((r, i) => r * prob[i]),
+      impact.map((r, i) => r * prob[i]),
       Utils.NormalizeStrategy.BetweenFixedNumber
     )
   );
