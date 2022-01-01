@@ -1,6 +1,7 @@
 import AggregateData from "../interfaces/AggregateData";
 import RealtimeData from "../interfaces/RealtimeData";
 import ServiceDependency from "../interfaces/ServiceDependency";
+import Trace from "../interfaces/Trace";
 import Utils from "./Utils";
 
 export default class RiskAnalyzer {

@@ -1,6 +1,7 @@
 import RealtimeData from "../interfaces/RealtimeData";
 import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import Trace from "../interfaces/Trace";
+import Utils from "./Utils";
 
 export default class DataAggregator {
   static TracesAndLogsToRealtimeData(
@@ -25,9 +26,14 @@ export default class DataAggregator {
           );
         if (!span) return;
 
+        const [, , , serviceName, namespace] = Utils.ExplodeUrl(
+          span.name,
+          true
+        );
+
         return {
           timestamp: span.timestamp,
-          serviceName: span.tags["istio.canonical_service"],
+          serviceName: `${serviceName}.${namespace}`,
           serviceVersion: span.tags["istio.canonical_revision"],
           protocol: trace.request.method!,
           endpointName: trace.request.path!,

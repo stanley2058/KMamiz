@@ -18,6 +18,28 @@ export default class Utils {
     return JsonToTS(sortObject(object), { rootName: name }).join("\n");
   }
 
+  /**
+   * Explode url into meaningful parts
+   * @param url url to explode
+   * @param isServiceUrl if is a Kubernetes service url
+   * @returns [host, port, path, serviceName, namespace, clusterName]
+   */
+  static ExplodeUrl(url: string, isServiceUrl = false) {
+    if (url.search(/[a-z]+:\/\//) === -1) url = `://${url}`;
+    let returnArray = [];
+    const [, host, port, path] = url.match(/:\/\/([^:/]*)([:0-9]*)(.*)/) || [];
+    returnArray.push(host, port, path);
+    if (isServiceUrl) {
+      const [, serviceFullName, clusterName] =
+        host.match(/(.*).svc.(.*)/) || [];
+      const nameDivider = serviceFullName.lastIndexOf(".");
+      const serviceName = serviceFullName.slice(0, nameDivider);
+      const namespace = serviceFullName.slice(nameDivider + 1);
+      returnArray.push(serviceName, namespace, clusterName);
+    }
+    return returnArray;
+  }
+
   static NormalizeNumbers(
     input: number[],
     strategy: (input: number[]) => number[]
