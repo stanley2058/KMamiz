@@ -3,11 +3,7 @@ import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import Trace from "../interfaces/Trace";
 
 export default class DataAggregator {
-  private static instance?: DataAggregator;
-  static getInstance = () => this.instance || (this.instance = new this());
-  private constructor() {}
-
-  createRealtimeDataFromTracesAndLogs(
+  static CreateRealtimeDataFromTracesAndLogs(
     traces: Trace[][],
     envoyLogs: StructuredEnvoyLog[]
   ) {

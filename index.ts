@@ -4,11 +4,11 @@ import cors from "cors";
 import Routes from "./src/routes/Routes";
 import ZipkinService from "./src/services/ZipkinService";
 import KubernetesService from "./src/services/KubernetesService";
-import Utils from "./src/services/Utils";
-import RiskAnalyzer from "./src/services/RiskAnalyzer";
+import Utils from "./src/utils/Utils";
+import RiskAnalyzer from "./src/utils/RiskAnalyzer";
 import RealtimeData from "./src/interfaces/RealtimeData";
 import EnvoyLog from "./src/interfaces/EnvoyLog";
-import DataAggregator from "./src/services/DataAggregator";
+import DataAggregator from "./src/utils/DataAggregator";
 import StructuredEnvoyLog from "./src/interfaces/StructuredEnvoyLog";
 
 const app = express();
@@ -40,11 +40,10 @@ app.use(Routes.getInstance().getRoutes());
     envoyLogs.push(KubernetesService.getInstance().structureEnvoyLogs(logs));
   }
 
-  const realtimeData =
-    DataAggregator.getInstance().createRealtimeDataFromTracesAndLogs(
-      traces,
-      KubernetesService.getInstance().combineStructuredEnvoyLogs(envoyLogs)
-    );
+  const realtimeData = DataAggregator.CreateRealtimeDataFromTracesAndLogs(
+    traces,
+    KubernetesService.getInstance().combineStructuredEnvoyLogs(envoyLogs)
+  );
   // console.log(realtimeData.length);
   // console.log(RiskAnalyzer.CalculateReliabilityMetric(realtimeData));
 
