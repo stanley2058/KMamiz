@@ -23,10 +23,10 @@ app.use(Routes.getInstance().getRoutes());
   const namespace = "book";
   const traces =
     await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-      "istio-ingressgateway.istio-system",
-      Date.now(),
       86400000 * 30
     );
+
+  // ZipkinService.getInstance().retrieveEndpointDependenciesFromZipkin(traces);
 
   const envoyLogs: StructuredEnvoyLog[][] = [];
   for (const podName of await KubernetesService.getInstance().getPodNames(
@@ -40,7 +40,7 @@ app.use(Routes.getInstance().getRoutes());
     envoyLogs.push(KubernetesService.getInstance().structureEnvoyLogs(logs));
   }
 
-  const realtimeData = DataAggregator.CreateRealtimeDataFromTracesAndLogs(
+  const realtimeData = DataAggregator.TracesAndLogsToRealtimeData(
     traces,
     KubernetesService.getInstance().combineStructuredEnvoyLogs(envoyLogs)
   );

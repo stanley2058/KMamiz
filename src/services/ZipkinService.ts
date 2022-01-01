@@ -1,11 +1,12 @@
 import { Axios } from "axios";
 import EndpointDependency from "../interfaces/EndpointDependency";
-import GraphData from "../interfaces/GraphData";
 import Trace from "../interfaces/Trace";
 
 export default class ZipkinService {
   private static instance?: ZipkinService;
   static getInstance = () => this.instance || (this.instance = new this());
+
+  private DEFAULT_LOOKBACK = 86400000 * 7; // 1 week
 
   private zipkinHost: string;
   private zipkinClient: Axios;
@@ -21,12 +22,12 @@ export default class ZipkinService {
   }
 
   async getTraceListFromZipkinByServiceName(
-    serviceName: string,
-    time: number,
-    lookback: number = 86400000 * 7 // 1 week
+    lookBack: number = this.DEFAULT_LOOKBACK,
+    endTs: number = Date.now(),
+    serviceName: string = "istio-ingressgateway.istio-system"
   ) {
     const response = await this.zipkinClient.get<Trace[][]>(
-      `/traces?serviceName=${serviceName}&endTs=${time}&lookback=${lookback}&limit=100000`
+      `/traces?serviceName=${serviceName}&endTs=${endTs}&lookback=${lookBack}&limit=100000`
     );
     return response.data;
   }
@@ -36,7 +37,21 @@ export default class ZipkinService {
     return data;
   }
 
-  retrieveEndpointDependenciesFromZipkin(
+  async getEndpointDependencies(
+    lookBack: number = this.DEFAULT_LOOKBACK,
+    endTs: number = Date.now(),
+    serviceName: string = "istio-ingressgateway.istio-system"
+  ) {
+    return this.retrieveEndpointDependenciesFromZipkin(
+      await this.getTraceListFromZipkinByServiceName(
+        lookBack,
+        endTs,
+        serviceName
+      )
+    );
+  }
+
+  private retrieveEndpointDependenciesFromZipkin(
     traces: Trace[][]
   ): EndpointDependency[] {
     const endpointMapping = new Map<string, Set<string>>();
@@ -87,7 +102,7 @@ export default class ZipkinService {
     });
   }
 
-  constructEndpointDependenciesFromTrace(trace: Trace[]) {
+  private constructEndpointDependenciesFromTrace(trace: Trace[]) {
     const endpointMapping = new Map<string, Set<string>>();
     const root = trace.find((t) => !t.parentId);
     if (!root) throw new Error("No root trace found");
@@ -128,61 +143,15 @@ export default class ZipkinService {
     return endpointMapping;
   }
 
-  transformEndpointDependenciesToGraphData(
-    endpointDependencies: EndpointDependency[]
-  ) {
-    const initialGraphData: GraphData = {
-      nodes: [
-        ...endpointDependencies.reduce(
-          (prev, e) => prev.add(e.endpoint.serviceName),
-          new Set<string>()
-        ),
-      ].map((e) => ({
-        id: e,
-        name: e,
-        group: e,
-      })),
-      links: endpointDependencies.map((e) => ({
-        source: e.endpoint.serviceName,
-        target: `${e.endpoint.version || "NONE"}-${e.endpoint.name}`,
-      })),
-    };
-
-    return endpointDependencies.reduce((prev, { endpoint, dependencies }) => {
-      prev.nodes.push({
-        id: `${endpoint.version || "NONE"}-${endpoint.name}`,
-        name: `(${endpoint.serviceName} ${endpoint.version}) ${endpoint.path}`,
-        group: endpoint.serviceName,
-      });
-
-      dependencies.forEach((dependency) => {
-        const source = `${endpoint.version || "NONE"}-${endpoint.name}`;
-        prev.links = prev.links.concat(
-          endpointDependencies
-            .filter((e) => e.endpoint.name === dependency.name)
-            .map((e) => `${e.endpoint.version || "NONE"}-${e.endpoint.name}`)
-            .map((target) => ({ source, target }))
-        );
-      });
-      return prev;
-    }, initialGraphData);
-  }
-
-  async queryAndAggregateHistoryData() {
+  async createAggregatedAndHistoryData() {
     const today = new Date(new Date().toLocaleDateString());
     // start from a week ago, and look back a month
-    const startTime = new Date(today.getTime() - 86400000 * 7).getTime();
-    const lookback = 86400000 * 30;
+    const endTs = new Date(today.getTime() - 86400000 * 7).getTime();
+    const lookBack = 86400000 * 30;
 
-    const services = await ZipkinService.getInstance().getServicesFromZipkin();
+    const services = await this.getServicesFromZipkin();
     const traces = services
-      .map((s) =>
-        ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-          s,
-          startTime,
-          lookback
-        )
-      )
+      .map((s) => this.getTraceListFromZipkinByServiceName(lookBack, endTs))
       .map(async (traceList) => await traceList);
   }
 }

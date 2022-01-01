@@ -4,13 +4,13 @@ import ServiceDependency from "../interfaces/ServiceDependency";
 import Utils from "./Utils";
 
 export default class RiskAnalyzer {
-  static CalculateRealtimeRisk(
+  static RealtimeRisk(
     data: RealtimeData[],
     dependencies: ServiceDependency[],
     replicas: { service: string; replica: number }[]
   ) {
-    const impacts = this.CalculateImpact(dependencies, replicas);
-    const probabilities = this.CalculateProbability(data);
+    const impacts = this.Impact(dependencies, replicas);
+    const probabilities = this.Probability(data);
 
     return data.map(({ serviceName, serviceVersion }) => {
       const s = `${serviceName}-${serviceVersion}`;
@@ -26,7 +26,7 @@ export default class RiskAnalyzer {
     });
   }
 
-  static CalculateCombinedRisk(
+  static CombinedRisk(
     realtimeRisk: { service: string; version: string; risk: number }[],
     aggregateData: AggregateData
   ) {
@@ -46,24 +46,21 @@ export default class RiskAnalyzer {
     });
   }
 
-  static CalculateImpact(
+  static Impact(
     dependencies: ServiceDependency[],
     replicas: { service: string; replica: number }[]
   ) {
-    return this.CalculateRelyingFactor(dependencies).map(
-      ({ service, factor }) => ({
-        service,
-        impact:
-          factor /
-          (replicas.find(({ service }) => service === service)?.replica || 1),
-      })
-    );
+    return this.RelyingFactor(dependencies).map(({ service, factor }) => ({
+      service,
+      impact:
+        factor /
+        (replicas.find(({ service }) => service === service)?.replica || 1),
+    }));
   }
 
-  static CalculateProbability(data: RealtimeData[]) {
-    const reliabilityMetric = this.CalculateReliabilityMetric(data);
-    const invokePossibilityAndErrorRate =
-      this.CalculateInvokePossibilityAndErrorRate(data);
+  static Probability(data: RealtimeData[]) {
+    const reliabilityMetric = this.ReliabilityMetric(data);
+    const invokePossibilityAndErrorRate = this.PossibilityAndErrorRate(data);
     return data.map(({ serviceName, serviceVersion }) => ({
       service: `${serviceName}-${serviceVersion}`,
       probability:
@@ -76,7 +73,7 @@ export default class RiskAnalyzer {
     }));
   }
 
-  static CalculateRelyingFactor(dependencies: ServiceDependency[]) {
+  static RelyingFactor(dependencies: ServiceDependency[]) {
     return dependencies.map(({ service, links }) => ({
       service,
       factor: links.reduce(
@@ -87,7 +84,7 @@ export default class RiskAnalyzer {
     }));
   }
 
-  static CalculateInvokePossibilityAndErrorRate(
+  static PossibilityAndErrorRate(
     data: RealtimeData[],
     includeRequestError: boolean = false
   ) {
@@ -126,7 +123,7 @@ export default class RiskAnalyzer {
     return invokePossibility;
   }
 
-  static CalculateReliabilityMetric(data: RealtimeData[]) {
+  static ReliabilityMetric(data: RealtimeData[]) {
     const latencyMap = data.reduce((acc, cur) => {
       const service = `${cur.serviceName}-${cur.serviceVersion}`;
       acc.set(service, (acc.get(service) || []).concat(cur.latency));

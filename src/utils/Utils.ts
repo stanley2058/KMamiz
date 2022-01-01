@@ -1,7 +1,7 @@
 import JsonToTS from "json-to-ts";
 
 export default class Utils {
-  static GetInterfaceFromObject(object: any, name: string = "Root") {
+  static ObjectToInterfaceString(object: any, name: string = "Root") {
     const sortObject = (obj: any) =>
       Object.keys(obj)
         .sort()
