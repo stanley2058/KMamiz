@@ -4,7 +4,7 @@ export default interface HistoryData {
   _id?: Types.ObjectId;
   date: Date;
   services: {
-    name: string;
+    service: string;
     namespace: string;
     version: string;
     requests: number;

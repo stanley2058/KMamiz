@@ -8,9 +8,9 @@ export default interface EndpointDependency {
 }
 export interface EndpointInfo {
   name: string;
-  version: string;
-  serviceName: string;
+  service: string;
   namespace: string;
+  version: string;
   host: string;
   path: string;
   port: string;

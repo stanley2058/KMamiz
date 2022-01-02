@@ -37,7 +37,7 @@ export default class DataAggregator {
 
         return {
           timestamp: span.timestamp,
-          name: `${serviceName}.${namespace}`,
+          service: `${serviceName}.${namespace}`,
           version: span.tags["istio.canonical_revision"],
           protocol: trace.request.method!,
           endpointName: trace.request.path!,
@@ -104,10 +104,10 @@ export default class DataAggregator {
         historyData.reduce(
           (prev, curr) => {
             curr.services.forEach((s) => {
-              const uniqueName = `${s.name}\t${s.namespace}\t${s.version}`;
+              const uniqueName = `${s.service}\t${s.namespace}\t${s.version}`;
               if (!prev[uniqueName]) {
                 prev[uniqueName] = {
-                  name: s.name,
+                  name: s.service,
                   namespace: s.namespace,
                   version: s.version,
                   totalRequests: 0,

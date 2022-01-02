@@ -14,7 +14,7 @@ export default class RiskAnalyzer {
   ) {
     data = data.map((d) => ({
       ...d,
-      name: `${d.name}\t${d.namespace}\t${d.version}`,
+      name: `${d.service}\t${d.namespace}\t${d.version}`,
     }));
     dependencies = dependencies.map((d) => ({
       ...d,
@@ -25,7 +25,7 @@ export default class RiskAnalyzer {
     const probabilities = this.Probability(data);
 
     const risks = [
-      ...data.reduce((acc, cur) => acc.add(cur.name), new Set<string>()),
+      ...data.reduce((acc, cur) => acc.add(cur.service), new Set<string>()),
     ].map((s) => {
       const [serviceName, serviceNamespace, serviceVersion] = s.split("\t");
       const impact =
@@ -105,7 +105,7 @@ export default class RiskAnalyzer {
   static Probability(data: RealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
     const invokePossibilityAndErrorRate = this.PossibilityAndErrorRate(data);
-    const rawProb = data.map(({ name }) => ({
+    const rawProb = data.map(({ service: name }) => ({
       service: name,
       probability:
         (reliabilityMetric.find((m) => m.service === name)?.norm ||
@@ -143,7 +143,7 @@ export default class RiskAnalyzer {
     includeRequestError: boolean = false
   ) {
     const invokedCounts = data
-      .map(({ name: serviceName, version: serviceVersion, status }) => ({
+      .map(({ service: serviceName, version: serviceVersion, status }) => ({
         service: `${serviceName}-${serviceVersion}`,
         isError:
           status.startsWith("5") ||
@@ -179,7 +179,7 @@ export default class RiskAnalyzer {
 
   static ReliabilityMetric(data: RealtimeData[]) {
     const latencyMap = data.reduce((acc, cur) => {
-      acc.set(cur.name, (acc.get(cur.name) || []).concat(cur.latency));
+      acc.set(cur.service, (acc.get(cur.service) || []).concat(cur.latency));
       return acc;
     }, new Map<string, number[]>());
 

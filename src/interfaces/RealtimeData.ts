@@ -4,7 +4,7 @@ export default interface RealtimeData {
   _id?: Types.ObjectId;
   timestamp: number; // zipkin timestamp in microseconds
   protocol: string;
-  name: string;
+  service: string;
   namespace: string;
   version: string;
   endpointName: string;

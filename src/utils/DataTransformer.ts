@@ -19,7 +19,7 @@ export default class DataTransformer {
     const initialGraphData: GraphData = {
       nodes: [
         ...endpointDependencies.reduce(
-          (prev, e) => prev.add(e.endpoint.serviceName),
+          (prev, e) => prev.add(e.endpoint.service),
           new Set<string>()
         ),
       ].map((e) => ({
@@ -28,7 +28,7 @@ export default class DataTransformer {
         group: e,
       })),
       links: endpointDependencies.map((e) => ({
-        source: e.endpoint.serviceName,
+        source: e.endpoint.service,
         target: `${e.endpoint.version}-${e.endpoint.name}`,
       })),
     };
@@ -36,8 +36,8 @@ export default class DataTransformer {
     return endpointDependencies.reduce((prev, { endpoint, dependencies }) => {
       prev.nodes.push({
         id: `${endpoint.version}-${endpoint.name}`,
-        name: `(${endpoint.serviceName} ${endpoint.version}) ${endpoint.path}`,
-        group: endpoint.serviceName,
+        name: `(${endpoint.service} ${endpoint.version}) ${endpoint.path}`,
+        group: endpoint.service,
       });
 
       dependencies.forEach((dependency) => {
@@ -68,7 +68,7 @@ export default class DataTransformer {
         );
         return {
           timestamp: t.timestamp,
-          name: serviceName,
+          service: serviceName,
           namespace,
           version: t.tags["istio.canonical_revision"],
           protocol: t.tags["http.method"],
@@ -187,7 +187,7 @@ export default class DataTransformer {
       ...endpointDependencies.reduce(
         (prev, { endpoint }) =>
           prev.add(
-            `${endpoint.serviceName}\t${endpoint.namespace}\t${endpoint.version}`
+            `${endpoint.service}\t${endpoint.namespace}\t${endpoint.version}`
           ),
         new Set<string>()
       ),
@@ -204,7 +204,7 @@ export default class DataTransformer {
       // find dependencies for the current service
       const dependency = endpointDependencies.filter(
         ({ endpoint }) =>
-          `${endpoint.serviceName}\t${endpoint.namespace}\t${endpoint.version}` ===
+          `${endpoint.service}\t${endpoint.namespace}\t${endpoint.version}` ===
           uniqueName
       );
 
@@ -213,7 +213,7 @@ export default class DataTransformer {
         .map((dep) => dep.dependencies)
         .flat()
         .map((dep) => {
-          const { serviceName, namespace, version } = dep.endpoint;
+          const { service: serviceName, namespace, version } = dep.endpoint;
           return {
             uniqueName: `${serviceName}\t${namespace}\t${version}`,
             distance: dep.distance,
@@ -257,7 +257,7 @@ export default class DataTransformer {
     return {
       name: trace.name,
       version: trace.tags["istio.canonical_revision"] || "NONE",
-      serviceName,
+      service: serviceName,
       namespace,
       host,
       path,
@@ -329,7 +329,7 @@ export default class DataTransformer {
     return uniqueDates.map((d) => {
       const serviceMapping: {
         [id: string]: {
-          name: string;
+          service: string;
           namespace: string;
           version: string;
           requests: number;
@@ -351,10 +351,10 @@ export default class DataTransformer {
         date: new Date(d),
         services: Object.values(
           dataOfADay.reduce((prev, curr) => {
-            const uniqueName = `${curr.name}\t${curr.namespace}\t${curr.version}`;
+            const uniqueName = `${curr.service}\t${curr.namespace}\t${curr.version}`;
             if (!prev[uniqueName]) {
               prev[uniqueName] = {
-                name: curr.name,
+                service: curr.service,
                 namespace: curr.namespace,
                 version: curr.version,
                 requests: 0,
