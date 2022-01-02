@@ -1,6 +1,7 @@
 import AggregateData from "../interfaces/AggregateData";
 import EnvoyLog from "../interfaces/EnvoyLog";
 import RealtimeData from "../interfaces/RealtimeData";
+import ReplicaCount from "../interfaces/ReplicaCount";
 import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import Trace from "../interfaces/Trace";
 import DataTransformer from "./DataTransformer";
@@ -77,7 +78,10 @@ export default class DataAggregator {
     return combinedLogs;
   }
 
-  static TracesToAggregatedDataAndHistoryData(traces: Trace[][]) {
+  static TracesToAggregatedDataAndHistoryData(
+    traces: Trace[][],
+    replicas: ReplicaCount[] = []
+  ) {
     const realtimeDataForm = DataTransformer.TracesToRealTimeData(traces);
     const serviceDependencies =
       DataTransformer.EndpointDependenciesToServiceDependencies(
@@ -86,7 +90,8 @@ export default class DataAggregator {
 
     const historyData = DataTransformer.RealtimeDataToHistoryData(
       realtimeDataForm,
-      serviceDependencies
+      serviceDependencies,
+      replicas
     );
     const dates = historyData.map((d) => d.date.getTime()).sort();
     const fromDate = new Date(dates[0]);

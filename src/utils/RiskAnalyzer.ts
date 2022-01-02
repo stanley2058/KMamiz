@@ -1,5 +1,6 @@
 import AggregateData from "../interfaces/AggregateData";
 import RealtimeData from "../interfaces/RealtimeData";
+import ReplicaCount from "../interfaces/ReplicaCount";
 import ServiceDependency from "../interfaces/ServiceDependency";
 import Utils from "./Utils";
 
@@ -9,7 +10,7 @@ export default class RiskAnalyzer {
   static RealtimeRisk(
     data: RealtimeData[],
     dependencies: ServiceDependency[],
-    replicas: { service: string; replica: number }[]
+    replicas: ReplicaCount[]
   ) {
     data = data.map((d) => ({
       ...d,
@@ -78,16 +79,16 @@ export default class RiskAnalyzer {
     });
   }
 
-  static Impact(
-    dependencies: ServiceDependency[],
-    replicas: { service: string; replica: number }[]
-  ) {
+  static Impact(dependencies: ServiceDependency[], replicas: ReplicaCount[]) {
     const rawImpact = this.RelyingFactor(dependencies).map(
       ({ service, factor }) => ({
         service,
         impact:
           factor /
-          (replicas.find(({ service }) => service === service)?.replica || 1),
+          (replicas.find(
+            ({ service: s, namespace: n, version: v }) =>
+              service === `${s}\t${n}\t${v}`
+          )?.replicas || 1),
       })
     );
 
@@ -96,6 +97,8 @@ export default class RiskAnalyzer {
       Utils.NormalizeStrategy.BetweenFixedNumber
     );
 
+    console.log(rawImpact);
+    console.log(normImpact);
     return rawImpact.map((i, iIndex) => ({ ...i, impact: normImpact[iIndex] }));
   }
 

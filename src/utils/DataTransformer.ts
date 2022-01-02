@@ -5,6 +5,7 @@ import EnvoyLog from "../interfaces/EnvoyLog";
 import GraphData from "../interfaces/GraphData";
 import HistoryData from "../interfaces/HistoryData";
 import RealtimeData from "../interfaces/RealtimeData";
+import ReplicaCount from "../interfaces/ReplicaCount";
 import ServiceDependency from "../interfaces/ServiceDependency";
 import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import Trace from "../interfaces/Trace";
@@ -296,9 +297,7 @@ export default class DataTransformer {
           const req = traceStack.pop();
           if (!req) throw new Error("Mismatch request response in logs");
           traces.push({
-            traceId:
-              // temporary fix for istio book demo
-              req.traceId!.length === 32 ? req.traceId! : `0${req.traceId!}`,
+            traceId: req.traceId!,
             request: req,
             response: log,
           });
@@ -316,7 +315,8 @@ export default class DataTransformer {
 
   static RealtimeDataToHistoryData(
     realtimeData: RealtimeData[],
-    serviceDependencies: ServiceDependency[]
+    serviceDependencies: ServiceDependency[],
+    replicas: ReplicaCount[] = []
   ) {
     const uniqueDates = [
       ...new Set(
@@ -330,6 +330,7 @@ export default class DataTransformer {
       const serviceMapping: {
         [id: string]: {
           name: string;
+          namespace: string;
           version: string;
           requests: number;
           serverErrors: number;
@@ -343,7 +344,7 @@ export default class DataTransformer {
       const risks = RiskAnalyzer.RealtimeRisk(
         dataOfADay,
         serviceDependencies,
-        []
+        replicas
       );
 
       return {
@@ -354,6 +355,7 @@ export default class DataTransformer {
             if (!prev[uniqueName]) {
               prev[uniqueName] = {
                 name: curr.name,
+                namespace: curr.namespace,
                 version: curr.version,
                 requests: 0,
                 serverErrors: 0,

@@ -2,6 +2,7 @@ import { Axios } from "axios";
 import GlobalSettings from "../GlobalSettings";
 import EnvoyLog from "../interfaces/EnvoyLog";
 import { PodList } from "../interfaces/PodList";
+import ReplicaCount from "../interfaces/ReplicaCount";
 import { ServiceList } from "../interfaces/ServiceList";
 import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import DataTransformer from "../utils/DataTransformer";
@@ -43,24 +44,25 @@ export default class KubernetesService {
 
   async getReplicasFromPodList(namespace: string) {
     const pods = await this.getPodList(namespace);
-    const podNameList = pods.items.map((p) => ({
-      deploy: p.metadata.name.split(
-        `-${p.metadata.labels["pod-template-hash"]}`
-      )[0],
-      podName: p.metadata.name,
-      app: p.metadata.labels.app,
-    }));
-
-    return [...new Set(podNameList.map(({ deploy }) => deploy))].map(
-      (deploy) => {
-        const replicas = podNameList.filter((p) => p.deploy === deploy);
-        return {
-          deploy,
-          pods: replicas.map(({ podName }) => podName),
-          app: replicas[0].app,
-        };
-      }
-    );
+    return Object.entries(
+      pods.items
+        .map(
+          (p) =>
+            `${p.metadata.labels.app}\t${p.metadata.namespace}\t${p.metadata.labels.version}`
+        )
+        .reduce((acc, cur) => {
+          acc[cur] = (acc[cur] || 0) + 1;
+          return acc;
+        }, {} as { [id: string]: number })
+    ).map(([uniqueName, replicas]) => {
+      const [service, namespace, version] = uniqueName.split("\t");
+      return {
+        service,
+        namespace,
+        version,
+        replicas,
+      };
+    }) as ReplicaCount[];
   }
 
   async getPodNames(namespace: string) {

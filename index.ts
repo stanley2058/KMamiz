@@ -49,6 +49,17 @@ app.use(Routes.getInstance().getRoutes());
   // );
   // console.log(realtimeData);
 
+  const replicas = (
+    await KubernetesService.getInstance().getReplicasFromPodList(namespace)
+  ).map((r) => {
+    if (r.service !== "ratings") return r;
+    return {
+      ...r,
+      replicas: 1,
+    };
+  });
+  console.log(replicas);
+
   const realtimeData = DataTransformer.TracesToRealTimeData(traces);
   const serviceDependency =
     DataTransformer.EndpointDependenciesToServiceDependencies(
@@ -61,9 +72,7 @@ app.use(Routes.getInstance().getRoutes());
   const risk = RiskAnalyzer.RealtimeRisk(
     realtimeData,
     serviceDependency,
-    (await KubernetesService.getInstance().getServiceList(namespace)).items.map(
-      (s) => ({ service: s.metadata.labels.app, replica: 1 })
-    )
+    replicas
   );
   console.log(risk);
 
@@ -90,7 +99,11 @@ app.use(Routes.getInstance().getRoutes());
   // details-v1     Norm(1/1) * Norm(0.1                 * 0.278 * 0.002) = Norm(1) * Norm(0.000056) =
   // ratings-v1     Norm(3/1) * Norm(0.16155461795545867 * 0.167 * 0.003) = Norm(3) * Norm(0.000081) =
 
-  // console.log(DataAggregator.TracesToAggregatedDataAndHistoryData(traces));
+  // console.log(
+  //   JSON.stringify(
+  //     DataAggregator.TracesToAggregatedDataAndHistoryData(traces, replicas)
+  //   )
+  // );
 })();
 // End testing area
 
