@@ -89,6 +89,8 @@ app.use(Routes.getInstance().getRoutes());
   // reviews-v3     Norm(1/1) * Norm(0.7451663179693577  * 0.083 * 0.007) = Norm(1) * Norm(0.000433) =
   // details-v1     Norm(1/1) * Norm(0.1                 * 0.278 * 0.002) = Norm(1) * Norm(0.000056) =
   // ratings-v1     Norm(3/1) * Norm(0.16155461795545867 * 0.167 * 0.003) = Norm(3) * Norm(0.000081) =
+
+  // console.log(DataAggregator.TracesToAggregatedDataAndHistoryData(traces));
 })();
 // End testing area
 

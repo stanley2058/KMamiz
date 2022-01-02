@@ -40,6 +40,15 @@ export default class Utils {
     return returnArray;
   }
 
+  /**
+   * Get timestamp of 00:00 of the same day as the given timestamp
+   * @param timestamp timestamp in microseconds
+   * @returns the timestamp of the day in microseconds
+   */
+  static BelongsToDateTimestamp(timestamp: number) {
+    return new Date(new Date(timestamp).toLocaleDateString()).getTime();
+  }
+
   static NormalizeNumbers(
     input: number[],
     strategy: (input: number[]) => number[]

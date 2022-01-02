@@ -35,16 +35,4 @@ export default class ZipkinService {
     const { data } = await this.zipkinClient.get<string[]>("/services");
     return data;
   }
-
-  async createAggregatedAndHistoryData() {
-    const today = new Date(new Date().toLocaleDateString());
-    // start from a week ago, and look back a month
-    const endTs = new Date(today.getTime() - 86400000 * 7).getTime();
-    const lookBack = 86400000 * 30;
-
-    const services = await this.getServicesFromZipkin();
-    const traces = services
-      .map((s) => this.getTraceListFromZipkinByServiceName(lookBack, endTs))
-      .map(async (traceList) => await traceList);
-  }
 }

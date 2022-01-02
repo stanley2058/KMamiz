@@ -3,10 +3,12 @@ import EndpointDependency, {
 } from "../interfaces/EndpointDependency";
 import EnvoyLog from "../interfaces/EnvoyLog";
 import GraphData from "../interfaces/GraphData";
+import HistoryData from "../interfaces/HistoryData";
 import RealtimeData from "../interfaces/RealtimeData";
 import ServiceDependency from "../interfaces/ServiceDependency";
 import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import Trace from "../interfaces/Trace";
+import RiskAnalyzer from "./RiskAnalyzer";
 import Utils from "./Utils";
 
 export default class DataTransformer {
@@ -65,8 +67,9 @@ export default class DataTransformer {
         );
         return {
           timestamp: t.timestamp,
-          serviceName: `${serviceName}.${namespace}`,
-          serviceVersion: t.tags["istio.canonical_revision"],
+          name: serviceName,
+          namespace,
+          version: t.tags["istio.canonical_revision"],
           protocol: t.tags["http.method"],
           endpointName: `${host}:${port}${path}`,
           latency: t.duration,
@@ -309,5 +312,66 @@ export default class DataTransformer {
     }
 
     return structuredEnvoyLogs;
+  }
+
+  static RealtimeDataToHistoryData(
+    realtimeData: RealtimeData[],
+    serviceDependencies: ServiceDependency[]
+  ) {
+    const uniqueDates = [
+      ...new Set(
+        realtimeData.map((r) =>
+          Utils.BelongsToDateTimestamp(r.timestamp / 1000)
+        )
+      ),
+    ];
+
+    return uniqueDates.map((d) => {
+      const serviceMapping: {
+        [id: string]: {
+          name: string;
+          version: string;
+          requests: number;
+          serverErrors: number;
+          requestErrors: number;
+          risk?: number;
+        };
+      } = {};
+      const dataOfADay = realtimeData.filter(
+        (r) => Utils.BelongsToDateTimestamp(r.timestamp / 1000) === d
+      );
+      const risks = RiskAnalyzer.RealtimeRisk(
+        dataOfADay,
+        serviceDependencies,
+        []
+      );
+
+      return {
+        date: new Date(d),
+        services: Object.values(
+          dataOfADay.reduce((prev, curr) => {
+            const uniqueName = `${curr.name}\t${curr.namespace}\t${curr.version}`;
+            if (!prev[uniqueName]) {
+              prev[uniqueName] = {
+                name: curr.name,
+                version: curr.version,
+                requests: 0,
+                serverErrors: 0,
+                requestErrors: 0,
+                risk: risks.find(
+                  (r) =>
+                    `${r.service}\t${r.namespace}\t${r.version}` === uniqueName
+                )?.norm,
+              };
+            }
+            prev[uniqueName].requests++;
+            if (curr.status.startsWith("5")) prev[uniqueName].serverErrors++;
+            if (curr.status.startsWith("4")) prev[uniqueName].requestErrors++;
+
+            return prev;
+          }, serviceMapping)
+        ),
+      };
+    }) as HistoryData[];
   }
 }
