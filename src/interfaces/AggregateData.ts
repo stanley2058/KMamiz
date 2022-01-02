@@ -6,6 +6,7 @@ export default interface AggregateData {
   toDate: Date;
   services: {
     name: string;
+    namespace: string;
     version: string;
     totalRequests: number;
     totalServerErrors: number;

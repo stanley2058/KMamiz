@@ -5,6 +5,7 @@ export default interface HistoryData {
   date: Date;
   services: {
     name: string;
+    namespace: string;
     version: string;
     requests: number;
     serverErrors: number;
