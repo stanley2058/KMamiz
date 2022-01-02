@@ -11,33 +11,36 @@ export default class RiskAnalyzer {
     dependencies: ServiceDependency[],
     replicas: { service: string; replica: number }[]
   ) {
+    data = data.map((d) => ({
+      ...d,
+      name: `${d.name}\t${d.namespace}\t${d.version}`,
+    }));
+    dependencies = dependencies.map((d) => ({
+      ...d,
+      service: `${d.service}\t${d.namespace}\t${d.version}`,
+    }));
+
     const impacts = this.Impact(dependencies, replicas);
     const probabilities = this.Probability(data);
 
     const risks = [
-      ...data
-        .map(
-          ({ serviceName, serviceVersion }) =>
-            `${serviceName}\t${serviceVersion}`
-        )
-        .reduce((acc, cur) => acc.add(cur), new Set<string>()),
-    ]
-      .map((s) => s.split("\t"))
-      .map(([serviceName, serviceVersion]) => {
-        const s = `${serviceName}-${serviceVersion}`;
-        const impact =
-          impacts.find(({ service }) => service === s)?.impact ||
-          this.MINIMUM_PROB;
-        const probability =
-          probabilities.find(({ service }) => service === s)?.probability ||
-          this.MINIMUM_PROB;
+      ...data.reduce((acc, cur) => acc.add(cur.name), new Set<string>()),
+    ].map((s) => {
+      const [serviceName, serviceNamespace, serviceVersion] = s.split("\t");
+      const impact =
+        impacts.find(({ service }) => service === s)?.impact ||
+        this.MINIMUM_PROB;
+      const probability =
+        probabilities.find(({ service }) => service === s)?.probability ||
+        this.MINIMUM_PROB;
 
-        return {
-          service: serviceName,
-          version: serviceVersion,
-          risk: impact * probability,
-        };
-      });
+      return {
+        service: serviceName,
+        namespace: serviceNamespace,
+        version: serviceVersion,
+        risk: impact * probability,
+      };
+    });
 
     const normRisk = Utils.NormalizeNumbers(
       risks.map(({ risk }) => risk),
@@ -48,7 +51,12 @@ export default class RiskAnalyzer {
   }
 
   static CombinedRisk(
-    realtimeRisk: { service: string; version: string; risk: number }[],
+    realtimeRisk: {
+      service: string;
+      namespace: string;
+      version: string;
+      risk: number;
+    }[],
     aggregateData: AggregateData
   ) {
     const totalDays =
@@ -57,7 +65,10 @@ export default class RiskAnalyzer {
     return aggregateData.services.map((s) => {
       const currentRisk =
         realtimeRisk.find(
-          ({ service, version }) => service === s.name && version === s.version
+          ({ service, namespace, version }) =>
+            service === s.name &&
+            namespace === s.namespace &&
+            version === s.version
         )?.risk || this.MINIMUM_PROB;
       return {
         service: s.name,
@@ -91,15 +102,13 @@ export default class RiskAnalyzer {
   static Probability(data: RealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
     const invokePossibilityAndErrorRate = this.PossibilityAndErrorRate(data);
-    const rawProb = data.map(({ serviceName, serviceVersion }) => ({
-      service: `${serviceName}-${serviceVersion}`,
+    const rawProb = data.map(({ name }) => ({
+      service: name,
       probability:
-        (reliabilityMetric.find(
-          (m) => m.service === `${serviceName}-${serviceVersion}`
-        )?.norm || this.MINIMUM_PROB) *
-        (invokePossibilityAndErrorRate.find(
-          (m) => m.service === `${serviceName}-${serviceVersion}`
-        )?.possibility || this.MINIMUM_PROB),
+        (reliabilityMetric.find((m) => m.service === name)?.norm ||
+          this.MINIMUM_PROB) *
+        (invokePossibilityAndErrorRate.find((m) => m.service === name)
+          ?.possibility || this.MINIMUM_PROB),
     }));
 
     const normProb = Utils.NormalizeNumbers(
@@ -110,10 +119,20 @@ export default class RiskAnalyzer {
   }
 
   static RelyingFactor(dependencies: ServiceDependency[]) {
-    return dependencies.map(({ service, links }) => ({
-      service,
-      factor: links.reduce((acc, cur) => acc + cur.count / cur.distance, 0),
-    }));
+    return Object.entries(
+      dependencies.reduce((prev, { links }) => {
+        links.forEach((l) => {
+          const uniqueName = `${l.service}\t${l.namespace}\t${l.version}`;
+          if (!prev[uniqueName]) {
+            prev[uniqueName] = {
+              factor: 0,
+            };
+          }
+          prev[uniqueName].factor += l.count / l.distance;
+        });
+        return prev;
+      }, {} as { [id: string]: { factor: number } })
+    ).map(([service, { factor }]) => ({ service, factor }));
   }
 
   static PossibilityAndErrorRate(
@@ -121,7 +140,7 @@ export default class RiskAnalyzer {
     includeRequestError: boolean = false
   ) {
     const invokedCounts = data
-      .map(({ serviceName, serviceVersion, status }) => ({
+      .map(({ name: serviceName, version: serviceVersion, status }) => ({
         service: `${serviceName}-${serviceVersion}`,
         isError:
           status.startsWith("5") ||
@@ -157,8 +176,7 @@ export default class RiskAnalyzer {
 
   static ReliabilityMetric(data: RealtimeData[]) {
     const latencyMap = data.reduce((acc, cur) => {
-      const service = `${cur.serviceName}-${cur.serviceVersion}`;
-      acc.set(service, (acc.get(service) || []).concat(cur.latency));
+      acc.set(cur.name, (acc.get(cur.name) || []).concat(cur.latency));
       return acc;
     }, new Map<string, number[]>());
 
