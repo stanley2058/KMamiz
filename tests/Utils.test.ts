@@ -1,7 +1,7 @@
 import Utils from "../src/utils/Utils";
 
 describe("Utils", () => {
-  it("Create interface string from object", () => {
+  it("create interface string from object", () => {
     const obj = {
       testNumber: 123,
       testString: "test",
@@ -28,7 +28,7 @@ describe("Utils", () => {
     );
   });
 
-  it("Explode url into sections", () => {
+  it("explode url into sections", () => {
     const url1 = "http://example.com:8080/test/test";
     const url2 = "https://192.168.1.1/test#123";
     const url3 = "service.test.svc.cluster.local:80/test/endpoint";
@@ -43,14 +43,14 @@ describe("Utils", () => {
     );
   });
 
-  it("Get timestamp of 00:00 of the same day as the given timestamp", () => {
+  it("get timestamp of 00:00 of the same day as the given timestamp", () => {
     const timestamp = new Date().getTime();
     expect(Utils.BelongsToDateTimestamp(timestamp)).toEqual(
       new Date(new Date(timestamp).toLocaleDateString()).getTime()
     );
   });
 
-  it("Normalize numbers", () => {
+  it("normalize numbers", () => {
     const sigmoid = (value: number) => 1 / (1 + Math.exp(-value));
     const input = [1, 2, 3];
     expect(

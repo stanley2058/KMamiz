@@ -9,9 +9,9 @@ import ReplicaCount from "../interfaces/ReplicaCount";
 import ServiceDependency from "../interfaces/ServiceDependency";
 import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import Trace from "../interfaces/Trace";
+import Logger from "./Logger";
 import RiskAnalyzer from "./RiskAnalyzer";
 import Utils from "./Utils";
-
 export default class DataTransformer {
   static EndpointDependenciesToGraphData(
     endpointDependencies: EndpointDependency[]
@@ -290,12 +290,16 @@ export default class DataTransformer {
         response: EnvoyLog;
       }[] = [];
 
-      const traceStack = [];
+      let traceStack = [];
       for (const log of logs) {
         if (log.type === "Request") traceStack.push(log);
         if (log.type === "Response") {
           const req = traceStack.pop();
-          if (!req) throw new Error("Mismatch request response in logs");
+          if (!req) {
+            Logger.warn("Mismatch request response in logs");
+            traceStack = [];
+            continue;
+          }
           traces.push({
             traceId: req.traceId!,
             request: req,

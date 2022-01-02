@@ -14,7 +14,7 @@ export default class RiskAnalyzer {
   ) {
     data = data.map((d) => ({
       ...d,
-      name: `${d.service}\t${d.namespace}\t${d.version}`,
+      service: `${d.service}\t${d.namespace}\t${d.version}`,
     }));
     dependencies = dependencies.map((d) => ({
       ...d,
@@ -97,8 +97,6 @@ export default class RiskAnalyzer {
       Utils.NormalizeStrategy.BetweenFixedNumber
     );
 
-    console.log(rawImpact);
-    console.log(normImpact);
     return rawImpact.map((i, iIndex) => ({ ...i, impact: normImpact[iIndex] }));
   }
 

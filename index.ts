@@ -31,17 +31,24 @@ app.use(Routes.getInstance().getRoutes());
   //   JSON.stringify(DataTransformer.TracesToEndpointDependencies(traces))
   // );
 
-  // const envoyLogs: StructuredEnvoyLog[][] = [];
-  // for (const podName of await KubernetesService.getInstance().getPodNames(
-  //   namespace
-  // )) {
-  //   envoyLogs.push(
-  //     await KubernetesService.getInstance().getStructuredEnvoyLogs(
-  //       namespace,
-  //       podName
-  //     )
-  //   );
-  // }
+  const envoyLogs: StructuredEnvoyLog[][] = [];
+  const rawLogs = [];
+  for (const podName of await KubernetesService.getInstance().getPodNames(
+    namespace
+  )) {
+    envoyLogs.push(
+      await KubernetesService.getInstance().getStructuredEnvoyLogs(
+        namespace,
+        podName
+      )
+    );
+    rawLogs.push(
+      await KubernetesService.getInstance().getEnvoyLogs(namespace, podName)
+    );
+  }
+  console.log(JSON.stringify(rawLogs.slice(0, 1).map((l) => l.slice(0, 5))));
+
+  // console.log(JSON.stringify(envoyLogs.slice(0, 2)));
 
   // const realtimeData = DataAggregator.TracesAndLogsToRealtimeData(
   //   traces,
