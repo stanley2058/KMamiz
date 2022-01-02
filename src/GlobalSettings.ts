@@ -1,13 +1,13 @@
 type Settings = {
-  serviceEndpointsProhibitBodyTracing: Set<string>;
-  pollingInterval: number;
-  envoyLogLevel: "info" | "warning" | "error";
+  ProhibitBodyTracingEndpoints: Set<string>;
+  PollingInterval: number;
+  EnvoyLogLevel: "info" | "warning" | "error";
 };
 
 const GlobalSettings: Settings = {
-  // `(${serviceName}-${serviceVersion}) ${endpointName}`
-  serviceEndpointsProhibitBodyTracing: new Set<string>([]),
-  pollingInterval: 500, // ms
-  envoyLogLevel: "info",
+  // `(${service}\t${namespace}\t${version}) ${endpointName}`
+  ProhibitBodyTracingEndpoints: new Set<string>([]),
+  PollingInterval: 500, // ms
+  EnvoyLogLevel: "info",
 };
 export default GlobalSettings;

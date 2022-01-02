@@ -4,7 +4,6 @@ import EnvoyLog from "../interfaces/EnvoyLog";
 import { PodList } from "../interfaces/PodList";
 import ReplicaCount from "../interfaces/ReplicaCount";
 import { ServiceList } from "../interfaces/ServiceList";
-import StructuredEnvoyLog from "../interfaces/StructuredEnvoyLog";
 import DataTransformer from "../utils/DataTransformer";
 
 export default class KubernetesService {
@@ -82,7 +81,7 @@ export default class KubernetesService {
   async getEnvoyLogs(
     namespace: string,
     podName: string,
-    limit: number = (this.DEFAULT_LOG_LIMIT = 100000)
+    limit: number = this.DEFAULT_LOG_LIMIT
   ) {
     const { data } = await this.logClient.get<string>(
       `/namespaces/${namespace}/pods/${podName}/log?container=istio-proxy&tailLines=${limit}`,
@@ -95,7 +94,7 @@ export default class KubernetesService {
       .filter((line) => line.includes("script log: "))
       .map((line) =>
         line.replace(
-          `\t${GlobalSettings.envoyLogLevel}\tenvoy lua\tscript log: `,
+          `\t${GlobalSettings.EnvoyLogLevel}\tenvoy lua\tscript log: `,
           "\t"
         )
       );
@@ -106,7 +105,7 @@ export default class KubernetesService {
   async getStructuredEnvoyLogs(
     namespace: string,
     podName: string,
-    limit: number = (this.DEFAULT_LOG_LIMIT = 100000)
+    limit: number = this.DEFAULT_LOG_LIMIT
   ) {
     return DataTransformer.EnvoyLogsToStructureEnvoyLogs(
       await this.getEnvoyLogs(namespace, podName, limit)

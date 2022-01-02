@@ -10,7 +10,7 @@ export default class Utils {
           if (typeof o === "object") {
             if (Array.isArray(o) && o.length > 0 && typeof o[0] === "object") {
               o = o.map((o) => sortObject(o));
-            } else o = sortObject(o);
+            } else if (!Array.isArray(o)) o = sortObject(o);
           }
           prev[curr] = o;
           return prev;
