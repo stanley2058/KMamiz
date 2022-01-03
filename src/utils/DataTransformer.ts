@@ -250,10 +250,16 @@ export default class DataTransformer {
 
   static TraceToEndpointInfo(trace: Trace) {
     const [host, port, path] = Utils.ExplodeUrl(trace.tags["http.url"]);
-    const [, , , serviceName, namespace, clusterName] = Utils.ExplodeUrl(
+    let [, , , serviceName, namespace, clusterName] = Utils.ExplodeUrl(
       trace.name,
       true
     );
+    if (!trace.name.includes(".svc.")) {
+      // probably requesting a static file from istio-ingress, fallback to using istio annotations
+      serviceName = trace.tags["istio.canonical_service"];
+      namespace = trace.tags["istio.namespace"];
+      clusterName = trace.tags["istio.mesh_id"];
+    }
     return {
       name: trace.name,
       version: trace.tags["istio.canonical_revision"] || "NONE",

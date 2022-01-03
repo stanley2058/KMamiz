@@ -1,4 +1,5 @@
 import JsonToTS from "json-to-ts";
+import Logger from "./Logger";
 
 export default class Utils {
   static ObjectToInterfaceString(object: any, name: string = "Root") {
@@ -32,10 +33,15 @@ export default class Utils {
     if (isServiceUrl) {
       const [, serviceFullName, clusterName] =
         host.match(/(.*).svc.(.*)/) || [];
-      const nameDivider = serviceFullName.lastIndexOf(".");
-      const serviceName = serviceFullName.slice(0, nameDivider);
-      const namespace = serviceFullName.slice(nameDivider + 1);
-      returnArray.push(serviceName, namespace, clusterName);
+      if (!serviceFullName) {
+        Logger.warn("Could not parse service url: [", url, "], skipping.");
+        Logger.plain.verbose("With trace:", new Error().stack);
+      } else {
+        const nameDivider = serviceFullName.lastIndexOf(".");
+        const serviceName = serviceFullName.slice(0, nameDivider);
+        const namespace = serviceFullName.slice(nameDivider + 1);
+        returnArray.push(serviceName, namespace, clusterName);
+      }
     }
     return returnArray;
   }

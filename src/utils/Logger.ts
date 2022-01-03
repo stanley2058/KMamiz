@@ -1,20 +1,39 @@
 import log from "npmlog";
 
-export default class Logger {
-  private static get prefix() {
-    return `[${new Date().toISOString()}]`;
-  }
+const LogLevelList = ["verbose", "info", "warn", "error"] as const;
+type LogLevels = typeof LogLevelList[number];
 
-  static verbose(message: string, ...args: any[]): void {
-    log.verbose(this.prefix, message, ...args);
-  }
-  static info(message: string, ...args: any[]): void {
-    log.info(this.prefix, message, ...args);
-  }
-  static warn(message: string, ...args: any[]): void {
-    log.warn(this.prefix, message, ...args);
-  }
-  static error(message: string, ...args: any[]): void {
-    log.error(this.prefix, message, ...args);
-  }
-}
+const prefixed = (prefix: string) => {
+  return LogLevelList.reduce(
+    (acc, l) => {
+      acc[l] = (message, ...args) => log[l](prefix, message, ...args);
+      return acc;
+    },
+    {} as {
+      [l in LogLevels]: (message: string, ...args: any[]) => void;
+    }
+  );
+};
+
+const Logger = {
+  /**
+   *  Defaults loggers, prefixed with timestamp
+   */
+  ...prefixed(`[${new Date().toISOString()}]`),
+  /**
+   * Logger.plain logs plain messages without any prefixes
+   */
+  plain: prefixed(""),
+  /**
+   * Logger.prefixed allows custom prefixes
+   */
+  prefixed,
+  /**
+   * Set the global log level, defaults to "info"
+   * @param level log level
+   * @returns current log level
+   */
+  setGlobalLogLevel: (level: LogLevels) => (log.level = level),
+};
+
+export default Logger;

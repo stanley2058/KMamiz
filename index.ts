@@ -11,6 +11,7 @@ import EnvoyLog from "./src/interfaces/EnvoyLog";
 import DataAggregator from "./src/utils/DataAggregator";
 import StructuredEnvoyLog from "./src/interfaces/StructuredEnvoyLog";
 import DataTransformer from "./src/utils/DataTransformer";
+import Logger from "./src/utils/Logger";
 
 const app = express();
 app.use(express.json());
@@ -46,7 +47,7 @@ app.use(Routes.getInstance().getRoutes());
       await KubernetesService.getInstance().getEnvoyLogs(namespace, podName)
     );
   }
-  console.log(JSON.stringify(rawLogs.slice(0, 1).map((l) => l.slice(0, 5))));
+  // console.log(JSON.stringify(rawLogs.slice(0, 1).map((l) => l.slice(0, 5))));
 
   // console.log(JSON.stringify(envoyLogs.slice(0, 2)));
 
@@ -65,7 +66,7 @@ app.use(Routes.getInstance().getRoutes());
       replicas: 1,
     };
   });
-  console.log(replicas);
+  // console.log(replicas);
 
   const realtimeData = DataTransformer.TracesToRealTimeData(traces);
   const serviceDependency =
@@ -98,19 +99,11 @@ app.use(Routes.getInstance().getRoutes());
       Utils.NormalizeStrategy.BetweenFixedNumber
     )
   );
-
-  // productpage-v1 Norm(1/1)   * Norm(0.6259875891069403  * 0.278 * 0.001) = Norm(1)   * Norm(0.000174) =
-  // reviews-v1     Norm(1/1)   * Norm(1                   * 0.111 * 0.005) = Norm(1)   * Norm(0.000555) =
-  // reviews-v2     Norm(1/1)   * Norm(0.7287172536262556  * 0.083 * 0.010) = Norm(1)   * Norm(0.000605) =
-  // reviews-v3     Norm(1/1)   * Norm(0.7451663179693577  * 0.083 * 0.007) = Norm(1)   * Norm(0.000433) =
-  // details-v1     Norm(1/1)   * Norm(0.1                 * 0.278 * 0.002) = Norm(1)   * Norm(0.000056) =
-  // ratings-v1     Norm(2.5/1) * Norm(0.16155461795545867 * 0.167 * 0.003) = Norm(2.5) * Norm(0.000081) =
-
-  // console.log(
-  //   JSON.stringify(
-  //     DataAggregator.TracesToAggregatedDataAndHistoryData(traces, replicas)
-  //   )
-  // );
+  console.log(
+    JSON.stringify(
+      DataAggregator.TracesToAggregatedDataAndHistoryData(traces, replicas)
+    )
+  );
 })();
 // End testing area
 
