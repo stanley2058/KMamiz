@@ -33,28 +33,31 @@ export default class DataTransformer {
       })),
     };
 
-    return endpointDependencies.reduce((prev, { endpoint, dependencies }) => {
-      prev.nodes.push({
-        id: `${endpoint.version}-${endpoint.name}`,
-        name: `(${endpoint.service} ${endpoint.version}) ${endpoint.path}`,
-        group: endpoint.service,
-      });
+    return endpointDependencies.reduce(
+      (prev, { endpoint, dependsOn: dependencies }) => {
+        prev.nodes.push({
+          id: `${endpoint.version}-${endpoint.name}`,
+          name: `(${endpoint.service} ${endpoint.version}) ${endpoint.path}`,
+          group: endpoint.service,
+        });
 
-      dependencies.forEach((dependency) => {
-        const source = `${endpoint.version}-${endpoint.name}`;
-        prev.links = prev.links.concat(
-          endpointDependencies
-            .filter(
-              (e) =>
-                e.endpoint.name === dependency.endpoint.name &&
-                dependency.distance === 1
-            )
-            .map((e) => `${e.endpoint.version}-${e.endpoint.name}`)
-            .map((target) => ({ source, target }))
-        );
-      });
-      return prev;
-    }, initialGraphData);
+        dependencies.forEach((dependency) => {
+          const source = `${endpoint.version}-${endpoint.name}`;
+          prev.links = prev.links.concat(
+            endpointDependencies
+              .filter(
+                (e) =>
+                  e.endpoint.name === dependency.endpoint.name &&
+                  dependency.distance === 1
+              )
+              .map((e) => `${e.endpoint.version}-${e.endpoint.name}`)
+              .map((target) => ({ source, target }))
+          );
+        });
+        return prev;
+      },
+      initialGraphData
+    );
   }
 
   static TracesToRealTimeData(traces: Trace[][]) {
@@ -92,7 +95,7 @@ export default class DataTransformer {
       }[] = [];
       /**
        * algorithm description:
-       * 1. pop the an endpoint from the dependencyList, add it to the dependencies
+       * 1. pop an endpoint from the dependencyList, add it to the dependencies
        * 2. add all of its children to the queue
        * 3. if the dependencyList is empty, increase the distance by 1,
        *    assign queue to dependentList, clear the queue and repeat step 1
@@ -128,9 +131,29 @@ export default class DataTransformer {
           depth++;
         }
       }
+      // add endpoint info and dependencies to overall endpoint dependencies
       endpointDependencies.push({
         endpoint: info,
-        dependencies,
+        dependsOn: dependencies,
+        // fill dependBy later
+        dependBy: [],
+      });
+    });
+
+    // fill dependBy
+    endpointDependencies.forEach((e) => {
+      // for every dependency
+      e.dependsOn.forEach((d) => {
+        const uniqueName = `${d.endpoint.version}\t${d.endpoint.name}`;
+        // push self to the dependBy of the dependency
+        endpointDependencies
+          .find(
+            (ep) => `${ep.endpoint.version}\t${ep.endpoint.name}` === uniqueName
+          )!
+          .dependBy.push({
+            endpoint: e.endpoint,
+            distance: d.distance,
+          });
       });
     });
     return endpointDependencies;
@@ -138,7 +161,9 @@ export default class DataTransformer {
   private static createEndpointInfoAndDependenciesMapFromTrace(
     traces: Trace[][]
   ) {
+    // endpointInfoMap: uniqueName -> EndpointInfo
     const endpointInfoMap = new Map<string, EndpointInfo>();
+    // endpointDependenciesMap: uniqueName -> [dependent service uniqueName]
     const endpointDependenciesMap = new Map<string, Set<string>>();
     traces.forEach((trace) => {
       const endpointMap: {
@@ -210,7 +235,7 @@ export default class DataTransformer {
 
       // create links info from endpointDependencies
       const linkMap = dependency
-        .map((dep) => dep.dependencies)
+        .map((dep) => [...dep.dependsOn, ...dep.dependBy])
         .flat()
         .map((dep) => {
           const { service: serviceName, namespace, version } = dep.endpoint;

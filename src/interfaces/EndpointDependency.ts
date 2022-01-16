@@ -1,7 +1,11 @@
 export default interface EndpointDependency {
   endpoint: EndpointInfo;
   // depends on
-  dependencies: {
+  dependsOn: {
+    endpoint: EndpointInfo;
+    distance: number;
+  }[];
+  dependBy: {
     endpoint: EndpointInfo;
     distance: number;
   }[];

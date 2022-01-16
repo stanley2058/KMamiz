@@ -102,15 +102,23 @@ export default class RiskAnalyzer {
 
   static Probability(data: RealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
-    const invokePossibilityAndErrorRate = this.PossibilityAndErrorRate(data);
-    const rawProb = data.map(({ service: name }) => ({
-      service: name,
-      probability:
-        (reliabilityMetric.find((m) => m.service === name)?.norm ||
-          this.MINIMUM_PROB) *
-        (invokePossibilityAndErrorRate.find((m) => m.service === name)
-          ?.possibility || this.MINIMUM_PROB),
-    }));
+    const invokePossibilityAndErrorRate =
+      this.InvokeProbabilityAndErrorRate(data);
+    const rawProb = data.map(({ service: name }) => {
+      const { norm } = reliabilityMetric.find((m) => m.service === name) || {
+        norm: this.MINIMUM_PROB,
+        metric: this.MINIMUM_PROB,
+      };
+      const { probability: possibility, errorRate } =
+        invokePossibilityAndErrorRate.find((m) => m.service === name) || {
+          probability: this.MINIMUM_PROB,
+          errorRate: this.MINIMUM_PROB,
+        };
+      return {
+        service: name,
+        probability: norm * possibility * errorRate,
+      };
+    });
 
     const normProb = Utils.NormalizeNumbers(
       rawProb.map(({ probability }) => probability),
@@ -136,7 +144,38 @@ export default class RiskAnalyzer {
     ).map(([service, { factor }]) => ({ service, factor }));
   }
 
-  static PossibilityAndErrorRate(
+  /**
+   * ACS = AIS x ADS (More info in following source code)
+   * @param dependencies
+   * @returns ACS score
+   */
+  static RelyingFactorAlt(dependencies: ServiceDependency[]) {
+    /**
+     * ACS: Absolute Criticality of the Service
+     * AIS: Absolute Importance of the Service
+     *      Count of lower dependency
+     * ADS: Absolute Dependence of the Service
+     *      Count of upper dependency
+     */
+    return Object.entries(
+      dependencies.reduce((prev, { links }) => {
+        links
+          .filter((l) => l.distance === 1)
+          .forEach((l) => {
+            const uniqueName = `${l.service}\t${l.namespace}\t${l.version}`;
+            if (!prev[uniqueName]) {
+              prev[uniqueName] = {
+                factor: 0,
+              };
+            }
+            prev[uniqueName].factor += l.count;
+          });
+        return prev;
+      }, {} as { [id: string]: { factor: number } })
+    ).map(([service, { factor }]) => ({ service, factor }));
+  }
+
+  static InvokeProbabilityAndErrorRate(
     data: RealtimeData[],
     includeRequestError: boolean = false
   ) {
@@ -160,19 +199,19 @@ export default class RiskAnalyzer {
     let total = 0;
     invokedCounts.forEach((value) => (total += value.count));
 
-    const invokePossibility: {
+    const invokeProbability: {
       service: string;
-      possibility: number;
+      probability: number;
       errorRate: number;
     }[] = [];
     invokedCounts.forEach((value, key) => {
-      invokePossibility.push({
+      invokeProbability.push({
         service: key,
-        possibility: value.count / total,
+        probability: value.count / total,
         errorRate: value.error / value.count,
       });
     });
-    return invokePossibility;
+    return invokeProbability;
   }
 
   static ReliabilityMetric(data: RealtimeData[]) {
