@@ -1,6 +1,8 @@
 import { IEndpointDependency } from "../entities/IEndpointDependency";
 import IGraphData from "../entities/IGraphData";
-import IServiceDependency from "../entities/IServiceDependency";
+import IServiceDependency, {
+  IServiceLinkInfo,
+} from "../entities/IServiceDependency";
 
 export class EndpointDependencies {
   private readonly _dependencies: IEndpointDependency[];
@@ -87,21 +89,8 @@ export class EndpointDependencies {
       );
 
       // create links info from endpointDependencies
-      const linkMap = dependency
-        .map((dep) => [...dep.dependsOn, ...dep.dependBy])
-        .flat()
-        .map((dep) => {
-          const { service: serviceName, namespace, version } = dep.endpoint;
-          return {
-            uniqueName: `${serviceName}\t${namespace}\t${version}`,
-            distance: dep.distance,
-          };
-        })
-        .reduce((prev, { uniqueName, distance }) => {
-          if (!prev[uniqueName]) prev[uniqueName] = { distance, count: 1 };
-          else prev[uniqueName].count++;
-          return prev;
-        }, {} as { [uniqueName: string]: { distance: number; count: number } });
+      const linkMap =
+        EndpointDependencies.createServiceToLinksMapping(dependency);
 
       // combine all previous data to create a service dependency
       const [service, namespace, version] = uniqueName.split("\t");
@@ -110,19 +99,49 @@ export class EndpointDependencies {
         namespace,
         version,
         dependency,
-        links: Object.entries(linkMap).map(
-          ([uniqueName, { distance, count }]) => {
-            const [service, namespace, version] = uniqueName.split("\t");
-            return {
-              service,
-              namespace,
-              version,
-              distance,
-              count,
-            };
-          }
-        ),
+        links: Object.entries(linkMap).map(([uniqueName, info]) => {
+          const [service, namespace, version] = uniqueName.split("\t");
+          return {
+            service,
+            namespace,
+            version,
+            ...info,
+          };
+        }),
       } as IServiceDependency;
     });
+  }
+
+  private static createServiceToLinksMapping(
+    dependency: IEndpointDependency[]
+  ) {
+    // create links info from endpointDependencies
+    const linkMap = dependency
+      .map((dep) => [...dep.dependsOn, ...dep.dependBy])
+      .flat()
+      .map((dep) => {
+        const { service: serviceName, namespace, version } = dep.endpoint;
+        return {
+          uniqueName: `${serviceName}\t${namespace}\t${version}`,
+          distance: dep.distance,
+          type: dep.type,
+        };
+      })
+      .reduce((prev, { uniqueName, distance, type }) => {
+        if (!prev[uniqueName]) {
+          prev[uniqueName] = {
+            distance,
+            count: 1,
+            linkedTo: type === "CLIENT" ? 1 : 0,
+            linkedBy: type === "SERVER" ? 1 : 0,
+          };
+        } else {
+          prev[uniqueName].count++;
+          if (type === "CLIENT") prev[uniqueName].linkedTo++;
+          else prev[uniqueName].linkedBy++;
+        }
+        return prev;
+      }, {} as { [uniqueName: string]: IServiceLinkInfo });
+    return linkMap;
   }
 }

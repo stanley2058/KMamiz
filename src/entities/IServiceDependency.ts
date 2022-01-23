@@ -7,11 +7,17 @@ export default interface IServiceDependency {
   namespace: string;
   version: string;
   dependency: IEndpointDependency[];
-  links: {
-    service: string;
-    namespace: string;
-    version: string;
-    distance: number;
-    count: number;
-  }[];
+  links: IServiceLink[];
 }
+
+export type IServiceLink = IServiceLinkInfo & {
+  service: string;
+  namespace: string;
+  version: string;
+};
+export type IServiceLinkInfo = {
+  distance: number;
+  count: number;
+  linkedTo: number;
+  linkedBy: number;
+};

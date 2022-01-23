@@ -110,7 +110,7 @@ export class Trace {
       new Map<string, ITrace[]>()
     );
 
-    return structuredLogs
+    const realtimeData = structuredLogs
       .map((log) => log.traces)
       .flat()
       .map((trace) => {
@@ -140,6 +140,7 @@ export class Trace {
         } as IRealtimeData;
       })
       .filter((data) => !!data) as IRealtimeData[];
+    return new RealtimeData(realtimeData);
   }
 
   toEndpointDependencies() {
@@ -194,7 +195,7 @@ export class Trace {
       // add endpoint info and dependencies to overall endpoint dependencies
       endpointDependencies.push({
         endpoint: info,
-        dependsOn: dependencies,
+        dependsOn: dependencies.map((d) => ({ ...d, type: "CLIENT" })),
         // fill dependBy later
         dependBy: [],
       });
@@ -213,6 +214,7 @@ export class Trace {
           .dependBy.push({
             endpoint: e.endpoint,
             distance: d.distance,
+            type: "SERVER",
           });
       });
     });

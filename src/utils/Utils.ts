@@ -22,7 +22,7 @@ export default class Utils {
   /**
    * Explode url into meaningful parts
    * @param url url to explode
-   * @param isServiceUrl if is a Kubernetes service url
+   * @param isServiceUrl if is a Kubernetes service url, default: false
    * @returns [host, port, path, serviceName, namespace, clusterName]
    */
   static ExplodeUrl(url: string, isServiceUrl = false) {
