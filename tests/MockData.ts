@@ -3173,7 +3173,7 @@ const MockEndpointDependencies = [
           service: "reviews",
           version: "v2",
         },
-        type: "SERVER",
+        type: "CLIENT",
       },
       {
         distance: 2,
@@ -3187,7 +3187,7 @@ const MockEndpointDependencies = [
           service: "productpage",
           version: "v1",
         },
-        type: "SERVER",
+        type: "CLIENT",
       },
       {
         distance: 1,
@@ -3201,7 +3201,7 @@ const MockEndpointDependencies = [
           service: "reviews",
           version: "v3",
         },
-        type: "SERVER",
+        type: "CLIENT",
       },
     ],
     dependsOn: [],
