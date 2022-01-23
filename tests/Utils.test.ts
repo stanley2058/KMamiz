@@ -1,3 +1,4 @@
+import Normalizer from "../src/utils/Normalizer";
 import Utils from "../src/utils/Utils";
 
 describe("Utils", () => {
@@ -54,11 +55,14 @@ describe("Utils", () => {
     const sigmoid = (value: number) => 1 / (1 + Math.exp(-value));
     const input = [1, 2, 3];
     expect(
-      Utils.NormalizeNumbers(input, Utils.NormalizeStrategy.BetweenFixedNumber)
+      Normalizer.Numbers(input, Normalizer.Strategy.BetweenFixedNumber)
     ).toEqual([0.1, 0.55, 1]);
 
+    expect(Normalizer.Numbers(input, Normalizer.Strategy.Sigmoid)).toEqual(
+      input.map(sigmoid)
+    );
     expect(
-      Utils.NormalizeNumbers(input, Utils.NormalizeStrategy.Sigmoid)
-    ).toEqual(input.map(sigmoid));
+      Normalizer.Numbers([1, 2, 4], Normalizer.Strategy.FixedRatio)
+    ).toEqual([0.25, 0.5, 1]);
   });
 });

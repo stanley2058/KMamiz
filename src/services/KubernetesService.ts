@@ -1,10 +1,10 @@
 import { Axios } from "axios";
 import GlobalSettings from "../GlobalSettings";
-import EnvoyLog from "../interfaces/EnvoyLog";
-import { PodList } from "../interfaces/PodList";
-import ReplicaCount from "../interfaces/ReplicaCount";
-import { ServiceList } from "../interfaces/ServiceList";
-import DataTransformer from "../utils/DataTransformer";
+import { EnvoyLogs } from "../classes/EnvoyLog";
+import { IPodList } from "../entities/IPodList";
+import IReplicaCount from "../entities/IReplicaCount";
+import { IServiceList } from "../entities/IServiceList";
+import { IEnvoyLog } from "../entities/IEnvoyLog";
 
 export default class KubernetesService {
   private static instance?: KubernetesService;
@@ -27,7 +27,7 @@ export default class KubernetesService {
       responseType: "json",
       transformResponse: (data) => JSON.parse(data),
     });
-    return data as PodList;
+    return data as IPodList;
   }
 
   async getServiceList(namespace: string) {
@@ -38,7 +38,7 @@ export default class KubernetesService {
         transformResponse: (data) => JSON.parse(data),
       }
     );
-    return data as ServiceList;
+    return data as IServiceList;
   }
 
   async getReplicasFromPodList(namespace: string) {
@@ -61,7 +61,7 @@ export default class KubernetesService {
         version,
         replicas,
       };
-    }) as ReplicaCount[];
+    }) as IReplicaCount[];
   }
 
   async getPodNames(namespace: string) {
@@ -102,18 +102,8 @@ export default class KubernetesService {
     return KubernetesService.ParseEnvoyLogs(logs, namespace, podName);
   }
 
-  async getStructuredEnvoyLogs(
-    namespace: string,
-    podName: string,
-    limit: number = this.DEFAULT_LOG_LIMIT
-  ) {
-    return DataTransformer.EnvoyLogsToStructureEnvoyLogs(
-      await this.getEnvoyLogs(namespace, podName, limit)
-    );
-  }
-
   static ParseEnvoyLogs(logs: string[], namespace: string, podName: string) {
-    return logs.map((l) => {
+    const envoyLogs = logs.map((l) => {
       const [time, log] = l.split("\t");
       const [, requestRid, traceId, responseRid] =
         log.match(/\[Request ([\w-]+)\/(\w+)|Response ([\w-]+)\]/) || [];
@@ -133,7 +123,8 @@ export default class KubernetesService {
         body,
         namespace,
         podName,
-      } as EnvoyLog;
+      } as IEnvoyLog;
     });
+    return new EnvoyLogs(envoyLogs);
   }
 }

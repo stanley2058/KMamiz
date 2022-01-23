@@ -1,12 +1,12 @@
 import { Types } from "mongoose";
-import EndpointDependency from "./EndpointDependency";
+import { IEndpointDependency } from "./IEndpointDependency";
 
-export default interface ServiceDependency {
+export default interface IServiceDependency {
   _id?: Types.ObjectId;
   service: string;
   namespace: string;
   version: string;
-  dependency: EndpointDependency[];
+  dependency: IEndpointDependency[];
   links: {
     service: string;
     namespace: string;

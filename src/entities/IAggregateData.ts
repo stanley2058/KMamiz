@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export default interface AggregateData {
+export default interface IAggregateData {
   _id?: Types.ObjectId;
   fromDate: Date;
   toDate: Date;

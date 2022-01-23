@@ -1,4 +1,4 @@
-import EnvoyLog from "../src/interfaces/EnvoyLog";
+import { IEnvoyLog } from "../src/entities/IEnvoyLog";
 
 const MockTrace = [
   [
@@ -3160,82 +3160,58 @@ const MockTrace = [
 
 const MockEndpointDependencies = [
   {
+    dependBy: [
+      {
+        distance: 1,
+        endpoint: {
+          clusterName: "cluster.local",
+          host: "reviews",
+          name: "reviews.book.svc.cluster.local:9080/*",
+          namespace: "book",
+          path: "/reviews/0",
+          port: ":9080",
+          service: "reviews",
+          version: "v2",
+        },
+      },
+      {
+        distance: 2,
+        endpoint: {
+          clusterName: "cluster.local",
+          host: "192.168.39.24",
+          name: "productpage.book.svc.cluster.local:9080/productpage",
+          namespace: "book",
+          path: "/productpage",
+          port: ":31629",
+          service: "productpage",
+          version: "v1",
+        },
+      },
+      {
+        distance: 1,
+        endpoint: {
+          clusterName: "cluster.local",
+          host: "reviews",
+          name: "reviews.book.svc.cluster.local:9080/*",
+          namespace: "book",
+          path: "/reviews/0",
+          port: ":9080",
+          service: "reviews",
+          version: "v3",
+        },
+      },
+    ],
+    dependsOn: [],
     endpoint: {
-      name: "ratings.book.svc.cluster.local:9080/*",
-      version: "v1",
-      service: "ratings",
-      namespace: "book",
+      clusterName: "cluster.local",
       host: "ratings",
+      name: "ratings.book.svc.cluster.local:9080/*",
+      namespace: "book",
       path: "/ratings/0",
       port: ":9080",
-      clusterName: "cluster.local",
-    },
-    dependencies: [],
-  },
-  {
-    endpoint: {
-      name: "reviews.book.svc.cluster.local:9080/*",
-      version: "v2",
-      service: "reviews",
-      namespace: "book",
-      host: "reviews",
-      path: "/reviews/0",
-      port: ":9080",
-      clusterName: "cluster.local",
-    },
-    dependencies: [[Object]],
-  },
-  {
-    endpoint: {
-      name: "productpage.book.svc.cluster.local:9080/productpage",
+      service: "ratings",
       version: "v1",
-      service: "productpage",
-      namespace: "book",
-      host: "192.168.39.24",
-      path: "/productpage",
-      port: ":31629",
-      clusterName: "cluster.local",
     },
-    dependencies: [[Object], [Object], [Object], [Object], [Object]],
-  },
-  {
-    endpoint: {
-      name: "details.book.svc.cluster.local:9080/*",
-      version: "v1",
-      service: "details",
-      namespace: "book",
-      host: "details",
-      path: "/details/0",
-      port: ":9080",
-      clusterName: "cluster.local",
-    },
-    dependencies: [],
-  },
-  {
-    endpoint: {
-      name: "reviews.book.svc.cluster.local:9080/*",
-      version: "v3",
-      service: "reviews",
-      namespace: "book",
-      host: "reviews",
-      path: "/reviews/0",
-      port: ":9080",
-      clusterName: "cluster.local",
-    },
-    dependencies: [[Object]],
-  },
-  {
-    endpoint: {
-      name: "reviews.book.svc.cluster.local:9080/*",
-      version: "v1",
-      service: "reviews",
-      namespace: "book",
-      host: "reviews",
-      path: "/reviews/0",
-      port: ":9080",
-      clusterName: "cluster.local",
-    },
-    dependencies: [],
   },
 ];
 
@@ -3288,6 +3264,6 @@ const MockLogs = [
     namespace: "book",
     podName: "details-v1-7dcb9897f-pnxxc",
   },
-] as EnvoyLog[];
+] as IEnvoyLog[];
 
 export { MockTrace, MockEndpointDependencies, MockLogs };

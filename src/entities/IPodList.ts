@@ -1,4 +1,4 @@
-export interface PodList {
+export interface IPodList {
   kind: string;
   apiVersion: string;
   metadata: { resourceVersion: string };

@@ -1,16 +1,16 @@
-export default interface EndpointDependency {
-  endpoint: EndpointInfo;
+export interface IEndpointDependency {
+  endpoint: IEndpointInfo;
   // depends on
   dependsOn: {
-    endpoint: EndpointInfo;
+    endpoint: IEndpointInfo;
     distance: number;
   }[];
   dependBy: {
-    endpoint: EndpointInfo;
+    endpoint: IEndpointInfo;
     distance: number;
   }[];
 }
-export interface EndpointInfo {
+export interface IEndpointInfo {
   name: string;
   service: string;
   namespace: string;

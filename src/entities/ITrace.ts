@@ -1,4 +1,4 @@
-export default interface Trace {
+export interface ITrace {
   traceId: string;
   parentId?: string;
   id: string;

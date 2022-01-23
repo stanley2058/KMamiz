@@ -1,16 +1,17 @@
-import AggregateData from "../interfaces/AggregateData";
-import RealtimeData from "../interfaces/RealtimeData";
-import ReplicaCount from "../interfaces/ReplicaCount";
-import ServiceDependency from "../interfaces/ServiceDependency";
+import IAggregateData from "../entities/IAggregateData";
+import { IRealtimeData } from "../entities/IRealtimeData";
+import IReplicaCount from "../entities/IReplicaCount";
+import IServiceDependency from "../entities/IServiceDependency";
+import Normalizer from "./Normalizer";
 import Utils from "./Utils";
 
 export default class RiskAnalyzer {
   private static readonly MINIMUM_PROB = 0.1;
 
   static RealtimeRisk(
-    data: RealtimeData[],
-    dependencies: ServiceDependency[],
-    replicas: ReplicaCount[]
+    data: IRealtimeData[],
+    dependencies: IServiceDependency[],
+    replicas: IReplicaCount[]
   ) {
     data = data.map((d) => ({
       ...d,
@@ -43,9 +44,9 @@ export default class RiskAnalyzer {
       };
     });
 
-    const normRisk = Utils.NormalizeNumbers(
+    const normRisk = Normalizer.Numbers(
       risks.map(({ risk }) => risk),
-      Utils.NormalizeStrategy.BetweenFixedNumber
+      Normalizer.Strategy.BetweenFixedNumber
     );
 
     return risks.map((r, i) => ({ ...r, norm: normRisk[i] }));
@@ -58,7 +59,7 @@ export default class RiskAnalyzer {
       version: string;
       risk: number;
     }[],
-    aggregateData: AggregateData
+    aggregateData: IAggregateData
   ) {
     const totalDays =
       (aggregateData.toDate.getTime() - aggregateData.fromDate.getTime()) /
@@ -79,7 +80,7 @@ export default class RiskAnalyzer {
     });
   }
 
-  static Impact(dependencies: ServiceDependency[], replicas: ReplicaCount[]) {
+  static Impact(dependencies: IServiceDependency[], replicas: IReplicaCount[]) {
     const rawImpact = this.RelyingFactor(dependencies).map(
       ({ service, factor }) => ({
         service,
@@ -92,15 +93,15 @@ export default class RiskAnalyzer {
       })
     );
 
-    const normImpact = Utils.NormalizeNumbers(
+    const normImpact = Normalizer.Numbers(
       rawImpact.map(({ impact }) => impact),
-      Utils.NormalizeStrategy.BetweenFixedNumber
+      Normalizer.Strategy.BetweenFixedNumber
     );
 
     return rawImpact.map((i, iIndex) => ({ ...i, impact: normImpact[iIndex] }));
   }
 
-  static Probability(data: RealtimeData[]) {
+  static Probability(data: IRealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
     const invokePossibilityAndErrorRate =
       this.InvokeProbabilityAndErrorRate(data);
@@ -120,14 +121,14 @@ export default class RiskAnalyzer {
       };
     });
 
-    const normProb = Utils.NormalizeNumbers(
+    const normProb = Normalizer.Numbers(
       rawProb.map(({ probability }) => probability),
-      Utils.NormalizeStrategy.BetweenFixedNumber
+      Normalizer.Strategy.BetweenFixedNumber
     );
     return rawProb.map((p, i) => ({ ...p, probability: normProb[i] }));
   }
 
-  static RelyingFactor(dependencies: ServiceDependency[]) {
+  static RelyingFactor(dependencies: IServiceDependency[]) {
     return Object.entries(
       dependencies.reduce((prev, { links }) => {
         links.forEach((l) => {
@@ -149,7 +150,7 @@ export default class RiskAnalyzer {
    * @param dependencies
    * @returns ACS score
    */
-  static RelyingFactorAlt(dependencies: ServiceDependency[]) {
+  static RelyingFactorAlt(dependencies: IServiceDependency[]) {
     /**
      * ACS: Absolute Criticality of the Service
      * AIS: Absolute Importance of the Service
@@ -176,7 +177,7 @@ export default class RiskAnalyzer {
   }
 
   static InvokeProbabilityAndErrorRate(
-    data: RealtimeData[],
+    data: IRealtimeData[],
     includeRequestError: boolean = false
   ) {
     const invokedCounts = data
@@ -214,7 +215,7 @@ export default class RiskAnalyzer {
     return invokeProbability;
   }
 
-  static ReliabilityMetric(data: RealtimeData[]) {
+  static ReliabilityMetric(data: IRealtimeData[]) {
     const latencyMap = data.reduce((acc, cur) => {
       acc.set(cur.service, (acc.get(cur.service) || []).concat(cur.latency));
       return acc;
@@ -228,9 +229,9 @@ export default class RiskAnalyzer {
       });
     });
 
-    const normalizedMetrics = Utils.NormalizeNumbers(
+    const normalizedMetrics = Normalizer.Numbers(
       reliabilityMetric.map(({ metric }) => metric),
-      Utils.NormalizeStrategy.BetweenFixedNumber
+      Normalizer.Strategy.BetweenFixedNumber
     );
     return reliabilityMetric.map((m, i) => ({
       ...m,

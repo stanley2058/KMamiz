@@ -1,44 +1,44 @@
-import EndpointDependency from "../src/interfaces/EndpointDependency";
-import RealtimeData from "../src/interfaces/RealtimeData";
-import ServiceDependency from "../src/interfaces/ServiceDependency";
-import DataTransformer from "../src/utils/DataTransformer";
+import { Trace } from "../src/classes/Trace";
+import { EnvoyLogs } from "../src/classes/EnvoyLog";
+import { RealtimeData } from "../src/classes/RealtimeData";
+import IServiceDependency from "../src/entities/IServiceDependency";
 
 import { MockEndpointDependencies, MockLogs, MockTrace } from "./MockData";
+import { EndpointDependencies } from "../src/classes/EndpointDependency";
 
 describe("DataTransformer", () => {
-  let endpointDependencies: EndpointDependency[];
-  let realtimeData: RealtimeData[];
-  let serviceDependency: ServiceDependency[];
+  let endpointDependencies: EndpointDependencies;
+  let realtimeData: RealtimeData;
+  let serviceDependency: IServiceDependency[];
 
   it("converts traces to endpoint dependencies", () => {
-    endpointDependencies =
-      DataTransformer.TracesToEndpointDependencies(MockTrace);
-    expect(endpointDependencies).toHaveLength(6);
-    expect(endpointDependencies).toContainEqual(MockEndpointDependencies[0]);
+    endpointDependencies = new Trace(MockTrace).toEndpointDependencies();
+    expect(endpointDependencies.dependencies).toHaveLength(6);
+    expect(endpointDependencies.dependencies).toContainEqual(
+      MockEndpointDependencies[0]
+    );
   });
 
   it("converts endpoint dependencies to graph data", () => {
-    const graphData =
-      DataTransformer.EndpointDependenciesToGraphData(endpointDependencies);
+    const graphData = endpointDependencies.toGraphData();
     expect(graphData.nodes).toHaveLength(10);
     expect(graphData.links).toHaveLength(18);
   });
 
   it("converts traces to realtime data", () => {
-    realtimeData = DataTransformer.TracesToRealTimeData(MockTrace);
-    expect(realtimeData).toHaveLength(MockTrace.flat().length / 2);
+    realtimeData = new Trace(MockTrace).toRealTimeData();
+    expect(realtimeData.realtimeData).toHaveLength(MockTrace.flat().length / 2);
   });
 
   it("converts endpoint dependencies to service dependencies", () => {
-    serviceDependency =
-      DataTransformer.EndpointDependenciesToServiceDependencies(
-        endpointDependencies
-      );
-    expect(serviceDependency).toHaveLength(endpointDependencies.length);
+    serviceDependency = endpointDependencies.toServiceDependencies();
+    expect(serviceDependency).toHaveLength(
+      endpointDependencies.dependencies.length
+    );
   });
 
   it("converts trace to endpoint info", () => {
-    const info = DataTransformer.TraceToEndpointInfo(MockTrace[0][0]);
+    const info = Trace.ToEndpointInfo(MockTrace[0][0]);
     expect(info).toEqual({
       name: "ratings.book.svc.cluster.local:9080/*",
       version: "v1",
@@ -52,8 +52,7 @@ describe("DataTransformer", () => {
   });
 
   it("converts EnvoyLogs to StructureEnvoyLogs", () => {
-    const structuredEnvoyLogs =
-      DataTransformer.EnvoyLogsToStructureEnvoyLogs(MockLogs);
+    const structuredEnvoyLogs = new EnvoyLogs(MockLogs).toStructured();
     expect(structuredEnvoyLogs).toEqual([
       {
         requestId: "e8c54b43-d810-912c-8b08-e4c2f6249b19",
@@ -113,10 +112,7 @@ describe("DataTransformer", () => {
   });
 
   it("converts realtime data to history data", () => {
-    const historyData = DataTransformer.RealtimeDataToHistoryData(
-      realtimeData,
-      serviceDependency
-    );
+    const historyData = realtimeData.toHistoryData(serviceDependency);
     expect(historyData[0].services).toHaveLength(6);
   });
 });

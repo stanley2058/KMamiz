@@ -1,9 +1,9 @@
-import DataAggregator from "../src/utils/DataAggregator";
-import DataTransformer from "../src/utils/DataTransformer";
+import { EnvoyLogs } from "../src/classes/EnvoyLog";
+import { Trace } from "../src/classes/Trace";
 import { MockLogs, MockTrace } from "./MockData";
 
 describe("DataAggregator", () => {
-  const logs = DataTransformer.EnvoyLogsToStructureEnvoyLogs(MockLogs);
+  const logs = new EnvoyLogs(MockLogs).toStructured();
 
   /**
    * DataAggregator.TracesAndLogsToRealtimeData
@@ -13,13 +13,13 @@ describe("DataAggregator", () => {
    */
 
   it("combines structure logs", () => {
-    expect(
-      DataAggregator.CombineStructuredEnvoyLogs([logs, logs])
-    ).toHaveLength(logs.length);
+    expect(EnvoyLogs.CombineStructuredEnvoyLogs([logs, logs])).toHaveLength(
+      logs.length
+    );
   });
 
   it("creates aggregated data and history data from traces", () => {
-    const data = DataAggregator.TracesToAggregatedDataAndHistoryData(MockTrace);
+    const data = new Trace(MockTrace).toAggregatedDataAndHistoryData();
     expect(data).toHaveProperty("historyData");
     expect(data).toHaveProperty("aggregateData");
     expect(data.historyData).toHaveLength(1);

@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export default interface RealtimeData {
+export interface IRealtimeData {
   _id?: Types.ObjectId;
   timestamp: number; // zipkin timestamp in microseconds
   protocol: string;

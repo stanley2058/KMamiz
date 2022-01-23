@@ -1,5 +1,5 @@
 import { Axios } from "axios";
-import Trace from "../interfaces/Trace";
+import { ITrace } from "../entities/ITrace";
 
 export default class ZipkinService {
   private static instance?: ZipkinService;
@@ -25,7 +25,7 @@ export default class ZipkinService {
     endTs: number = Date.now(),
     serviceName: string = "istio-ingressgateway.istio-system"
   ) {
-    const response = await this.zipkinClient.get<Trace[][]>(
+    const response = await this.zipkinClient.get<ITrace[][]>(
       `/traces?serviceName=${serviceName}&endTs=${endTs}&lookback=${lookBack}&limit=100000`
     );
     return response.data;

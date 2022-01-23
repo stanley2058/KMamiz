@@ -1,4 +1,4 @@
-export interface ServiceList {
+export interface IServiceList {
   kind: string;
   apiVersion: string;
   metadata: { resourceVersion: string };

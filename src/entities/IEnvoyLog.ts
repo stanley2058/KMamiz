@@ -1,4 +1,4 @@
-export default interface EnvoyLog {
+export interface IEnvoyLog {
   namespace: string;
   podName: string;
   timestamp: Date;
@@ -9,4 +9,13 @@ export default interface EnvoyLog {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
   status?: string;
   body?: string;
+}
+
+export interface IStructuredEnvoyLog {
+  requestId: string;
+  traces: {
+    traceId: string;
+    request: IEnvoyLog;
+    response: IEnvoyLog;
+  }[];
 }

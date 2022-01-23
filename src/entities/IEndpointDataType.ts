@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export default interface EndpointDataType {
+export default interface IEndpointDataType {
   _id?: Types.ObjectId;
   service: string;
   namespace: string;
