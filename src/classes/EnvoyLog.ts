@@ -61,6 +61,10 @@ export class EnvoyLogs {
     return structuredEnvoyLogs;
   }
 
+  static CombineToStructuredEnvoyLogs(logs: EnvoyLogs[]) {
+    return this.CombineStructuredEnvoyLogs(logs.map((l) => l.toStructured()));
+  }
+
   static CombineStructuredEnvoyLogs(logs: IStructuredEnvoyLog[][]) {
     const logMap = new Map<
       string,
