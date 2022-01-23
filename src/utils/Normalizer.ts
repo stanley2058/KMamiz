@@ -1,6 +1,10 @@
 export default class Normalizer {
-  static Numbers(input: number[], strategy: (input: number[]) => number[]) {
-    return strategy(input);
+  static Numbers(
+    input: number[],
+    strategy: (input: number[], ...args: any) => number[],
+    ...args: any
+  ) {
+    return strategy(input, ...args);
   }
   static readonly Strategy = {
     /**
@@ -35,6 +39,18 @@ export default class Normalizer {
       const max = Math.max(...input);
       if (max === 0) return input;
       return input.map((value) => value / max);
+    },
+    /**
+     * Normalized with fixed ratio and scale linearly to fit in [minimum ~ 1]
+     * @param input
+     * @param minimum number < 1, default: 0.1
+     * @returns Array of number between minimum and 1
+     */
+    Linear(input: number[], minimum: number = 0.1) {
+      if (minimum >= 1) return input;
+      return Normalizer.Strategy.FixedRatio(input).map(
+        (n) => n * (1 - minimum) + minimum
+      );
     },
   };
 }
