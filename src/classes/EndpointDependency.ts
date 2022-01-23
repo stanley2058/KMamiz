@@ -132,13 +132,13 @@ export class EndpointDependencies {
           prev[uniqueName] = {
             distance,
             count: 1,
-            linkedTo: type === "CLIENT" ? 1 : 0,
-            linkedBy: type === "SERVER" ? 1 : 0,
+            dependBy: type === "CLIENT" ? 1 : 0,
+            dependsOn: type === "SERVER" ? 1 : 0,
           };
         } else {
           prev[uniqueName].count++;
-          if (type === "CLIENT") prev[uniqueName].linkedTo++;
-          else prev[uniqueName].linkedBy++;
+          if (type === "CLIENT") prev[uniqueName].dependBy++;
+          else prev[uniqueName].dependsOn++;
         }
         return prev;
       }, {} as { [uniqueName: string]: IServiceLinkInfo });

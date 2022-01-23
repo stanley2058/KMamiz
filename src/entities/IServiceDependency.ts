@@ -18,6 +18,6 @@ export type IServiceLink = IServiceLinkInfo & {
 export type IServiceLinkInfo = {
   distance: number;
   count: number;
-  linkedTo: number;
-  linkedBy: number;
+  dependBy: number;
+  dependsOn: number;
 };
