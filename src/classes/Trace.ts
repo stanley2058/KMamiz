@@ -10,6 +10,7 @@ import {
 } from "../entities/IEndpointDependency";
 import { IStructuredEnvoyLog } from "../entities/IEnvoyLog";
 import { IRealtimeData } from "../entities/IRealtimeData";
+import Logger from "../utils/Logger";
 
 export class Trace {
   private readonly _traces: ITrace[][];
@@ -130,7 +131,8 @@ export class Trace {
 
         return {
           timestamp: span.timestamp,
-          service: `${serviceName}.${namespace}`,
+          service: `${serviceName}`,
+          namespace: `${namespace}`,
           version: span.tags["istio.canonical_revision"],
           protocol: trace.request.method!,
           endpointName: trace.request.path!,
@@ -195,7 +197,7 @@ export class Trace {
       // add endpoint info and dependencies to overall endpoint dependencies
       endpointDependencies.push({
         endpoint: info,
-        dependsOn: dependencies.map((d) => ({ ...d, type: "CLIENT" })),
+        dependsOn: dependencies.map((d) => ({ ...d, type: "SERVER" })),
         // fill dependBy later
         dependBy: [],
       });
@@ -214,7 +216,7 @@ export class Trace {
           .dependBy.push({
             endpoint: e.endpoint,
             distance: d.distance,
-            type: "SERVER",
+            type: "CLIENT",
           });
       });
     });
@@ -235,32 +237,45 @@ export class Trace {
           child: Set<string>;
         };
       } = {};
-      // create endpoint mapping id -> endpoint
-      trace.forEach((span) => {
-        const info = Trace.ToEndpointInfo(span);
-        endpointMap[span.id] = {
-          info,
-          trace: span,
-          parent: span.parentId || "",
-          child: new Set<string>(),
-        };
-        const uniqueName = `${info.version}\t${info.name}`;
-        if (!endpointDependenciesMap.has(uniqueName))
-          endpointDependenciesMap.set(uniqueName, new Set<string>());
-      });
-      // use only SERVER node, child then register itself to parent
-      Object.entries(endpointMap)
-        .filter(([, { trace }]) => trace.kind === "SERVER")
-        .forEach(([, { info, parent }]) => {
+      try {
+        // create endpoint mapping id -> endpoint
+        trace.forEach((span) => {
+          const info = Trace.ToEndpointInfo(span);
+          endpointMap[span.id] = {
+            info,
+            trace: span,
+            parent: span.parentId || "",
+            child: new Set<string>(),
+          };
           const uniqueName = `${info.version}\t${info.name}`;
-          endpointInfoMap.set(uniqueName, info);
-
-          const parentServerId = endpointMap[parent].parent;
-          if (parentServerId) {
-            const parentUniqueName = `${endpointMap[parentServerId].info.version}\t${endpointMap[parentServerId].info.name}`;
-            endpointDependenciesMap.get(parentUniqueName)!.add(uniqueName);
-          }
+          if (!endpointDependenciesMap.has(uniqueName))
+            endpointDependenciesMap.set(uniqueName, new Set<string>());
         });
+
+        // use only SERVER node, child then register itself to parent
+        Object.entries(endpointMap)
+          .filter(([, { trace }]) => trace.kind === "SERVER")
+          .forEach(([, { info, parent }]) => {
+            const uniqueName = `${info.version}\t${info.name}`;
+            endpointInfoMap.set(uniqueName, info);
+
+            if (!endpointMap[parent]) {
+              Logger.warn(
+                `Parent ID [${parent}] not found, is the sidecar set up incorrect?`
+              );
+              Logger.verbose("Endpoint map:\n", endpointMap);
+              throw new Error(`parent id not found: ${parent}`);
+            }
+
+            const parentServerId = endpointMap[parent].parent;
+            if (parentServerId) {
+              const parentUniqueName = `${endpointMap[parentServerId].info.version}\t${endpointMap[parentServerId].info.name}`;
+              endpointDependenciesMap.get(parentUniqueName)!.add(uniqueName);
+            }
+          });
+      } catch (err) {
+        // already handled skip here
+      }
     });
     return { endpointInfoMap, endpointDependenciesMap };
   }
