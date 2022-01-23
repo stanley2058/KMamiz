@@ -81,17 +81,27 @@ export default class RiskAnalyzer {
   }
 
   static Impact(dependencies: IServiceDependency[], replicas: IReplicaCount[]) {
-    const rawImpact = this.RelyingFactor(dependencies).map(
-      ({ service, factor }) => ({
-        service,
-        impact:
-          factor /
-          (replicas.find(
-            ({ service: s, namespace: n, version: v }) =>
-              service === `${s}\t${n}\t${v}`
-          )?.replicas || 1),
-      })
-    );
+    const relyingFactor = this.RelyingFactor(dependencies);
+    const acs = this.AbsoluteCriticalityOfServices(dependencies);
+
+    const norm = (any: { factor: number }[]) =>
+      Normalizer.Numbers(
+        any.map(({ factor }) => factor),
+        Normalizer.Strategy.FixedRatio
+      );
+    const normRf = norm(relyingFactor);
+    const normAcs = norm(acs);
+
+    // raw impact = (normRf + normAcs) / replicas
+    const rawImpact = dependencies.map(({ service }, i) => ({
+      service,
+      impact:
+        (normRf[i] + normAcs[i]) /
+        (replicas.find(
+          ({ service: s, namespace: n, version: v }) =>
+            service === `${s}\t${n}\t${v}`
+        )?.replicas || 1),
+    }));
 
     const normImpact = Normalizer.Numbers(
       rawImpact.map(({ impact }) => impact),
@@ -130,7 +140,7 @@ export default class RiskAnalyzer {
 
   static RelyingFactor(dependencies: IServiceDependency[]) {
     return Object.entries(
-      dependencies.reduce((prev, { links }) => {
+      dependencies.reduce((prev, { links, dependency }) => {
         links.forEach((l) => {
           const uniqueName = `${l.service}\t${l.namespace}\t${l.version}`;
           if (!prev[uniqueName]) {
@@ -138,7 +148,7 @@ export default class RiskAnalyzer {
               factor: 0,
             };
           }
-          prev[uniqueName].factor += l.count / l.distance;
+          prev[uniqueName].factor += l.linkedBy / l.distance;
         });
         return prev;
       }, {} as { [id: string]: { factor: number } })
@@ -147,30 +157,32 @@ export default class RiskAnalyzer {
 
   /**
    * ACS = AIS x ADS (More info in following source code)
+   * If service is a gateway, ADS += 1
    * @param dependencies
    * @returns ACS score
    */
-  static RelyingFactorAlt(dependencies: IServiceDependency[]) {
+  static AbsoluteCriticalityOfServices(dependencies: IServiceDependency[]) {
     /**
      * ACS: Absolute Criticality of the Service
      * AIS: Absolute Importance of the Service
-     *      Count of lower dependency
+     *      Count of lower dependency (linkedTo)
      * ADS: Absolute Dependence of the Service
-     *      Count of upper dependency
+     *      Count of upper dependency (linkedBy)
      */
     return Object.entries(
-      dependencies.reduce((prev, { links }) => {
-        links
+      dependencies.reduce((prev, { service, links, dependency }) => {
+        const isGateway = dependency.find((d) => d.dependBy.length === 0);
+        const { ais, ads } = links
           .filter((l) => l.distance === 1)
-          .forEach((l) => {
-            const uniqueName = `${l.service}\t${l.namespace}\t${l.version}`;
-            if (!prev[uniqueName]) {
-              prev[uniqueName] = {
-                factor: 0,
-              };
-            }
-            prev[uniqueName].factor += l.count;
-          });
+          .reduce(
+            (prev, l) => {
+              if (l.linkedTo > 0) prev.ais++;
+              if (l.linkedBy > 0) prev.ads++;
+              return prev;
+            },
+            { ais: 0, ads: isGateway ? 1 : 0 }
+          );
+        prev[service] = { factor: ais * ads };
         return prev;
       }, {} as { [id: string]: { factor: number } })
     ).map(([service, { factor }]) => ({ service, factor }));

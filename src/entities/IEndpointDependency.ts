@@ -1,13 +1,14 @@
 export interface IEndpointDependency {
   endpoint: IEndpointInfo;
-  // depends on
   dependsOn: {
     endpoint: IEndpointInfo;
     distance: number;
+    type: "CLIENT";
   }[];
   dependBy: {
     endpoint: IEndpointInfo;
     distance: number;
+    type: "SERVER";
   }[];
 }
 export interface IEndpointInfo {
