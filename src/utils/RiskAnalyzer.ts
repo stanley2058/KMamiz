@@ -3,7 +3,6 @@ import { IRealtimeData } from "../entities/IRealtimeData";
 import IReplicaCount from "../entities/IReplicaCount";
 import IServiceDependency from "../entities/IServiceDependency";
 import Normalizer from "./Normalizer";
-import Utils from "./Utils";
 
 export default class RiskAnalyzer {
   private static readonly MINIMUM_PROB = 0.1;
@@ -29,18 +28,18 @@ export default class RiskAnalyzer {
       ...data.reduce((acc, cur) => acc.add(cur.service), new Set<string>()),
     ].map((s) => {
       const [serviceName, serviceNamespace, serviceVersion] = s.split("\t");
-      const impact =
-        impacts.find(({ service }) => service === s)?.impact ||
-        this.MINIMUM_PROB;
-      const probability =
-        probabilities.find(({ service }) => service === s)?.probability ||
-        this.MINIMUM_PROB;
+      const { impact } = impacts.find(({ service }) => service === s)!;
+      const { probability } = probabilities.find(
+        ({ service }) => service === s
+      )!;
 
       return {
         service: serviceName,
         namespace: serviceNamespace,
         version: serviceVersion,
         risk: impact * probability,
+        impact,
+        probability,
       };
     });
 
@@ -84,63 +83,63 @@ export default class RiskAnalyzer {
     const relyingFactor = this.RelyingFactor(dependencies);
     const acs = this.AbsoluteCriticalityOfServices(dependencies);
 
-    const norm = (any: { factor: number }[]) =>
+    const norm = (any: { service: string; factor: number }[]) =>
       Normalizer.Numbers(
-        any.map(({ factor }) => factor),
+        any
+          .sort((a, b) => a.service.localeCompare(b.service))
+          .map(({ factor }) => factor),
         Normalizer.Strategy.FixedRatio
       );
     const normRf = norm(relyingFactor);
     const normAcs = norm(acs);
 
     // raw impact = (normRf + normAcs) / replicas
-    const rawImpact = dependencies.map(({ service }, i) => ({
-      service,
-      impact:
-        (normRf[i] + normAcs[i]) /
-        (replicas.find(
-          ({ service: s, namespace: n, version: v }) =>
-            service === `${s}\t${n}\t${v}`
-        )?.replicas || 1),
-    }));
+    const rawImpact = dependencies
+      .map(({ service }) => service)
+      .sort()
+      .map((service, i) => ({
+        service,
+        impact:
+          (normRf[i] + normAcs[i]) /
+          (replicas.find(
+            ({ service: s, namespace: n, version: v }) =>
+              service === `${s}\t${n}\t${v}`
+          )?.replicas || 1),
+      }));
 
     const normImpact = Normalizer.Numbers(
       rawImpact.map(({ impact }) => impact),
-      Normalizer.Strategy.BetweenFixedNumber
+      Normalizer.Strategy.Linear
     );
-
     return rawImpact.map((i, iIndex) => ({ ...i, impact: normImpact[iIndex] }));
   }
 
   static Probability(data: IRealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
-    const invokePossibilityAndErrorRate =
+    const invokeProbabilityAndErrorRate =
       this.InvokeProbabilityAndErrorRate(data);
-    const rawProb = data.map(({ service: name }) => {
-      const { norm } = reliabilityMetric.find((m) => m.service === name) || {
-        norm: this.MINIMUM_PROB,
-        metric: this.MINIMUM_PROB,
-      };
+    const rawProb = reliabilityMetric.map(({ service: name }) => {
+      const { norm } = reliabilityMetric.find((m) => m.service === name)!;
       const { probability: possibility, errorRate } =
-        invokePossibilityAndErrorRate.find((m) => m.service === name) || {
-          probability: this.MINIMUM_PROB,
-          errorRate: this.MINIMUM_PROB,
-        };
+        invokeProbabilityAndErrorRate.find((m) => m.service === name)!;
+      const prob = possibility * errorRate;
       return {
         service: name,
-        probability: norm * possibility * errorRate,
+        probability:
+          norm * (prob < this.MINIMUM_PROB ? this.MINIMUM_PROB : prob),
       };
     });
 
     const normProb = Normalizer.Numbers(
       rawProb.map(({ probability }) => probability),
-      Normalizer.Strategy.BetweenFixedNumber
+      Normalizer.Strategy.Linear
     );
     return rawProb.map((p, i) => ({ ...p, probability: normProb[i] }));
   }
 
   static RelyingFactor(dependencies: IServiceDependency[]) {
     return Object.entries(
-      dependencies.reduce((prev, { links, dependency }) => {
+      dependencies.reduce((prev, { links }) => {
         links.forEach((l) => {
           const uniqueName = `${l.service}\t${l.namespace}\t${l.version}`;
           if (!prev[uniqueName]) {
@@ -148,11 +147,22 @@ export default class RiskAnalyzer {
               factor: 0,
             };
           }
-          prev[uniqueName].factor += l.linkedBy / l.distance;
+          prev[uniqueName].factor += l.dependsOn / l.distance;
         });
         return prev;
       }, {} as { [id: string]: { factor: number } })
-    ).map(([service, { factor }]) => ({ service, factor }));
+    ).map(([service, { factor }]) => {
+      // if service is being called from external services, e.g., frontend webpages, add 1
+      const isGateway = dependencies
+        .find((s) => s.service === service)!
+        .dependency.find((d) => d.dependBy.length === 0);
+      if (isGateway) factor++;
+
+      return {
+        service,
+        factor,
+      };
+    });
   }
 
   /**
@@ -165,9 +175,9 @@ export default class RiskAnalyzer {
     /**
      * ACS: Absolute Criticality of the Service
      * AIS: Absolute Importance of the Service
-     *      Count of lower dependency (linkedTo)
+     *      Count of lower dependency (dependBy/CLIENT)
      * ADS: Absolute Dependence of the Service
-     *      Count of upper dependency (linkedBy)
+     *      Count of upper dependency (dependsOn/SERVER)
      */
     return Object.entries(
       dependencies.reduce((prev, { service, links, dependency }) => {
@@ -176,11 +186,11 @@ export default class RiskAnalyzer {
           .filter((l) => l.distance === 1)
           .reduce(
             (prev, l) => {
-              if (l.linkedTo > 0) prev.ais++;
-              if (l.linkedBy > 0) prev.ads++;
+              if (l.dependBy > 0) prev.ais++;
+              if (l.dependsOn > 0) prev.ads++;
               return prev;
             },
-            { ais: 0, ads: isGateway ? 1 : 0 }
+            { ais: isGateway ? 1 : 0, ads: 0 }
           );
         prev[service] = { factor: ais * ads };
         return prev;
@@ -193,8 +203,8 @@ export default class RiskAnalyzer {
     includeRequestError: boolean = false
   ) {
     const invokedCounts = data
-      .map(({ service: serviceName, version: serviceVersion, status }) => ({
-        service: `${serviceName}-${serviceVersion}`,
+      .map(({ service, status }) => ({
+        service,
         isError:
           status.startsWith("5") ||
           (includeRequestError && status.startsWith("4")),
@@ -243,7 +253,7 @@ export default class RiskAnalyzer {
 
     const normalizedMetrics = Normalizer.Numbers(
       reliabilityMetric.map(({ metric }) => metric),
-      Normalizer.Strategy.BetweenFixedNumber
+      Normalizer.Strategy.Linear
     );
     return reliabilityMetric.map((m, i) => ({
       ...m,
