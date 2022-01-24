@@ -5,7 +5,7 @@ import IServiceDependency from "../entities/IServiceDependency";
 import Normalizer from "./Normalizer";
 
 export default class RiskAnalyzer {
-  private static readonly MINIMUM_PROB = 0.1;
+  private static readonly MINIMUM_PROB = 0.01;
 
   static RealtimeRisk(
     data: IRealtimeData[],
