@@ -13,9 +13,11 @@ export interface IEnvoyLog {
 
 export interface IStructuredEnvoyLog {
   requestId: string;
-  traces: {
-    traceId: string;
-    request: IEnvoyLog;
-    response: IEnvoyLog;
-  }[];
+  traces: IStructuredEnvoyLogTrace[];
+}
+
+export interface IStructuredEnvoyLogTrace {
+  traceId: string;
+  request: IEnvoyLog;
+  response: IEnvoyLog;
 }

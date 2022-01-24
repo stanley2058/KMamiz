@@ -8,7 +8,10 @@ import {
   IEndpointDependency,
   IEndpointInfo,
 } from "../entities/IEndpointDependency";
-import { IStructuredEnvoyLog } from "../entities/IEnvoyLog";
+import {
+  IStructuredEnvoyLog,
+  IStructuredEnvoyLogTrace,
+} from "../entities/IEnvoyLog";
 import { IRealtimeData } from "../entities/IRealtimeData";
 import Logger from "../utils/Logger";
 
@@ -106,43 +109,47 @@ export class Trace {
   }
 
   combineLogsToRealtimeData(structuredLogs: IStructuredEnvoyLog[]) {
-    const traceMap = this._traces.reduce(
-      (prev, curr) => prev.set(curr[0].traceId, curr),
-      new Map<string, ITrace[]>()
-    );
-
-    const realtimeData = structuredLogs
+    const traceIdToEnvoyLogsMap = structuredLogs
       .map((log) => log.traces)
       .flat()
-      .map((trace) => {
-        const traceInfo = traceMap.get(trace.traceId);
-        if (!traceInfo) return;
-        const span = traceInfo
-          .filter((t) => t.kind === "SERVER")
-          .find(
-            (t) => t.tags["http.url"].split("://")[1] === trace.request.path!
+      .reduce((prev, curr) => {
+        prev.set(curr.traceId, [...(prev.get(curr.traceId) || []), curr]);
+        return prev;
+      }, new Map<string, IStructuredEnvoyLogTrace[]>());
+
+    return new RealtimeData(
+      this.traces
+        .flat()
+        .filter((t) => t.kind === "SERVER")
+        .map((trace) => {
+          const logs = traceIdToEnvoyLogsMap.get(trace.id);
+          const [host, port, path, service, namespace] = Utils.ExplodeUrl(
+            trace.name,
+            true
           );
-        if (!span) return;
-
-        const [, , , serviceName, namespace] = Utils.ExplodeUrl(
-          span.name,
-          true
-        );
-
-        return {
-          timestamp: span.timestamp,
-          service: `${serviceName}`,
-          namespace: `${namespace}`,
-          version: span.tags["istio.canonical_revision"],
-          protocol: trace.request.method!,
-          endpointName: trace.request.path!,
-          latency: span.duration,
-          status: trace.response.status!,
-          body: trace.response.body,
-        } as IRealtimeData;
-      })
-      .filter((data) => !!data) as IRealtimeData[];
-    return new RealtimeData(realtimeData);
+          const endpointName = `${host}:${port}${path}`;
+          const protocol = trace.tags["http.method"];
+          const status = trace.tags["http.status_code"];
+          if (!service) return;
+          return {
+            timestamp: trace.timestamp,
+            service,
+            namespace,
+            version: trace.tags["istio.canonical_revision"],
+            protocol,
+            endpointName,
+            latency: trace.duration,
+            status,
+            body: logs?.find(
+              (l) =>
+                l.request.path === endpointName &&
+                l.request.method === protocol &&
+                l.request.status === status
+            )?.response.body,
+          } as IRealtimeData;
+        })
+        .filter((data) => !!data) as IRealtimeData[]
+    );
   }
 
   toEndpointDependencies() {

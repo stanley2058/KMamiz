@@ -116,13 +116,43 @@ export default class RiskAnalyzer {
 
   static Probability(data: IRealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
-    const invokeProbabilityAndErrorRate =
+    const rawInvokeProbabilityAndErrorRate =
       this.InvokeProbabilityAndErrorRate(data);
+
+    // const normPro = Normalizer.Numbers(
+    //   rawInvokeProbabilityAndErrorRate.map(({ probability }) => probability),
+    //   Normalizer.Strategy.Linear,
+    //   this.MINIMUM_PROB
+    // );
+    // const normErr = Normalizer.Numbers(
+    //   rawInvokeProbabilityAndErrorRate.map(({ errorRate }) => errorRate),
+    //   Normalizer.Strategy.Linear,
+    //   this.MINIMUM_PROB
+    // );
+    const normPro = rawInvokeProbabilityAndErrorRate.map(
+      ({ probability }) =>
+        probability * (1 - this.MINIMUM_PROB) + this.MINIMUM_PROB
+    );
+    const normErr = rawInvokeProbabilityAndErrorRate.map(
+      ({ errorRate }) => errorRate * (1 - this.MINIMUM_PROB) + this.MINIMUM_PROB
+    );
+    const baseProb = Normalizer.Numbers(
+      normPro.map((p, i) => p * normErr[i]),
+      Normalizer.Strategy.Linear,
+      this.MINIMUM_PROB
+    ).map((prob, i) => ({
+      service: rawInvokeProbabilityAndErrorRate[i].service,
+      prob,
+    }));
+    console.log(reliabilityMetric);
+    console.log(rawInvokeProbabilityAndErrorRate);
+    console.log(normPro);
+    console.log(normErr);
+    console.log(baseProb);
+
     const rawProb = reliabilityMetric.map(({ service: name }) => {
       const { norm } = reliabilityMetric.find((m) => m.service === name)!;
-      const { probability: possibility, errorRate } =
-        invokeProbabilityAndErrorRate.find((m) => m.service === name)!;
-      const prob = possibility * errorRate;
+      const { prob } = baseProb.find((m) => m.service === name)!;
       return {
         service: name,
         probability:
@@ -209,12 +239,14 @@ export default class RiskAnalyzer {
           status.startsWith("5") ||
           (includeRequestError && status.startsWith("4")),
       }))
-      .reduce((acc, cur) => {
-        acc.set(cur.service, {
-          count: (acc.get(cur.service) || { count: 0 }).count + 1,
-          error:
-            (acc.get(cur.service) || { error: 0 }).error +
-            (cur.isError ? 1 : 0),
+      .reduce((acc, { service, isError }) => {
+        const prevVal = acc.get(service) || {
+          count: 0,
+          error: 0,
+        };
+        acc.set(service, {
+          count: prevVal.count + 1,
+          error: prevVal.error + (isError ? 1 : 0),
         });
         return acc;
       }, new Map<string, { count: number; error: number }>());
@@ -253,7 +285,8 @@ export default class RiskAnalyzer {
 
     const normalizedMetrics = Normalizer.Numbers(
       reliabilityMetric.map(({ metric }) => metric),
-      Normalizer.Strategy.Linear
+      Normalizer.Strategy.Linear,
+      this.MINIMUM_PROB
     );
     return reliabilityMetric.map((m, i) => ({
       ...m,
