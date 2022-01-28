@@ -7,6 +7,8 @@ import { Trace } from "./src/classes/Trace";
 import KubernetesService from "./src/services/KubernetesService";
 import ZipkinService from "./src/services/ZipkinService";
 import RiskAnalyzer from "./src/utils/RiskAnalyzer";
+import Scheduler from "./src/services/Scheduler";
+import GlobalSettings from "./src/GlobalSettings";
 
 const app = express();
 app.use(express.json());

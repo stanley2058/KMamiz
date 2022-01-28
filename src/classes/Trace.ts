@@ -282,7 +282,8 @@ export class Trace {
           });
       } catch (err) {
         // already handled, more logging
-        Logger.verbose("Verbose causes:", err);
+        Logger.verbose("Verbose causes:");
+        Logger.plain.verbose("", err);
       }
     });
     return { endpointInfoMap, endpointDependenciesMap };

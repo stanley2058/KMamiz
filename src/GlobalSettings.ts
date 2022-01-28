@@ -8,7 +8,7 @@ type Settings = {
 const GlobalSettings: Settings = {
   // `(${service}\t${namespace}\t${version}) ${endpointName}`
   ProhibitBodyTracingEndpoints: new Set<string>([]),
-  PollingInterval: 0.5, // s
+  PollingInterval: 5, // s
   EnvoyLogLevel: "info",
   Timezone: "Asia/Taipei",
 };
