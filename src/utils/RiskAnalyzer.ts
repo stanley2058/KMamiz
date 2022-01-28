@@ -119,16 +119,6 @@ export default class RiskAnalyzer {
     const rawInvokeProbabilityAndErrorRate =
       this.InvokeProbabilityAndErrorRate(data);
 
-    // const normPro = Normalizer.Numbers(
-    //   rawInvokeProbabilityAndErrorRate.map(({ probability }) => probability),
-    //   Normalizer.Strategy.Linear,
-    //   this.MINIMUM_PROB
-    // );
-    // const normErr = Normalizer.Numbers(
-    //   rawInvokeProbabilityAndErrorRate.map(({ errorRate }) => errorRate),
-    //   Normalizer.Strategy.Linear,
-    //   this.MINIMUM_PROB
-    // );
     const normPro = rawInvokeProbabilityAndErrorRate.map(
       ({ probability }) =>
         probability * (1 - this.MINIMUM_PROB) + this.MINIMUM_PROB
@@ -144,11 +134,6 @@ export default class RiskAnalyzer {
       service: rawInvokeProbabilityAndErrorRate[i].service,
       prob,
     }));
-    console.log(reliabilityMetric);
-    console.log(rawInvokeProbabilityAndErrorRate);
-    console.log(normPro);
-    console.log(normErr);
-    console.log(baseProb);
 
     const rawProb = reliabilityMetric.map(({ service: name }) => {
       const { norm } = reliabilityMetric.find((m) => m.service === name)!;
