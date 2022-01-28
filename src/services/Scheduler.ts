@@ -6,43 +6,55 @@ export default class Scheduler {
   private static instance?: Scheduler;
   static getInstance = () => this.instance || (this.instance = new this());
 
-  // cron expression: 00:00 everyday
-  private static readonly AggregateInterval = "0 0 * * *";
-  private static readonly RealtimeInterval = `0/${GlobalSettings.PollingInterval} * * * *`;
-  private readonly aggregateJob;
-  private readonly realtimeJob;
-  private constructor() {
-    this.aggregateJob = new CronJob(
-      Scheduler.AggregateInterval,
-      this.aggregateJobTick,
-      () => Logger.info("Scheduled data aggregation done."),
-      false,
-      GlobalSettings.Timezone
-    );
+  private readonly jobs: Map<string, CronJob> = new Map();
+  private constructor() {}
 
+  start() {
+    Logger.verbose("Scheduler started.");
+    [...this.jobs].forEach(([key, job]) => {
+      job.start();
+      Logger.verbose(
+        `Next ${key} job scheduled on:`,
+        job.nextDate().toLocaleString()
+      );
+    });
+  }
+
+  register(
+    uniqueJobName: string,
+    cronExpr: string,
+    onTick: () => void,
+    onComplete = () => Logger.verbose(`Scheduled job '${uniqueJobName}' done.`)
+  ) {
     try {
-      this.realtimeJob = new CronJob(
-        Scheduler.RealtimeInterval,
-        this.realtimeJobTick,
-        () => Logger.verbose("Scheduled realtime data collection done."),
-        false,
-        GlobalSettings.Timezone
+      this.jobs.set(
+        uniqueJobName,
+        this.createCronJob(cronExpr, onTick, onComplete)
       );
     } catch (err) {
       Logger.error(
-        "Error occurs during realtime CronJob initialization, with cron expression:",
-        `'${Scheduler.RealtimeInterval}'`
+        `Error occurs during initialization of CronJob: '${uniqueJobName}', with cron expression:`,
+        `'${cronExpr}'`
       );
       Logger.plain.error("", err);
+      Logger.error(
+        "Cannot proceed with incorrect CronJob registration, exiting."
+      );
       process.exit(1);
     }
   }
 
-  start() {
-    this.aggregateJob.start();
-    this.realtimeJob.start();
+  private createCronJob(
+    interval: string,
+    onTick: () => void,
+    onComplete?: () => void
+  ) {
+    return new CronJob(
+      interval,
+      onTick,
+      onComplete,
+      false,
+      GlobalSettings.Timezone
+    );
   }
-
-  private aggregateJobTick() {}
-  private realtimeJobTick() {}
 }

@@ -1,6 +1,7 @@
 type Settings = {
   ProhibitBodyTracingEndpoints: Set<string>;
-  PollingInterval: number;
+  AggregateInterval: string; // cron expression
+  RealtimeInterval: string; // cron expression
   EnvoyLogLevel: "info" | "warning" | "error";
   Timezone: string;
 };
@@ -8,7 +9,10 @@ type Settings = {
 const GlobalSettings: Settings = {
   // `(${service}\t${namespace}\t${version}) ${endpointName}`
   ProhibitBodyTracingEndpoints: new Set<string>([]),
-  PollingInterval: 5, // s
+  // default: 00:00 everyday
+  AggregateInterval: "0 0 * * *",
+  // default: every 5 seconds
+  RealtimeInterval: "0/5 * * * *",
   EnvoyLogLevel: "info",
   Timezone: "Asia/Taipei",
 };
