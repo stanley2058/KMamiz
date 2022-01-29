@@ -60,4 +60,8 @@ export default class Scheduler {
       process.exit(1);
     }
   }
+
+  get(uniqueJobName: string) {
+    return this.jobs.get(uniqueJobName);
+  }
 }

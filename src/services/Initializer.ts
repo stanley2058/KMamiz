@@ -1,5 +1,6 @@
 import GlobalSettings from "../GlobalSettings";
 import Scheduler from "./Scheduler";
+import ServiceOperator from "./ServiceOperator";
 
 export default class Initializer {
   private static instance?: Initializer;
@@ -13,12 +14,12 @@ export default class Initializer {
     Scheduler.getInstance().register(
       "aggregation",
       GlobalSettings.AggregateInterval,
-      () => {} // TODO: implement data aggregation logics
+      ServiceOperator.getInstance().aggregateDailyData
     );
     Scheduler.getInstance().register(
       "realtime",
       GlobalSettings.RealtimeInterval,
-      () => {} // TODO: implement realtime data processing logics
+      ServiceOperator.getInstance().retrieveRealtimeData
     );
     Scheduler.getInstance().start();
   }

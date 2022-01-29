@@ -75,7 +75,9 @@ export default class KubernetesService {
       responseType: "json",
       transformResponse: (data) => JSON.parse(data),
     });
-    return data.items.map((namespace: any) => namespace.metadata.name);
+    return data.items.map(
+      (namespace: any) => namespace.metadata.name
+    ) as string[];
   }
 
   async getEnvoyLogs(

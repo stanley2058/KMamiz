@@ -20,6 +20,13 @@ export default class ZipkinService {
     if (!this.zipkinHost) throw new Error("Variable [ZIPKIN_URL] not set");
   }
 
+  /**
+   * Get trace list from Zipkin by service name
+   * @param lookBack looking back for `lookBack` milliseconds
+   * @param endTs looking back from timestamp
+   * @param serviceName root searching service name
+   * @returns traces
+   */
   async getTraceListFromZipkinByServiceName(
     lookBack: number = this.DEFAULT_LOOKBACK,
     endTs: number = Date.now(),
