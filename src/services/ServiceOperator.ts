@@ -1,4 +1,5 @@
 import { AggregateData } from "../classes/AggregateData";
+import { EnvoyLogs } from "../classes/EnvoyLog";
 import { Trace } from "../classes/Trace";
 import IReplicaCount from "../entities/IReplicaCount";
 import KubernetesService from "./KubernetesService";
@@ -58,8 +59,28 @@ export default class ServiceOperator {
       )
     );
 
+    const namespaces = traces
+      .toRealTimeData()
+      .realtimeData.reduce(
+        (prev, curr) => prev.add(curr.namespace),
+        new Set<string>()
+      );
+
+    const envoyLogs: EnvoyLogs[] = [];
+    for (const ns of namespaces) {
+      for (const podName of await KubernetesService.getInstance().getPodNames(
+        ns
+      )) {
+        envoyLogs.push(
+          await KubernetesService.getInstance().getEnvoyLogs(ns, podName)
+        );
+      }
+    }
+
     await MongoOperator.getInstance().saveRealtimeData(
-      traces.toRealTimeData().realtimeData
+      traces.combineLogsToRealtimeData(
+        EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs)
+      ).realtimeData
     );
   }
 }
