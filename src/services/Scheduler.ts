@@ -20,16 +20,33 @@ export default class Scheduler {
     });
   }
 
+  /**
+   * Register a new cron job
+   *
+   * @param uniqueJobName unique name for the job
+   * @param cronExpr cron expression
+   * @param onTick async function called on next tick
+   * @param onComplete function called after onTick
+   */
   register(
     uniqueJobName: string,
     cronExpr: string,
-    onTick: () => void,
+    onTick: () => Promise<void>,
     onComplete = () => Logger.verbose(`Scheduled job '${uniqueJobName}' done.`)
   ) {
     try {
       this.jobs.set(
         uniqueJobName,
-        this.createCronJob(cronExpr, onTick, onComplete)
+        new CronJob(
+          cronExpr,
+          async () => {
+            await onTick();
+            onComplete();
+          },
+          null,
+          false,
+          GlobalSettings.Timezone
+        )
       );
     } catch (err) {
       Logger.error(
@@ -42,19 +59,5 @@ export default class Scheduler {
       );
       process.exit(1);
     }
-  }
-
-  private createCronJob(
-    interval: string,
-    onTick: () => void,
-    onComplete?: () => void
-  ) {
-    return new CronJob(
-      interval,
-      onTick,
-      onComplete,
-      false,
-      GlobalSettings.Timezone
-    );
   }
 }
