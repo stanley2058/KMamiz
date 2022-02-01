@@ -1,7 +1,6 @@
 export default interface IGraphData {
   nodes: INode[];
   links: ILink[];
-  services: string[];
 }
 
 export interface INode {

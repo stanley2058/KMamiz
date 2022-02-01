@@ -34,9 +34,7 @@ export class EndpointDependencies {
       },
     ];
     const links: ILink[] = [];
-    const services: string[] = [];
     [...serviceEndpointMap.entries()].forEach(([service, endpoint]) => {
-      services.push(service);
       nodes.push({
         id: service,
         group: service,
@@ -76,7 +74,6 @@ export class EndpointDependencies {
     return {
       nodes,
       links,
-      services,
     } as IGraphData;
   }
 
