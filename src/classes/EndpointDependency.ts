@@ -3,6 +3,7 @@ import IGraphData, { ILink, INode } from "../entities/IGraphData";
 import IServiceDependency, {
   IServiceLinkInfo,
 } from "../entities/IServiceDependency";
+import Utils from "../utils/Utils";
 
 export class EndpointDependencies {
   private readonly _dependencies: IEndpointDependency[];
@@ -43,13 +44,12 @@ export class EndpointDependencies {
       });
 
       endpoint.forEach((e) => {
-        const id = `${service}\t${e.endpoint.version}\t${e.endpoint.path}`;
+        const [, , path] = Utils.ExplodeUrl(e.endpoint.name, true);
+        const id = `${service}\t${e.endpoint.version}\t${path}`;
         nodes.push({
           id,
           group: service,
-          name: `(${service.replace("\t", ".")} ${e.endpoint.version}) ${
-            e.endpoint.path
-          }`,
+          name: `(${service.replace("\t", ".")} ${e.endpoint.version}) ${path}`,
         });
         links.push({
           source: service,
@@ -58,7 +58,8 @@ export class EndpointDependencies {
         e.dependsOn
           .filter((dep) => dep.distance === 1)
           .forEach((dep) => {
-            const depId = `${dep.endpoint.service}\t${dep.endpoint.namespace}\t${dep.endpoint.version}\t${dep.endpoint.path}`;
+            const [, , path] = Utils.ExplodeUrl(dep.endpoint.name, true);
+            const depId = `${dep.endpoint.service}\t${dep.endpoint.namespace}\t${dep.endpoint.version}\t${path}`;
             links.push({
               source: id,
               target: depId,
