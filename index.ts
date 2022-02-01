@@ -44,6 +44,7 @@ app.use(Routes.getInstance().getRoutes());
     replicas
   );
   console.log(risk);
+  console.log(traces.toEndpointDependencies().toGraphData());
 })();
 // End testing area
 

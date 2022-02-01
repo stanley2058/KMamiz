@@ -1,5 +1,5 @@
 import { IEndpointDependency } from "../entities/IEndpointDependency";
-import IGraphData from "../entities/IGraphData";
+import IGraphData, { ILink, INode } from "../entities/IGraphData";
 import IServiceDependency, {
   IServiceLinkInfo,
 } from "../entities/IServiceDependency";
@@ -15,50 +15,68 @@ export class EndpointDependencies {
   }
 
   toGraphData() {
-    const initialGraphData: IGraphData = {
-      nodes: [
-        ...this._dependencies.reduce(
-          (prev, e) => prev.add(e.endpoint.service),
-          new Set<string>()
-        ),
-      ].map((e) => ({
-        id: e,
-        name: e,
-        group: e,
-      })),
-      links: this._dependencies.map((e) => ({
-        source: e.endpoint.service,
-        target: `${e.endpoint.version}-${e.endpoint.name}`,
-      })),
-    };
+    const serviceEndpointMap = new Map<string, IEndpointDependency[]>();
 
-    return this._dependencies.reduce(
-      (prev, { endpoint, dependsOn: dependencies }) => {
-        // add self node into graph nodes
-        prev.nodes.push({
-          id: `${endpoint.version}-${endpoint.name}`,
-          name: `(${endpoint.service} ${endpoint.version}) ${endpoint.path}`,
-          group: endpoint.service,
-        });
+    this._dependencies.forEach((dep) => {
+      const uniqueName = `${dep.endpoint.service}\t${dep.endpoint.namespace}`;
+      serviceEndpointMap.set(uniqueName, [
+        ...(serviceEndpointMap.get(uniqueName) || []),
+        dep,
+      ]);
+    });
 
-        // create links
-        dependencies.forEach((dependency) => {
-          const source = `${endpoint.version}-${endpoint.name}`;
-          prev.links = prev.links.concat(
-            this._dependencies
-              .filter(
-                (e) =>
-                  e.endpoint.name === dependency.endpoint.name &&
-                  dependency.distance === 1
-              )
-              .map((e) => `${e.endpoint.version}-${e.endpoint.name}`)
-              .map((target) => ({ source, target }))
-          );
-        });
-        return prev;
+    const nodes: INode[] = [
+      {
+        id: "null",
+        group: "null",
+        name: "external requests",
       },
-      initialGraphData
-    );
+    ];
+    const links: ILink[] = [];
+    const services: string[] = [];
+    [...serviceEndpointMap.entries()].forEach(([service, endpoint]) => {
+      services.push(service);
+      nodes.push({
+        id: service,
+        group: service,
+        name: service.replace("\t", "."),
+      });
+
+      endpoint.forEach((e) => {
+        const id = `${service}\t${e.endpoint.version}\t${e.endpoint.path}`;
+        nodes.push({
+          id,
+          group: service,
+          name: `(${service.replace("\t", ".")} ${e.endpoint.version}) ${
+            e.endpoint.path
+          }`,
+        });
+        links.push({
+          source: service,
+          target: id,
+        });
+        e.dependsOn
+          .filter((dep) => dep.distance === 1)
+          .forEach((dep) => {
+            const depId = `${dep.endpoint.service}\t${dep.endpoint.namespace}\t${dep.endpoint.version}\t${dep.endpoint.path}`;
+            links.push({
+              source: id,
+              target: depId,
+            });
+          });
+        if (e.dependBy.length === 0) {
+          links.push({
+            source: "null",
+            target: id,
+          });
+        }
+      });
+    });
+    return {
+      nodes,
+      links,
+      services,
+    } as IGraphData;
   }
 
   toServiceDependencies() {
