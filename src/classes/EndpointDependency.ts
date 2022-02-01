@@ -26,38 +26,58 @@ export class EndpointDependencies {
       ]);
     });
 
+    const { nodes: bNodes, links: bLinks } =
+      this.createBaseNodesAndLinks(serviceEndpointMap);
+    return this.createHighlightNodesAndLinks(bNodes, bLinks) as IGraphData;
+  }
+
+  private createBaseNodesAndLinks(
+    serviceEndpointMap: Map<string, IEndpointDependency[]>
+  ) {
     const nodes: INode[] = [
+      // root node (external)
       {
         id: "null",
         group: "null",
         name: "external requests",
+        dependencies: [],
+        linkInBetween: [],
       },
     ];
     const links: ILink[] = [];
     [...serviceEndpointMap.entries()].forEach(([service, endpoint]) => {
+      // service node
       nodes.push({
         id: service,
         group: service,
         name: service.replace("\t", "."),
+        dependencies: [],
+        linkInBetween: [],
       });
 
       endpoint.forEach((e) => {
         const [, , path] = Utils.ExplodeUrl(e.endpoint.name, true);
-        const id = `${service}\t${e.endpoint.version}\t${path}`;
+        const id = `${service}\t${e.endpoint.version}\t${e.endpoint.name}`;
+        // endpoint node
         nodes.push({
           id,
           group: service,
-          name: `(${service.replace("\t", ".")} ${e.endpoint.version}) ${path}`,
+          name: `(${e.endpoint.version}) ${path}`,
+          dependencies: [],
+          linkInBetween: [],
         });
+
+        // service to endpoint links
         links.push({
           source: service,
           target: id,
         });
+
+        // endpoint to endpoint links
         e.dependsOn
           .filter((dep) => dep.distance === 1)
           .forEach((dep) => {
-            const [, , path] = Utils.ExplodeUrl(dep.endpoint.name, true);
-            const depId = `${dep.endpoint.service}\t${dep.endpoint.namespace}\t${dep.endpoint.version}\t${path}`;
+            const depId = `${dep.endpoint.service}\t${dep.endpoint.namespace}\t${dep.endpoint.version}\t${dep.endpoint.name}`;
             links.push({
               source: id,
               target: depId,
@@ -71,10 +91,67 @@ export class EndpointDependencies {
         }
       });
     });
-    return {
-      nodes,
-      links,
-    } as IGraphData;
+
+    return { nodes, links };
+  }
+  private createHighlightNodesAndLinks(nodes: INode[], links: ILink[]) {
+    const dependencyWithId = this._dependencies.map((dep) => ({
+      ...dep,
+      uid: `${dep.endpoint.service}\t${dep.endpoint.namespace}\t${dep.endpoint.version}\t${dep.endpoint.name}`,
+      sid: `${dep.endpoint.service}\t${dep.endpoint.namespace}`,
+    }));
+
+    nodes = nodes.map((n) => {
+      if (n.id === "null") {
+        // root node
+        n.dependencies = dependencyWithId
+          .filter((d) => d.dependBy.length === 0)
+          .map(({ uid }) => uid);
+        n.linkInBetween = n.dependencies.map((d) => ({
+          source: "null",
+          target: d,
+        }));
+      } else if (n.id === n.group) {
+        // service node
+        n.dependencies = dependencyWithId
+          .filter((d) => d.sid === n.id)
+          .map(({ uid }) => uid);
+        n.linkInBetween = n.dependencies.map((d) => ({
+          source: n.id,
+          target: d,
+        }));
+      } else {
+        // endpoint node
+        const remap = (list: any[]) =>
+          list.map(
+            ({ endpoint: { service, namespace, version, name } }) =>
+              `${service}\t${namespace}\t${version}\t${name}`
+          );
+        const node = dependencyWithId.find((d) => d.uid === n.id)!;
+        const dependsOnSet = new Set(remap(node.dependsOn));
+        const dependBySet = new Set(remap(node.dependBy));
+
+        n.linkInBetween = [
+          ...[...dependBySet].map((d) =>
+            links.find(
+              (l) =>
+                l.source === d &&
+                (dependBySet.has(l.target) || l.target === n.id)
+            )
+          ),
+          ...[...dependsOnSet].map((d) =>
+            links.find(
+              (l) =>
+                l.target === d &&
+                (dependsOnSet.has(l.source) || l.source === n.id)
+            )
+          ),
+        ].filter((l) => !!l) as ILink[];
+        n.dependencies = [...dependBySet, ...dependsOnSet];
+      }
+      return n;
+    });
+    return { nodes, links };
   }
 
   toServiceDependencies() {

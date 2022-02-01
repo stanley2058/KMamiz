@@ -7,6 +7,7 @@ import { Trace } from "./src/classes/Trace";
 import KubernetesService from "./src/services/KubernetesService";
 import ZipkinService from "./src/services/ZipkinService";
 import RiskAnalyzer from "./src/utils/RiskAnalyzer";
+import { inspect } from "util";
 
 const app = express();
 app.use(express.json());
@@ -43,8 +44,11 @@ app.use(Routes.getInstance().getRoutes());
     traces.toEndpointDependencies().toServiceDependencies(),
     replicas
   );
+
+  const print = (obj: any) => inspect(obj, false, null, true);
   console.log(risk);
-  console.log(traces.toEndpointDependencies().toGraphData());
+  console.log(print(traces.toEndpointDependencies().toGraphData()));
+  console.log(print(traces.toEndpointDependencies().dependencies));
 })();
 // End testing area
 
