@@ -21,8 +21,8 @@ describe("DataTransformer", () => {
 
   it("converts endpoint dependencies to graph data", () => {
     const graphData = endpointDependencies.toGraphData();
-    expect(graphData.nodes).toHaveLength(10);
-    expect(graphData.links).toHaveLength(18);
+    expect(graphData.nodes).toHaveLength(11);
+    expect(graphData.links).toHaveLength(13);
   });
 
   it("converts traces to realtime data", () => {
