@@ -67,6 +67,7 @@ export default class ServiceOperator {
       );
 
     const envoyLogs: EnvoyLogs[] = [];
+    const replicas = new Map<string, IReplicaCount[]>();
     for (const ns of namespaces) {
       for (const podName of await KubernetesService.getInstance().getPodNames(
         ns
@@ -75,12 +76,23 @@ export default class ServiceOperator {
           await KubernetesService.getInstance().getEnvoyLogs(ns, podName)
         );
       }
+      replicas.set(
+        ns,
+        await KubernetesService.getInstance().getReplicasFromPodList(ns)
+      );
     }
 
+    const data = traces.combineLogsToRealtimeData(
+      EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs)
+    ).realtimeData;
     await MongoOperator.getInstance().saveRealtimeData(
-      traces.combineLogsToRealtimeData(
-        EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs)
-      ).realtimeData
+      data.map((r) => {
+        const replicaInfo = replicas
+          .get(r.namespace)
+          ?.find((i) => i.service === r.service && i.version === r.version);
+        if (replicaInfo) r.replica = replicaInfo.replicas;
+        return r;
+      })
     );
   }
 }

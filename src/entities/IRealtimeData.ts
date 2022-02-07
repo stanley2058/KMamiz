@@ -11,4 +11,5 @@ export interface IRealtimeData {
   latency: number;
   status: string;
   body?: string;
+  replica?: number;
 }
