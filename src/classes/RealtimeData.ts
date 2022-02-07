@@ -4,6 +4,8 @@ import IHistoryData from "../entities/IHistoryData";
 import { IRealtimeData } from "../entities/IRealtimeData";
 import IReplicaCount from "../entities/IReplicaCount";
 import IServiceDependency from "../entities/IServiceDependency";
+import IEndpointDataType from "../entities/IEndpointDataType";
+import EndpointDataType from "./EndpointDataType";
 
 export class RealtimeData {
   private readonly _realtimeData: IRealtimeData[];
@@ -75,5 +77,26 @@ export class RealtimeData {
         ),
       };
     }) as IHistoryData[];
+  }
+
+  extractEndpointDataType() {
+    return this._realtimeData
+      .filter((r) => !!r.body)
+      .map(
+        ({ service, version, namespace, endpointName, timestamp, body }) =>
+          new EndpointDataType({
+            service,
+            version,
+            namespace,
+            endpoint: endpointName,
+            schemas: [
+              {
+                time: new Date(timestamp),
+                sampleObject: JSON.parse(body!),
+                schema: Utils.ObjectToInterfaceString(JSON.parse(body!)),
+              },
+            ],
+          } as IEndpointDataType)
+      );
   }
 }
