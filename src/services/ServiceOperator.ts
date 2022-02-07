@@ -31,7 +31,10 @@ export default class ServiceOperator {
       );
     }
     const { historyData, aggregateData } =
-      traces.toAggregatedDataAndHistoryData(replicas);
+      realtimeData.toAggregatedDataAndHistoryData(
+        traces.toEndpointDependencies().toServiceDependencies(),
+        replicas
+      );
 
     const prevAggData = new AggregateData(
       await MongoOperator.getInstance().getAggregateData()

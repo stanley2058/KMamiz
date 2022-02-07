@@ -31,7 +31,10 @@ export default class Initializer {
     }
 
     const { aggregateData, historyData } =
-      traces.toAggregatedDataAndHistoryData(replicas);
+      realtimeData.toAggregatedDataAndHistoryData(
+        traces.toEndpointDependencies().toServiceDependencies(),
+        replicas
+      );
     await MongoOperator.getInstance().saveAggregateData(aggregateData);
     await MongoOperator.getInstance().saveHistoryData(historyData);
   }
