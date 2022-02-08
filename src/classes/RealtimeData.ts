@@ -81,7 +81,7 @@ export class RealtimeData {
   }
 
   extractEndpointDataType() {
-    return this._realtimeData
+    const endpointDataTypeMap = this._realtimeData
       .filter((r) => !!r.body)
       .map(
         ({ service, version, namespace, endpointName, timestamp, body }) =>
@@ -92,13 +92,35 @@ export class RealtimeData {
             endpoint: endpointName,
             schemas: [
               {
-                time: new Date(timestamp),
+                time: new Date(timestamp / 1000),
                 sampleObject: JSON.parse(body!),
                 schema: Utils.ObjectToInterfaceString(JSON.parse(body!)),
               },
             ],
           } as IEndpointDataType)
-      );
+      )
+      .reduce((prev, curr) => {
+        curr = curr.removeDuplicateSchemas();
+        const id = `${curr.endpointDataType.version}\t${curr.endpointDataType.endpoint}`;
+        if (!prev.has(id)) prev.set(id, curr);
+        else {
+          const existSchemas = prev.get(id)!.endpointDataType.schemas;
+          const currentSchemas = curr.endpointDataType.schemas;
+          if (
+            existSchemas[existSchemas.length - 1] !==
+            currentSchemas[currentSchemas.length - 1]
+          ) {
+            prev.set(
+              id,
+              prev.get(id)!.mergeSchemaWith(curr).removeDuplicateSchemas()
+            );
+          }
+        }
+        return prev;
+      }, new Map<string, EndpointDataType>());
+    return [...endpointDataTypeMap.entries()].map(
+      ([, endpointDataType]) => endpointDataType
+    );
   }
 
   getAvgReplicaCount() {

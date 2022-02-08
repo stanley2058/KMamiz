@@ -10,6 +10,18 @@ export default class EndpointDataType {
     return this._endpointDataType;
   }
 
+  removeDuplicateSchemas() {
+    const schemaSet = new Set<string>(
+      this._endpointDataType.schemas.map((s) => s.schema)
+    );
+    return new EndpointDataType({
+      ...this._endpointDataType,
+      schemas: [...schemaSet].map(
+        (s) => this._endpointDataType.schemas.find((sc) => sc.schema === s)!
+      ),
+    });
+  }
+
   mergeSchemaWith(endpointData: EndpointDataType) {
     const existingSchemas = this._endpointDataType.schemas;
     const newSchemas = endpointData._endpointDataType.schemas;
@@ -21,7 +33,6 @@ export default class EndpointDataType {
       ...this._endpointDataType,
       schemas: [
         ...existingSchemas,
-        ...newSchemas,
         {
           time: new Date(),
           sampleObject: mergedSample,
