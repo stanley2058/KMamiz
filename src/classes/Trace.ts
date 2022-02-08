@@ -51,22 +51,27 @@ export class Trace {
     const traceIdToEnvoyLogsMap = structuredLogs
       .map((log) => log.traces)
       .flat()
-      .reduce((prev, curr) => {
-        prev.set(curr.traceId, [...(prev.get(curr.traceId) || []), curr]);
-        return prev;
-      }, new Map<string, IStructuredEnvoyLogTrace[]>());
+      .reduce(
+        (prev, curr) =>
+          prev.set(curr.traceId, [...(prev.get(curr.traceId) || []), curr]),
+        new Map<string, IStructuredEnvoyLogTrace[]>()
+      );
 
     return new RealtimeData(
       this.traces
         .flat()
         .filter((t) => t.kind === "SERVER")
         .map((trace) => {
-          const logs = traceIdToEnvoyLogsMap.get(trace.id);
+          const logs = traceIdToEnvoyLogsMap.get(trace.traceId);
           const [host, port, path, service, namespace] = Utils.ExplodeUrl(
             trace.name,
             true
           );
-          const endpointName = `${host}:${port}${path}`;
+          const endpointName = `${host}${port}${path}`;
+          const requestUrl = trace.tags["http.url"].replace(
+            /(http|https):\/\//,
+            ""
+          );
           const protocol = trace.tags["http.method"];
           const status = trace.tags["http.status_code"];
           if (!service) return;
@@ -81,9 +86,9 @@ export class Trace {
             status,
             body: logs?.find(
               (l) =>
-                l.request.path === endpointName &&
+                l.request.path === requestUrl &&
                 l.request.method === protocol &&
-                l.request.status === status
+                l.response.status === status
             )?.response.body,
           } as IRealtimeData;
         })
