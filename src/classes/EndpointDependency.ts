@@ -1,4 +1,7 @@
-import { IEndpointDependency } from "../entities/IEndpointDependency";
+import {
+  IEndpointDependency,
+  TEndpointDependency,
+} from "../entities/IEndpointDependency";
 import IGraphData, { ILink, INode } from "../entities/IGraphData";
 import IServiceDependency, {
   IServiceLinkInfo,
@@ -102,56 +105,75 @@ export class EndpointDependencies {
     }));
 
     nodes = nodes.map((n) => {
-      if (n.id === "null") {
-        // root node
-        n.dependencies = dependencyWithId
-          .filter((d) => d.dependBy.length === 0)
-          .map(({ uid }) => uid);
-        n.linkInBetween = n.dependencies.map((d) => ({
-          source: "null",
-          target: d,
-        }));
-      } else if (n.id === n.group) {
-        // service node
-        n.dependencies = dependencyWithId
-          .filter((d) => d.sid === n.id)
-          .map(({ uid }) => uid);
-        n.linkInBetween = n.dependencies.map((d) => ({
-          source: n.id,
-          target: d,
-        }));
-      } else {
-        // endpoint node
-        const remap = (list: any[]) =>
-          list.map(
-            ({ endpoint: { service, namespace, version, name } }) =>
-              `${service}\t${namespace}\t${version}\t${name}`
+      switch (n.id) {
+        case "null": // root node
+          n.dependencies = dependencyWithId
+            .filter((d) => d.dependBy.length === 0)
+            .map(({ uid }) => uid);
+          n.linkInBetween = n.dependencies.map((d) => ({
+            source: "null",
+            target: d,
+          }));
+          break;
+        case n.group: // service node
+          n.dependencies = dependencyWithId
+            .filter((d) => d.sid === n.id)
+            .map(({ uid }) => uid);
+          n.linkInBetween = n.dependencies.map((d) => ({
+            source: n.id,
+            target: d,
+          }));
+          break;
+        default:
+          // endpoint node
+          // find the node and sort dependsOn & dependBy with descending distance
+          const node = dependencyWithId.find((d) => d.uid === n.id)!;
+          const dependsOnSorted = this.sortEndpointInfoByDistanceDesc(
+            node.dependsOn
           );
-        const node = dependencyWithId.find((d) => d.uid === n.id)!;
-        const dependsOnSet = new Set(remap(node.dependsOn));
-        const dependBySet = new Set(remap(node.dependBy));
+          const dependBySorted = this.sortEndpointInfoByDistanceDesc(
+            node.dependBy
+          );
 
-        n.linkInBetween = [
-          ...[...dependBySet].map((d) =>
-            links.find(
-              (l) =>
-                l.source === d &&
-                (dependBySet.has(l.target) || l.target === n.id)
-            )
-          ),
-          ...[...dependsOnSet].map((d) =>
-            links.find(
-              (l) =>
-                l.target === d &&
-                (dependsOnSet.has(l.source) || l.source === n.id)
-            )
-          ),
-        ].filter((l) => !!l) as ILink[];
-        n.dependencies = [...dependBySet, ...dependsOnSet];
+          // fill in links to highlight
+          n.linkInBetween = [
+            ...this.mapToLinks(dependsOnSorted, n, links),
+            ...this.mapToLinks(dependBySorted, n, links),
+          ].filter((l) => !!l) as ILink[];
+          // fill in nodes to highlight
+          n.dependencies = [
+            ...new Set([
+              ...this.remapToId(dependsOnSorted),
+              ...this.remapToId(dependBySorted),
+            ]),
+          ];
       }
       return n;
     });
     return { nodes, links };
+  }
+  private remapToId(list: TEndpointDependency[]) {
+    return list.map(
+      ({ endpoint: { service, namespace, version, name } }) =>
+        `${service}\t${namespace}\t${version}\t${name}`
+    );
+  }
+  private sortEndpointInfoByDistanceDesc(list: TEndpointDependency[]) {
+    return [...list].sort((a, b) => b.distance - a.distance);
+  }
+  private mapToLinks(list: TEndpointDependency[], node: INode, links: ILink[]) {
+    return list
+      .map(({ endpoint: { service, namespace, version, name }, type }, i) => {
+        const id = `${service}\t${namespace}\t${version}\t${name}`;
+        const remaining = new Set([
+          ...this.remapToId(list.slice(i + 1)),
+          node.id,
+        ]);
+        const from = type === "SERVER" ? "target" : "source";
+        const to = type === "SERVER" ? "source" : "target";
+        return links.filter((l) => l[from] === id && remaining.has(l[to]));
+      })
+      .flat();
   }
 
   toServiceDependencies() {

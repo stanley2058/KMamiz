@@ -21,3 +21,9 @@ export interface IEndpointInfo {
   port: string;
   clusterName: string;
 }
+
+export type TEndpointDependency = {
+  endpoint: IEndpointInfo;
+  distance: number;
+  type: "SERVER" | "CLIENT";
+};
