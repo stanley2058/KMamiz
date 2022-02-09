@@ -67,12 +67,12 @@ export default class RiskAnalyzer {
       const currentRisk =
         realtimeRisk.find(
           ({ service, namespace, version }) =>
-            service === s.name &&
+            service === s.service &&
             namespace === s.namespace &&
             version === s.version
         )?.risk || this.MINIMUM_PROB;
       return {
-        service: s.name,
+        service: s.service,
         version: s.version,
         risk: (currentRisk + s.avgRisk) / (totalDays + 1),
       };
