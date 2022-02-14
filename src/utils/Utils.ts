@@ -117,4 +117,57 @@ export default class Utils {
     const m = this.vectorMagnitude(v);
     return v.map((val) => (m ? val / m : 0));
   }
+
+  /**
+   * (Experimental) Extract endpoints from request records
+   *
+   * Switch to using this with extra caution if Zipkin doesn't work
+   * @param urls All request urls from a service
+   * @returns Guessed API endpoints
+   * @experimental
+   */
+  static ExtractPathPattern(urls: string[]) {
+    if (urls.length === 0) return null;
+    urls = [...new Set(urls)];
+    const prefix = this.extractCommonPrefix(urls);
+    urls = urls.map((u) => u.replace(prefix, ""));
+
+    const extracted = new Set<string>();
+    const newMapping = new Map<string, string>();
+    for (let url of urls) {
+      if (newMapping.has(url)) url = newMapping.get(url)!;
+      const sections = url.split("/");
+      if (sections.length > 2) {
+        const pre = sections
+          .slice(0, sections.length - 1)
+          .join("/")
+          .replace(/\/\{\}\//g, "/[^/]*/");
+        const rx = new RegExp(`${pre}\/[^/]*`, "g");
+        const matched = urls.filter((u) => u.match(rx));
+        if (matched.length > 1) {
+          const path = sections.slice(0, sections.length - 1).join("/") + "/{}";
+          extracted.add(path);
+          urls.forEach((u) => newMapping.set(u, u.replace(rx, path)));
+        } else extracted.add(url);
+      } else {
+        extracted.add(url);
+      }
+    }
+    return [...extracted].filter((p) => !!p).map((p) => `${prefix}${p}`);
+  }
+  private static extractCommonPrefix(urls: string[]) {
+    urls.sort((a, b) => a.length - b.length);
+    let tokens = urls[0].split("/");
+    let commonPrefix = "";
+    while (tokens.length > 0) {
+      const prefix = tokens.join("/");
+      if (urls.find((u) => !u.startsWith(prefix))) {
+        tokens = tokens.slice(0, tokens.length - 1);
+      } else {
+        commonPrefix = tokens.join("/");
+        break;
+      }
+    }
+    return commonPrefix;
+  }
 }
