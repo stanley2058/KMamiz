@@ -10,13 +10,17 @@ export default class Utils {
           let o = obj[curr];
           if (typeof o === "object") {
             if (Array.isArray(o) && o.length > 0 && typeof o[0] === "object") {
-              o = o.map((o) => sortObject(o));
-            } else if (!Array.isArray(o)) o = sortObject(o);
+              o = o.map((o) => (o ? sortObject(o) : null));
+            } else if (!Array.isArray(o)) o = o ? sortObject(o) : null;
           }
           prev[curr] = o;
           return prev;
         }, {} as any);
-    return JsonToTS(sortObject(object), { rootName: name }).join("\n");
+
+    const sorted = Array.isArray(object)
+      ? object.map((o) => sortObject(o))
+      : sortObject(object);
+    return JsonToTS(sorted, { rootName: name }).join("\n");
   }
 
   /**
