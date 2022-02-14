@@ -129,12 +129,11 @@ export default class Utils {
   static ExtractPathPattern(urls: string[]) {
     if (urls.length === 0) return null;
     urls = [...new Set(urls)];
-    const prefix = this.extractCommonPrefix(urls);
-    urls = urls.map((u) => u.replace(prefix, ""));
 
-    const extracted = new Set<string>();
     const newMapping = new Map<string, string>();
+    const urlToEndpointMapping = new Map<string, string>();
     for (let url of urls) {
+      const oriUrl = url;
       if (newMapping.has(url)) url = newMapping.get(url)!;
       const sections = url.split("/");
       if (sections.length > 2) {
@@ -142,21 +141,61 @@ export default class Utils {
           .slice(0, sections.length - 1)
           .join("/")
           .replace(/\/\{\}\//g, "/[^/]*/");
-        const rx = new RegExp(`${pre}\/[^/]*`, "g");
+        const rx = new RegExp(`^${pre}\/[^/]*$`, "gm");
         const matched = urls.filter((u) => u.match(rx));
         if (matched.length > 1) {
           const path = sections.slice(0, sections.length - 1).join("/") + "/{}";
-          extracted.add(path);
-          urls.forEach((u) => newMapping.set(u, u.replace(rx, path)));
-        } else extracted.add(url);
-      } else {
-        extracted.add(url);
+          const replacer = new RegExp(`^${pre}\/[^/]*`, "gm");
+          urls.forEach((u) => newMapping.set(u, u.replace(replacer, path)));
+          urlToEndpointMapping.set(oriUrl, path);
+        } else urlToEndpointMapping.set(oriUrl, url);
+      } else urlToEndpointMapping.set(oriUrl, url);
+    }
+    return urlToEndpointMapping;
+  }
+
+  /**
+   * (Experimental) Extract endpoints from request records and request bodies
+   *
+   * Switch to using this with extra caution if Zipkin doesn't work
+   * @param urls All request urls from a service
+   * @param body Bodies of paired request url
+   * @returns Guessed API endpoints
+   * @experimental
+   */
+  static ExtractPathPatternWithBody(urls: string[], body: string[]) {
+    if (urls.length === 0 || body.length === 0 || urls.length !== body.length) {
+      return null;
+    }
+    const bodyToUrlMap = new Map<string, string[]>();
+    body.forEach((b, i) => {
+      bodyToUrlMap.set(b, [...(bodyToUrlMap.get(b) || []), urls[i]]);
+    });
+    const urlMapping = this.ExtractPathPattern(urls)!;
+    [...bodyToUrlMap.entries()].forEach(([, urls]) => {
+      const candidates = urls.map((u) => urlMapping.get(u)!);
+      if (this.extractCommonPrefix(candidates).length > 0) {
+        const masked = this.combineAndMaskUrls(candidates).join("/");
+        urls.forEach((u) => urlMapping.set(u, masked));
+      }
+    });
+    return urlMapping;
+  }
+
+  private static combineAndMaskUrls(urls: string[]) {
+    const urlTable = urls.map((u) => u.split("/"));
+    let masked = urlTable[0];
+    for (let i = 1; i < urlTable.length; i++) {
+      for (let j = 0; j < masked.length; j++) {
+        if (masked[j] !== "{}" && masked[j] !== urlTable[i][j]) {
+          masked[j] = "{}";
+        }
       }
     }
-    return [...extracted].filter((p) => !!p).map((p) => `${prefix}${p}`);
+    return masked;
   }
   private static extractCommonPrefix(urls: string[]) {
-    urls.sort((a, b) => a.length - b.length);
+    [...urls].sort((a, b) => a.length - b.length);
     let tokens = urls[0].split("/");
     let commonPrefix = "";
     while (tokens.length > 0) {
