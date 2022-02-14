@@ -54,4 +54,33 @@ export default class Utils {
   static BelongsToDateTimestamp(timestamp: number) {
     return new Date(new Date(timestamp).toLocaleDateString()).getTime();
   }
+
+  /**
+   * Calculate the score of Cosine Similarity between two interface string
+   * @param interfaceA An interface string
+   * @param interfaceB An interface string
+   * @returns Score between 0 and 1
+   * @see https://en.wikipedia.org/wiki/Cosine_similarity
+   */
+  static InterfaceCosineSimilarity(interfaceA: string, interfaceB: string) {
+    const setA = this.matchInterfaceFieldAndTrim(interfaceA);
+    const setB = this.matchInterfaceFieldAndTrim(interfaceB);
+    const baseSet = [...new Set<string>([...setA, ...setB])].sort();
+    const vectorA = this.createStandardVector(baseSet, setA);
+    const vectorB = this.createStandardVector(baseSet, setB);
+    return vectorA.reduce((score, curr, i) => score + curr * vectorB[i], 0);
+  }
+  private static matchInterfaceFieldAndTrim(interfaceStr: string) {
+    return new Set(
+      [...(interfaceStr.match(/(.*);/g) || [])].map((s) => s.trim())
+    );
+  }
+  private static vectorMagnitude(vector: number[]) {
+    return Math.sqrt(vector.reduce((acc, cur) => acc + Math.pow(cur, 2), 0));
+  }
+  private static createStandardVector(base: string[], vector: Set<string>) {
+    const v: number[] = base.map((l) => (vector.has(l) ? 1 : 0));
+    const m = this.vectorMagnitude(v);
+    return v.map((val) => val / m);
+  }
 }
