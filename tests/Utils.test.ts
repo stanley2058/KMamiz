@@ -65,4 +65,154 @@ describe("Utils", () => {
       Normalizer.Numbers([1, 2, 4], Normalizer.Strategy.FixedRatio)
     ).toEqual([0.25, 0.5, 1]);
   });
+
+  it("calculates cosine similarity between Typescript interfaces", () => {
+    const interfaceA = `interface Root {
+      id: string;
+      reviews: Review[];
+    }
+    interface Review {
+      reviewer: string;
+      text: string;
+    }`;
+    const interfaceB = `interface Root {
+      id: string;
+      reviews: Review[];
+    }
+    interface Review {
+      rating: Rating;
+      reviewer: string;
+      text: string;
+    }
+    interface Rating {
+      color: string;
+      stars: number;
+    }`;
+    const interfaceC = `interface Root {
+      id: number;
+      ratings: Ratings;
+    }
+    interface Ratings {
+      Reviewer1: number;
+      Reviewer2: number;
+    }`;
+
+    const testObj1 = [
+      {
+        id: "61d58fabd7cb2766e01db3c6",
+        originId: null,
+        ordinaryUserName: null,
+        dataRequesterName: "新創公司A",
+        dataHolderName: "台灣電力公司",
+        firstSignDate: 0,
+        secondSignDate: 0,
+        signState: 0,
+      },
+      {
+        id: "61d58facd7cb2766e01db7b0",
+        originId: null,
+        ordinaryUserName: null,
+        dataRequesterName: "新創公司A",
+        dataHolderName: "台灣電力公司",
+        firstSignDate: 0,
+        secondSignDate: 0,
+        signState: -3,
+      },
+    ];
+    const testObj2 = {
+      id: "5fc0b2b71952525d6bc3c524",
+      email: "request",
+      telephone: null,
+      mobilePhone: "0912345678",
+      address: "某處",
+      password: null,
+      userType: 1,
+      certificates: null,
+      keys: null,
+      principalName: "負責人A",
+      organizationName: "新創公司A",
+    };
+
+    expect(Utils.InterfaceCosineSimilarity(interfaceA, interfaceA)).toBeCloseTo(
+      1
+    );
+    expect(Utils.InterfaceCosineSimilarity(interfaceA, interfaceB)).toBeCloseTo(
+      0.775
+    );
+    expect(Utils.InterfaceCosineSimilarity(interfaceA, interfaceC)).toBeCloseTo(
+      0.167
+    );
+    expect(Utils.InterfaceCosineSimilarity(interfaceB, interfaceC)).toBeCloseTo(
+      0.129
+    );
+    expect(
+      Utils.InterfaceCosineSimilarity(
+        Utils.ObjectToInterfaceString(testObj1),
+        Utils.ObjectToInterfaceString(testObj2)
+      )
+    ).toBeCloseTo(0.107);
+  });
+
+  it("guesses API endpoints based on requests and request bodies", () => {
+    const urls = [
+      "/api/user/0",
+      "/api/user/0/id",
+      "/api/user/0/name",
+      "/api/user/1",
+      "/api/user/1/id",
+      "/api/user/1/name",
+      "/api/user/0/record/0",
+      "/api/user/1/record/2",
+      "/api/product",
+      "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/info",
+      "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/comment/0",
+      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/info",
+      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/comment/1",
+      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/comment/2",
+    ];
+    const bodies = [
+      "1",
+      "2",
+      "3",
+      "1",
+      "2",
+      "3",
+      "4",
+      "4",
+      "5",
+      "6",
+      "7",
+      "6",
+      "7",
+      "7",
+    ];
+
+    const guesses = Utils.ExtractPathPattern(urls);
+    const guessesWithBody = Utils.ExtractPathPatternWithBody(urls, bodies);
+
+    const expectResult1 = new Set([
+      "/api/user/{}",
+      "/api/user/{}/id",
+      "/api/user/{}/name",
+      "/api/user/{}/record/{}",
+      "/api/product",
+      "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/info",
+      "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/comment/0",
+      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/info",
+      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/comment/{}",
+    ]);
+    const expectResult2 = new Set([
+      "/api/user/{}",
+      "/api/user/{}/id",
+      "/api/user/{}/name",
+      "/api/user/{}/record/{}",
+      "/api/product",
+      "/api/product/{}/info",
+      "/api/product/{}/comment/{}",
+    ]);
+    expect(guesses).toBeTruthy();
+    expect(guessesWithBody).toBeTruthy();
+    expect(new Set([...guesses!.values()])).toEqual(expectResult1);
+    expect(new Set([...guessesWithBody!.values()])).toEqual(expectResult2);
+  });
 });
