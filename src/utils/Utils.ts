@@ -197,29 +197,15 @@ export default class Utils {
     }
     return masked;
   }
-  private static extractCommonPrefix(urls: string[]) {
-    [...urls].sort((a, b) => a.length - b.length);
-    let tokens = urls[0].split("/");
-    let commonPrefix = "";
-    while (tokens.length > 0) {
-      const prefix = tokens.join("/");
-      if (urls.find((u) => !u.startsWith(prefix))) {
-        tokens = tokens.slice(0, tokens.length - 1);
-      } else {
-        commonPrefix = tokens.join("/");
-        break;
-      }
-    }
-    return commonPrefix;
-  }
-  private static findEndpoints(urls: string[], threshold = 0.8) {
+  private static findEndpoints(urls: string[], threshold = 0.5) {
     const grouped = new Map<string, Set<string>>();
     const setUrls = new Set<string>();
     const base = [...new Set(urls.map((u) => u.split("/")).flat())];
 
     for (let i = 0; i < urls.length; i++) {
       if (setUrls.has(urls[i])) continue;
-      if (!grouped.has(urls[i])) grouped.set(urls[i], new Set(urls[i]));
+      if (!grouped.has(urls[i]))
+        grouped.set(urls[i], new Set<string>([urls[i]]));
       setUrls.add(urls[i]);
       const curSet = new Set(urls[i].split("/"));
       const curVec = this.createStandardVector(base, curSet);
