@@ -102,7 +102,7 @@ export default class Utils {
     const baseSet = [...new Set<string>([...setA, ...setB])].sort();
     const vectorA = this.createStandardVector(baseSet, setA);
     const vectorB = this.createStandardVector(baseSet, setB);
-    return vectorA.reduce((score, curr, i) => score + curr * vectorB[i], 0);
+    return this.cosSim(vectorA, vectorB);
   }
   private static matchInterfaceFieldAndTrim(interfaceStr: string) {
     return new Set(
@@ -116,6 +116,9 @@ export default class Utils {
     const v: number[] = base.map((l) => (vector.has(l) ? 1 : 0));
     const m = this.vectorMagnitude(v);
     return v.map((val) => (m ? val / m : 0));
+  }
+  private static cosSim(vectorA: number[], vectorB: number[]) {
+    return vectorA.reduce((score, curr, i) => score + curr * vectorB[i], 0);
   }
 
   /**
@@ -171,13 +174,13 @@ export default class Utils {
     body.forEach((b, i) => {
       bodyToUrlMap.set(b, [...(bodyToUrlMap.get(b) || []), urls[i]]);
     });
-    const urlMapping = this.ExtractPathPattern(urls)!;
-    [...bodyToUrlMap.entries()].forEach(([, urls]) => {
-      const candidates = urls.map((u) => urlMapping.get(u)!);
-      if (this.extractCommonPrefix(candidates).length > 0) {
-        const masked = this.combineAndMaskUrls(candidates).join("/");
-        urls.forEach((u) => urlMapping.set(u, masked));
-      }
+    const urlMapping = new Map<string, string>();
+    [...bodyToUrlMap.entries()].forEach(([, candidates]) => {
+      const grouped = this.findEndpoints(candidates);
+      grouped.forEach((g) => {
+        const masked = this.combineAndMaskUrls([...g]).join("/");
+        g.forEach((u) => urlMapping.set(u, masked));
+      });
     });
     return urlMapping;
   }
@@ -208,5 +211,32 @@ export default class Utils {
       }
     }
     return commonPrefix;
+  }
+  private static findEndpoints(urls: string[], threshold = 0.8) {
+    const grouped = new Map<string, Set<string>>();
+    const setUrls = new Set<string>();
+    const base = [...new Set(urls.map((u) => u.split("/")).flat())];
+
+    for (let i = 0; i < urls.length; i++) {
+      if (setUrls.has(urls[i])) continue;
+      const curSet = new Set(urls[i].split("/"));
+      const curVec = this.createStandardVector(base, curSet);
+      for (let j = i + 1; j < urls.length; j++) {
+        const cmpSet = new Set(urls[j].split("/"));
+        const score = this.cosSim(
+          curVec,
+          this.createStandardVector(base, cmpSet)
+        );
+        if (score >= threshold) {
+          setUrls.add(urls[i]);
+          setUrls.add(urls[j]);
+
+          if (!grouped.has(urls[i])) grouped.set(urls[i], new Set());
+          grouped.get(urls[i])!.add(urls[i]);
+          grouped.get(urls[i])!.add(urls[j]);
+        }
+      }
+    }
+    return [...grouped.values()];
   }
 }
