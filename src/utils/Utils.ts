@@ -219,6 +219,8 @@ export default class Utils {
 
     for (let i = 0; i < urls.length; i++) {
       if (setUrls.has(urls[i])) continue;
+      if (!grouped.has(urls[i])) grouped.set(urls[i], new Set(urls[i]));
+      setUrls.add(urls[i]);
       const curSet = new Set(urls[i].split("/"));
       const curVec = this.createStandardVector(base, curSet);
       for (let j = i + 1; j < urls.length; j++) {
@@ -228,11 +230,7 @@ export default class Utils {
           this.createStandardVector(base, cmpSet)
         );
         if (score >= threshold) {
-          setUrls.add(urls[i]);
           setUrls.add(urls[j]);
-
-          if (!grouped.has(urls[i])) grouped.set(urls[i], new Set());
-          grouped.get(urls[i])!.add(urls[i]);
           grouped.get(urls[i])!.add(urls[j]);
         }
       }
