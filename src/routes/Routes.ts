@@ -1,4 +1,5 @@
 import { Router } from "express";
+import GlobalSettings from "../GlobalSettings";
 
 export default class Routes {
   private static instance?: Routes;
@@ -11,7 +12,7 @@ export default class Routes {
   private openApiPrefix: string;
 
   private constructor() {
-    this.apiPrefix = `/api/v${process.env.API_VERSION}`;
+    this.apiPrefix = `/api/v${GlobalSettings.ApiVersion}`;
     this.externalApiPrefix = `/pricing/external${this.apiPrefix}`;
     this.internalApiPrefix = `/pricing/internal${this.apiPrefix}`;
     this.openApiPrefix = `/pricing/open${this.apiPrefix}`;

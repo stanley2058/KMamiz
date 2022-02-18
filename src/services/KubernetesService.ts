@@ -15,7 +15,7 @@ export default class KubernetesService {
   private kubeApiHost: string;
   private logClient: Axios;
   private constructor() {
-    this.kubeApiHost = process.env.KUBEAPI_HOST!;
+    this.kubeApiHost = GlobalSettings.KubeApiHost;
     this.logClient = new Axios({
       baseURL: `${this.kubeApiHost}/api/v1`,
     });

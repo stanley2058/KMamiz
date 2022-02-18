@@ -1,5 +1,6 @@
 import { Axios } from "axios";
 import { ITrace } from "../entities/ITrace";
+import GlobalSettings from "../GlobalSettings";
 
 export default class ZipkinService {
   private static instance?: ZipkinService;
@@ -10,7 +11,7 @@ export default class ZipkinService {
   private zipkinHost: string;
   private zipkinClient: Axios;
   private constructor() {
-    this.zipkinHost = process.env.ZIPKIN_URL!;
+    this.zipkinHost = GlobalSettings.ZipkinUrl!;
     this.zipkinClient = new Axios({
       baseURL: `${this.zipkinHost}/zipkin/api/v2`,
       responseType: "json",

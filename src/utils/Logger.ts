@@ -1,7 +1,7 @@
 import log from "npmlog";
 
 const LogLevelList = ["verbose", "info", "warn", "error"] as const;
-type LogLevels = typeof LogLevelList[number];
+export type LogLevels = typeof LogLevelList[number];
 
 const prefixed = (prefix: string) => {
   return LogLevelList.reduce(
