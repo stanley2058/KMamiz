@@ -82,7 +82,7 @@ export class RealtimeData {
         });
       }
 
-      const info = endpointInfoMap.get(serviceName)!.get(r.endpointName)!;
+      const info = endpointInfoMap.get(serviceName)!.get(endpointName)!;
       info.requests++;
       info.latencies.push(r.latency);
       if (r.status.startsWith("5")) info.serverErrors++;
