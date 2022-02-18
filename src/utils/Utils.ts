@@ -1,6 +1,8 @@
 import JsonToTS from "json-to-ts";
 import Logger from "./Logger";
 
+interface Test {}
+
 export default class Utils {
   /**
    * Craft a Typescript interface from an object or an array of objects
@@ -8,15 +10,25 @@ export default class Utils {
    * @param name (Optional) Override the root interface name
    * @returns Typescript interface in string form, primitives will be translated into their types
    */
-  static ObjectToInterfaceString(object: any, name: string = "Root") {
+  static ObjectToInterfaceString(object: any, name: string = "Root"): string {
     if (this.isPrimitive(object)) return typeof object;
     const sorted = this.sortObject(object);
+    if (Array.isArray(sorted)) {
+      let arrayType = "Array<any>{}";
+      let appending = "";
+      if (object.length > 0) {
+        if (this.isPrimitive(object[0])) {
+          arrayType = `Array<${typeof object[0]}>{}`;
+        } else {
+          arrayType = "Array<ArrayItem>{}\n";
+          appending = JsonToTS(sorted, { rootName: "ArrayItem" }).join("\n");
+        }
+      }
+      return `interface ${name} extends ${arrayType}${appending}`;
+    }
     const primitivePart = this.primitiveInterface(object);
     let objPart = null;
-    if (
-      (sorted && !Array.isArray(sorted)) ||
-      (Array.isArray(sorted) && sorted.length > 0)
-    ) {
+    if (sorted && !Array.isArray(sorted)) {
       objPart = JsonToTS(sorted, { rootName: name }).join("\n");
     }
     return (objPart || "") + (primitivePart || "");
@@ -105,9 +117,13 @@ export default class Utils {
     return this.cosSim(vectorA, vectorB);
   }
   private static matchInterfaceFieldAndTrim(interfaceStr: string) {
-    return new Set(
-      [...(interfaceStr.match(/^[ ]+([^{}\n])*/gm) || [])].map((s) => s.trim())
+    const fields = new Set(
+      [
+        ...(interfaceStr.match(/^[ ]+([^{}\n])*/gm) || []),
+        ...(interfaceStr.match(/extends (Array<[^>]*>)/g) || []),
+      ].map((s) => s.trim())
     );
+    return fields;
   }
   private static vectorMagnitude(vector: number[]) {
     return Math.sqrt(vector.reduce((acc, cur) => acc + Math.pow(cur, 2), 0));

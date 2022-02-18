@@ -27,6 +27,46 @@ describe("Utils", () => {
         "  text: string;\n" +
         "}"
     );
+
+    const array = [
+      {
+        id: "61d58fabd7cb2766e01db3c6",
+        originId: null,
+        ordinaryUserName: null,
+        dataRequesterName: "新創公司A",
+        dataHolderName: "台灣電力公司",
+        firstSignDate: 0,
+        secondSignDate: 0,
+        signState: 0,
+      },
+      {
+        id: "61d58facd7cb2766e01db7b0",
+        originId: null,
+        ordinaryUserName: null,
+        dataRequesterName: "新創公司A",
+        dataHolderName: "台灣電力公司",
+        firstSignDate: 0,
+        secondSignDate: 0,
+        signState: -3,
+      },
+    ];
+    const arrayInterfaceString = Utils.ObjectToInterfaceString(
+      array,
+      "ObjArray"
+    );
+    expect(arrayInterfaceString).toEqual(
+      "interface ObjArray extends Array<ArrayItem>{}\n" +
+        "interface ArrayItem {\n" +
+        "  dataHolderName: string;\n" +
+        "  dataRequesterName: string;\n" +
+        "  firstSignDate: number;\n" +
+        "  id: string;\n" +
+        "  ordinaryUserName?: any;\n" +
+        "  originId?: any;\n" +
+        "  secondSignDate: number;\n" +
+        "  signState: number;\n" +
+        "}"
+    );
   });
 
   it("explode url into sections", () => {
@@ -132,6 +172,16 @@ describe("Utils", () => {
       principalName: "負責人A",
       organizationName: "新創公司A",
     };
+    const testObj3 = {
+      id: "61d58fabd7cb2766e01db3c6",
+      originId: null,
+      ordinaryUserName: null,
+      dataRequesterName: "新創公司A",
+      dataHolderName: "台灣電力公司",
+      firstSignDate: 0,
+      secondSignDate: 0,
+      signState: 0,
+    };
 
     expect(Utils.InterfaceCosineSimilarity(interfaceA, interfaceA)).toBeCloseTo(
       1
@@ -145,12 +195,15 @@ describe("Utils", () => {
     expect(Utils.InterfaceCosineSimilarity(interfaceB, interfaceC)).toBeCloseTo(
       0.129
     );
+    const interfaceObj1 = Utils.ObjectToInterfaceString(testObj1);
+    const interfaceObj2 = Utils.ObjectToInterfaceString(testObj2);
+    const interfaceObj3 = Utils.ObjectToInterfaceString(testObj3);
     expect(
-      Utils.InterfaceCosineSimilarity(
-        Utils.ObjectToInterfaceString(testObj1),
-        Utils.ObjectToInterfaceString(testObj2)
-      )
-    ).toBeCloseTo(0.107);
+      Utils.InterfaceCosineSimilarity(interfaceObj1, interfaceObj2)
+    ).toBeCloseTo(0.101);
+    expect(
+      Utils.InterfaceCosineSimilarity(interfaceObj1, interfaceObj3)
+    ).toBeCloseTo(0.94);
   });
 
   it("guesses API endpoints based on requests and request bodies", () => {
