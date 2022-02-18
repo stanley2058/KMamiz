@@ -265,17 +265,12 @@ export class EndpointDependencies {
     this.dependencies.forEach((ep) => {
       const service = `${ep.endpoint.service}\t${ep.endpoint.namespace}\t${ep.endpoint.version}`;
       if (!serviceMap.has(service)) serviceMap.set(service, new Map());
-      ep.dependsOn
-        .filter((d) => d.distance === 1)
-        .forEach((s) => {
-          const dependName = `${s.endpoint.service}\t${s.endpoint.namespace}\t${s.endpoint.version}`;
-          serviceMap
-            .get(service)!
-            .set(
-              dependName,
-              (serviceMap.get(service)!.get(dependName) || 0) + 1
-            );
-        });
+      ep.dependsOn.forEach((s) => {
+        const dependName = `${s.endpoint.service}\t${s.endpoint.namespace}\t${s.endpoint.version}`;
+        serviceMap
+          .get(service)!
+          .set(dependName, (serviceMap.get(service)!.get(dependName) || 0) + 1);
+      });
     });
 
     const nodes = [...serviceMap.keys()].map((k) => {

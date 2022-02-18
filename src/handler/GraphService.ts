@@ -1,5 +1,6 @@
 import { EndpointDependencies } from "../classes/EndpointDependency";
 import { Trace } from "../classes/Trace";
+import { IEndpointDependency } from "../entities/IEndpointDependency";
 import IRequestHandler from "../entities/IRequestHandler";
 import ZipkinService from "../services/ZipkinService";
 
