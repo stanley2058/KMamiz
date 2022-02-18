@@ -1,25 +1,30 @@
 import { Router } from "express";
 import GlobalSettings from "../GlobalSettings";
+import * as Handlers from "../handler";
+import Logger from "../utils/Logger";
 
 export default class Routes {
   private static instance?: Routes;
   static getInstance = () => this.instance || (this.instance = new this());
 
-  private router = Router();
-  private apiPrefix: string;
-  private externalApiPrefix: string;
-  private internalApiPrefix: string;
-  private openApiPrefix: string;
+  private readonly router = Router();
+  private readonly apiPrefix: string;
 
   private constructor() {
     this.apiPrefix = `/api/v${GlobalSettings.ApiVersion}`;
-    this.externalApiPrefix = `/pricing/external${this.apiPrefix}`;
-    this.internalApiPrefix = `/pricing/internal${this.apiPrefix}`;
-    this.openApiPrefix = `/pricing/open${this.apiPrefix}`;
     this.setRoutes();
   }
 
-  private setRoutes() {}
+  private setRoutes() {
+    Logger.verbose("Registered routes:");
+    Object.values(Handlers).forEach((h) => {
+      new h().getRoutes().forEach(({ method, path, handler }) => {
+        const apiPath = `${this.apiPrefix}${path}`;
+        this.router[method](apiPath, handler);
+        Logger.plain.verbose(`${method} ${apiPath}`);
+      });
+    });
+  }
 
   getRoutes() {
     return this.router;
