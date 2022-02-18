@@ -1,6 +1,7 @@
 import IAggregateData from "../entities/IAggregateData";
 import { IRealtimeData } from "../entities/IRealtimeData";
 import IReplicaCount from "../entities/IReplicaCount";
+import IRiskResult from "../entities/IRiskResult";
 import IServiceDependency from "../entities/IServiceDependency";
 import Normalizer from "./Normalizer";
 
@@ -11,7 +12,7 @@ export default class RiskAnalyzer {
     data: IRealtimeData[],
     dependencies: IServiceDependency[],
     replicas: IReplicaCount[]
-  ) {
+  ): IRiskResult[] {
     data = data.map((d) => ({
       ...d,
       service: `${d.service}\t${d.namespace}\t${d.version}`,

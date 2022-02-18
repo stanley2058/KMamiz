@@ -15,11 +15,14 @@ export interface IAggregateServiceInfo {
   totalServerErrors: number;
   totalRequestErrors: number;
   avgRisk: number;
+  avgLatencyCV: number;
   endpoints: IAggregateEndpointInfo[];
 }
 export interface IAggregateEndpointInfo {
   name: string;
+  protocol: string;
   totalRequests: number;
   totalServerErrors: number;
   totalRequestErrors: number;
+  avgLatencyCV: number;
 }
