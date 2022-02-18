@@ -59,7 +59,7 @@ export class RealtimeData {
   private createEndpointInfoMapping(realtimeData: IRealtimeData[]) {
     const endpointInfoMap = new Map<
       string,
-      Map<string, IHistoryEndpointInfo & { latencies: number[] }>
+      Map<string, IHistoryEndpointInfo & { latencies?: number[] }>
     >();
     realtimeData.forEach((r) => {
       const serviceName = `${r.service}\t${r.namespace}\t${r.version}`;
@@ -67,7 +67,7 @@ export class RealtimeData {
       if (!endpointInfoMap.has(serviceName)) {
         endpointInfoMap.set(
           serviceName,
-          new Map<string, IHistoryEndpointInfo & { latencies: number[] }>()
+          new Map<string, IHistoryEndpointInfo & { latencies?: number[] }>()
         );
       }
       if (!endpointInfoMap.get(serviceName)!.has(endpointName)) {
@@ -84,14 +84,15 @@ export class RealtimeData {
 
       const info = endpointInfoMap.get(serviceName)!.get(endpointName)!;
       info.requests++;
-      info.latencies.push(r.latency);
+      info.latencies!.push(r.latency);
       if (r.status.startsWith("5")) info.serverErrors++;
       if (r.status.startsWith("4")) info.requestErrors++;
       endpointInfoMap.get(serviceName)!.set(endpointName, info);
     });
     [...endpointInfoMap.keys()].forEach((s) => {
       endpointInfoMap.get(s)!.forEach((val) => {
-        val.latencyCV = RiskAnalyzer.CoefficientOfVariation(val.latencies);
+        val.latencyCV = RiskAnalyzer.CoefficientOfVariation(val.latencies!);
+        delete val.latencies;
       });
     });
     return endpointInfoMap;
@@ -299,7 +300,7 @@ export class RealtimeData {
   ) {
     const endpointMap = new Map<
       string,
-      IAggregateEndpointInfo & { latencyCV: number[] }
+      IAggregateEndpointInfo & { latencyCV?: number[] }
     >();
     endpointInfo.forEach(
       ({
@@ -328,14 +329,15 @@ export class RealtimeData {
             totalRequests: prev.totalRequests + requests,
             totalRequestErrors: prev.totalRequestErrors + requestErrors,
             totalServerErrors: prev.totalServerErrors + serverErrors,
-            latencyCV: [...prev.latencyCV, latencyCV],
+            latencyCV: [...prev.latencyCV!, latencyCV],
           });
         }
       }
     );
     endpointMap.forEach((val) => {
-      const sum = val.latencyCV.reduce((prev, curr) => prev + curr, 0);
-      val.avgLatencyCV = sum / val.latencyCV.length;
+      const sum = val.latencyCV!.reduce((prev, curr) => prev + curr, 0);
+      val.avgLatencyCV = sum / val.latencyCV!.length;
+      delete val.latencyCV;
     });
     return endpointMap;
   }

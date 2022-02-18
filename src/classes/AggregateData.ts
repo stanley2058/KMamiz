@@ -4,6 +4,9 @@ import IAggregateData, {
 } from "../entities/IAggregateData";
 import Logger from "../utils/Logger";
 
+type IAggregateServiceInfoWithUniqueName = IAggregateServiceInfo & {
+  uniqueName: string;
+};
 export class AggregateData {
   private readonly _aggregateData: IAggregateData;
   constructor(aggregateData: IAggregateData) {
@@ -17,10 +20,7 @@ export class AggregateData {
     const fromDate = this.decideFromDate(fDate);
     const toDate = this.decideToDate(tDate);
 
-    const serviceMap = new Map<
-      string,
-      IAggregateServiceInfo & { uniqueName: string }
-    >();
+    const serviceMap = new Map<string, IAggregateServiceInfoWithUniqueName>();
     this.addUniqueName([...this._aggregateData.services, ...services]).forEach(
       (s) => {
         if (!serviceMap.has(s.uniqueName)) serviceMap.set(s.uniqueName, s);
@@ -40,8 +40,8 @@ export class AggregateData {
   }
 
   mergeAggregateServiceInfo(
-    a: IAggregateServiceInfo & { uniqueName: string },
-    b: IAggregateServiceInfo & { uniqueName: string }
+    a: IAggregateServiceInfoWithUniqueName,
+    b: IAggregateServiceInfoWithUniqueName
   ) {
     if (a.uniqueName !== b.uniqueName) {
       Logger.error("Trying to merge mismatched service info, skipping.");
@@ -89,28 +89,9 @@ export class AggregateData {
       uniqueName: `${s.service}\t${s.namespace}\t${s.version}`,
     }));
   }
-  private mapBackToAggregateData(
-    info: IAggregateServiceInfo & { uniqueName: string }
-  ) {
-    const {
-      service,
-      namespace,
-      version,
-      totalRequests,
-      totalRequestErrors,
-      totalServerErrors,
-      avgRisk,
-      endpoints,
-    } = info;
-    return {
-      service,
-      namespace,
-      version,
-      totalRequests,
-      totalRequestErrors,
-      totalServerErrors,
-      avgRisk,
-      endpoints,
-    };
+  private mapBackToAggregateData(info: IAggregateServiceInfoWithUniqueName) {
+    let trimmed: IAggregateServiceInfo & { uniqueName?: string } = { ...info };
+    delete trimmed.uniqueName;
+    return trimmed;
   }
 }
