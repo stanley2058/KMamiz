@@ -255,18 +255,7 @@ export default class RiskAnalyzer {
   }
 
   static ReliabilityMetric(data: IRealtimeData[]) {
-    const latencyMap = data.reduce((acc, cur) => {
-      acc.set(cur.service, (acc.get(cur.service) || []).concat(cur.latency));
-      return acc;
-    }, new Map<string, number[]>());
-
-    const reliabilityMetric: { service: string; metric: number }[] = [];
-    latencyMap.forEach((latencies, service) => {
-      reliabilityMetric.push({
-        service,
-        metric: this.CoefficientOfVariation(latencies),
-      });
-    });
+    const reliabilityMetric = this.GetWorseLatencyCVOfServices(data);
 
     const normalizedMetrics = Normalizer.Numbers(
       reliabilityMetric.map(({ metric }) => metric),
@@ -276,6 +265,35 @@ export default class RiskAnalyzer {
     return reliabilityMetric.map((m, i) => ({
       ...m,
       norm: normalizedMetrics[i],
+    }));
+  }
+
+  static GetWorseLatencyCVOfServices(serviceData: IRealtimeData[]) {
+    const latencyMap = serviceData.reduce((acc, cur) => {
+      const uniqueName = `${cur.service}\t${cur.protocol}\t${cur.endpointName}`;
+      acc.set(uniqueName, (acc.get(uniqueName) || []).concat(cur.latency));
+      return acc;
+    }, new Map<string, number[]>());
+
+    const serviceLatencyMap = [...latencyMap.entries()].reduce(
+      (acc, [uniqueName, latencies]) => {
+        const [service, namespace, version] = uniqueName.split("\t");
+        const serviceName = `${service}\t${namespace}\t${version}`;
+        acc.set(
+          serviceName,
+          Math.max(
+            acc.get(serviceName) || 0,
+            this.CoefficientOfVariation(latencies)
+          )
+        );
+        return acc;
+      },
+      new Map<string, number>()
+    );
+
+    return [...serviceLatencyMap.entries()].map(([service, metric]) => ({
+      service,
+      metric,
     }));
   }
 
