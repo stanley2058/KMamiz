@@ -155,14 +155,16 @@ describe("Utils", () => {
 
   it("guesses API endpoints based on requests and request bodies", () => {
     const urls = [
-      "/api/user/0",
-      "/api/user/0/id",
-      "/api/user/0/name",
-      "/api/user/1",
-      "/api/user/1/id",
-      "/api/user/1/name",
-      "/api/user/0/record/0",
-      "/api/user/1/record/2",
+      "/api/user/all",
+      "/api/user/list",
+      "/api/user/id/0",
+      "/api/user/id/0/info",
+      "/api/user/id/0/name",
+      "/api/user/id/1",
+      "/api/user/id/1/info",
+      "/api/user/id/1/name",
+      "/api/user/id/0/record/0",
+      "/api/user/id/1/record/2",
       "/api/product",
       "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/info",
       "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/comment/0",
@@ -171,6 +173,8 @@ describe("Utils", () => {
       "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/comment/2",
     ];
     const bodies = [
+      "8",
+      "9",
       "1",
       "2",
       "3",
@@ -187,32 +191,20 @@ describe("Utils", () => {
       "7",
     ];
 
-    const guesses = Utils.ExtractPathPattern(urls);
     const guessesWithBody = Utils.ExtractPathPatternWithBody(urls, bodies);
 
-    const expectResult1 = new Set([
-      "/api/user/{}",
-      "/api/user/{}/id",
-      "/api/user/{}/name",
-      "/api/user/{}/record/{}",
-      "/api/product",
-      "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/info",
-      "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/comment/0",
-      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/info",
-      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/comment/{}",
-    ]);
-    const expectResult2 = new Set([
-      "/api/user/{}",
-      "/api/user/{}/id",
-      "/api/user/{}/name",
-      "/api/user/{}/record/{}",
+    const expectResult = new Set([
+      "/api/user/all",
+      "/api/user/list",
+      "/api/user/id/{}",
+      "/api/user/id/{}/info",
+      "/api/user/id/{}/name",
+      "/api/user/id/{}/record/{}",
       "/api/product",
       "/api/product/{}/info",
       "/api/product/{}/comment/{}",
     ]);
-    expect(guesses).toBeTruthy();
     expect(guessesWithBody).toBeTruthy();
-    expect(new Set([...guesses!.values()])).toEqual(expectResult1);
-    expect(new Set([...guessesWithBody!.values()])).toEqual(expectResult2);
+    expect(new Set([...guessesWithBody!.values()])).toEqual(expectResult);
   });
 });

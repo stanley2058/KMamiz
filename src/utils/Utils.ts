@@ -122,42 +122,6 @@ export default class Utils {
   }
 
   /**
-   * (Experimental) Extract endpoints from request records
-   *
-   * Switch to using this with extra caution if Zipkin doesn't work
-   * @param urls All request urls from a service
-   * @returns Guessed API endpoints
-   * @experimental
-   */
-  static ExtractPathPattern(urls: string[]) {
-    if (urls.length === 0) return null;
-    urls = [...new Set(urls)];
-
-    const newMapping = new Map<string, string>();
-    const urlToEndpointMapping = new Map<string, string>();
-    for (let url of urls) {
-      const oriUrl = url;
-      if (newMapping.has(url)) url = newMapping.get(url)!;
-      const sections = url.split("/");
-      if (sections.length > 2) {
-        const pre = sections
-          .slice(0, sections.length - 1)
-          .join("/")
-          .replace(/\/\{\}\//g, "/[^/]*/");
-        const rx = new RegExp(`^${pre}\/[^/]*$`, "gm");
-        const matched = urls.filter((u) => u.match(rx));
-        if (matched.length > 1) {
-          const path = sections.slice(0, sections.length - 1).join("/") + "/{}";
-          const replacer = new RegExp(`^${pre}\/[^/]*`, "gm");
-          urls.forEach((u) => newMapping.set(u, u.replace(replacer, path)));
-          urlToEndpointMapping.set(oriUrl, path);
-        } else urlToEndpointMapping.set(oriUrl, url);
-      } else urlToEndpointMapping.set(oriUrl, url);
-    }
-    return urlToEndpointMapping;
-  }
-
-  /**
    * (Experimental) Extract endpoints from request records and request bodies
    *
    * Switch to using this with extra caution if Zipkin doesn't work
