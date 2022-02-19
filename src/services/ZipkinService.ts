@@ -1,6 +1,7 @@
 import { Axios } from "axios";
 import { ITrace } from "../entities/ITrace";
 import GlobalSettings from "../GlobalSettings";
+import Utils from "../utils/Utils";
 
 export default class ZipkinService {
   private static instance?: ZipkinService;
@@ -33,14 +34,22 @@ export default class ZipkinService {
     endTs: number = Date.now(),
     serviceName: string = "istio-ingressgateway.istio-system"
   ) {
-    const response = await this.zipkinClient.get<ITrace[][]>(
+    const response = await Utils.AxiosRequest<ITrace[][]>(
+      this.zipkinClient,
+      "get",
       `/traces?serviceName=${serviceName}&endTs=${endTs}&lookback=${lookBack}&limit=100000`
     );
-    return response.data;
+    if (response) return response.data;
+    return [];
   }
 
   async getServicesFromZipkin() {
-    const { data } = await this.zipkinClient.get<string[]>("/services");
-    return data;
+    const response = await Utils.AxiosRequest<string[]>(
+      this.zipkinClient,
+      "get",
+      "/services"
+    );
+    if (response) return response.data;
+    return [];
   }
 }

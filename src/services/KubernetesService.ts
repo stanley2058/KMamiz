@@ -1,10 +1,12 @@
-import { Axios } from "axios";
+import { Axios, AxiosRequestConfig } from "axios";
 import GlobalSettings from "../GlobalSettings";
 import { EnvoyLogs } from "../classes/EnvoyLog";
 import { IPodList } from "../entities/IPodList";
 import IReplicaCount from "../entities/IReplicaCount";
 import { IServiceList } from "../entities/IServiceList";
 import { IEnvoyLog } from "../entities/IEnvoyLog";
+import Utils from "../utils/Utils";
+import Logger from "../utils/Logger";
 
 export default class KubernetesService {
   private static instance?: KubernetesService;
@@ -22,23 +24,43 @@ export default class KubernetesService {
     if (!this.kubeApiHost) throw new Error("Variable [KUBE_API_HOST] not set");
   }
 
+  private async mustSuccessRequest<Type>(
+    method: "get" | "post" | "delete" | "put" | "head" | "patch" | "options",
+    path: string,
+    config?: AxiosRequestConfig<any>
+  ) {
+    const response = await Utils.AxiosRequest<Type>(
+      this.logClient,
+      method,
+      path,
+      config
+    );
+    if (response) return response.data;
+    return Logger.fatal(
+      "Cannot retrieve necessary data from Kubernetes API server."
+    );
+  }
+
   async getPodList(namespace: string) {
-    const { data } = await this.logClient.get(`/namespaces/${namespace}/pods`, {
-      responseType: "json",
-      transformResponse: (data) => JSON.parse(data),
-    });
-    return data as IPodList;
+    return await this.mustSuccessRequest<IPodList>(
+      "get",
+      `/namespaces/${namespace}/pods`,
+      {
+        responseType: "json",
+        transformResponse: (data) => JSON.parse(data),
+      }
+    );
   }
 
   async getServiceList(namespace: string) {
-    const { data } = await this.logClient.get(
+    return await this.mustSuccessRequest<IServiceList>(
+      "get",
       `/namespaces/${namespace}/services`,
       {
         responseType: "json",
         transformResponse: (data) => JSON.parse(data),
       }
     );
-    return data as IServiceList;
   }
 
   async getReplicasFromPodList(namespace: string) {
@@ -85,11 +107,10 @@ export default class KubernetesService {
     podName: string,
     limit: number = this.DEFAULT_LOG_LIMIT
   ) {
-    const { data } = await this.logClient.get<string>(
+    const data = await this.mustSuccessRequest<string>(
+      "get",
       `/namespaces/${namespace}/pods/${podName}/log?container=istio-proxy&tailLines=${limit}`,
-      {
-        responseType: "text",
-      }
+      { responseType: "text" }
     );
     const logs = data
       .split("\n")

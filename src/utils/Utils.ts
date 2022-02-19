@@ -1,7 +1,6 @@
+import { Axios, AxiosRequestConfig, AxiosResponse } from "axios";
 import JsonToTS from "json-to-ts";
 import Logger from "./Logger";
-
-interface Test {}
 
 export default class Utils {
   /**
@@ -202,5 +201,28 @@ export default class Utils {
       }
     }
     return [...grouped.values()];
+  }
+
+  /**
+   * Use Axios to send request, handles and logs error
+   * @param client Axios client
+   * @param method Http request method
+   * @param url Request url
+   * @param configs (Optional) Request config
+   * @returns Axios response, null if error
+   */
+  static async AxiosRequest<ReturnType>(
+    client: Axios,
+    method: "get" | "post" | "delete" | "put" | "head" | "patch" | "options",
+    url: string,
+    configs?: AxiosRequestConfig<any>
+  ): Promise<AxiosResponse<ReturnType, any> | null> {
+    try {
+      return await client[method](url, configs);
+    } catch (err) {
+      Logger.error("Error sending request");
+      Logger.error("", err);
+      return null;
+    }
   }
 }

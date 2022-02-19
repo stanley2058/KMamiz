@@ -34,6 +34,18 @@ const Logger = {
    * @returns current log level
    */
   setGlobalLogLevel: (level: LogLevels) => (log.level = level),
+  /**
+   * Log out fatal error message and crash the program
+   * @param message Error message
+   * @param additionalInfo Any additional information
+   */
+  fatal: (message: string, ...additionalInfo: any) => {
+    Logger.prefixed("FATAL").error(message, additionalInfo);
+    Logger.prefixed("FATAL").error(
+      "Encountered unrecoverable fatal error, exiting."
+    );
+    process.exit(1);
+  },
 };
 
 export default Logger;
