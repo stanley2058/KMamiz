@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { IRequestTypeUpper } from "./IRequestType";
 
 export default interface IHistoryData {
   _id?: Types.ObjectId;
@@ -8,6 +9,7 @@ export default interface IHistoryData {
 
 export interface IHistoryServiceInfo {
   _id?: Types.ObjectId;
+  uniqueServiceName: string;
   date: Date;
   service: string;
   namespace: string;
@@ -21,8 +23,10 @@ export interface IHistoryServiceInfo {
 }
 
 export interface IHistoryEndpointInfo {
-  name: string;
-  protocol: string;
+  uniqueServiceName: string;
+  uniqueEndpointName: string;
+  labelName: string;
+  method: IRequestTypeUpper;
   requests: number;
   serverErrors: number;
   requestErrors: number;

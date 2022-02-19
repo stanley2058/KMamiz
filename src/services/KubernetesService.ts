@@ -7,6 +7,7 @@ import { IServiceList } from "../entities/external/IServiceList";
 import { IEnvoyLog } from "../entities/IEnvoyLog";
 import Utils from "../utils/Utils";
 import Logger from "../utils/Logger";
+import { IRequestTypeUpper } from "../entities/IRequestType";
 
 export default class KubernetesService {
   private static instance?: KubernetesService;
@@ -75,15 +76,16 @@ export default class KubernetesService {
           acc[cur] = (acc[cur] || 0) + 1;
           return acc;
         }, {} as { [id: string]: number })
-    ).map(([uniqueName, replicas]) => {
+    ).map(([uniqueName, replicas]): IReplicaCount => {
       const [service, namespace, version] = uniqueName.split("\t");
       return {
         service,
         namespace,
         version,
         replicas,
+        uniqueServiceName: uniqueName,
       };
-    }) as IReplicaCount[];
+    });
   }
 
   async getPodNames(namespace: string) {
@@ -126,7 +128,7 @@ export default class KubernetesService {
   }
 
   static ParseEnvoyLogs(logs: string[], namespace: string, podName: string) {
-    const envoyLogs = logs.map((l) => {
+    const envoyLogs = logs.map((l): IEnvoyLog => {
       const [time, log] = l.split("\t");
       const [, requestRid, traceId, responseRid] =
         log.match(/\[Request ([\w-]+)\/(\w+)|Response ([\w-]+)\]/) || [];
@@ -140,13 +142,13 @@ export default class KubernetesService {
         type: requestRid ? "Request" : "Response",
         requestId: requestRid || responseRid,
         traceId,
-        method,
+        method: method as IRequestTypeUpper,
         path,
         status,
         body,
         namespace,
         podName,
-      } as IEnvoyLog;
+      };
     });
     return new EnvoyLogs(envoyLogs);
   }

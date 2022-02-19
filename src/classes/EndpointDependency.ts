@@ -59,8 +59,9 @@ export class EndpointDependencies {
       });
 
       endpoint.forEach((e) => {
-        const [, , path] = Utils.ExplodeUrl(e.endpoint.name, true);
-        const id = `${service}\t${e.endpoint.version}\t${e.endpoint.name}`;
+        const id = `${e.endpoint.uniqueServiceName}\t${e.endpoint.method}\t${e.endpoint.labelName}`;
+        // if endpoint.name changed to none service url, change this
+        const [, , path] = Utils.ExplodeUrl(e.endpoint.labelName, true);
         // endpoint node
         nodes.push({
           id,
@@ -80,7 +81,7 @@ export class EndpointDependencies {
         e.dependsOn
           .filter((dep) => dep.distance === 1)
           .forEach((dep) => {
-            const depId = `${dep.endpoint.service}\t${dep.endpoint.namespace}\t${dep.endpoint.version}\t${dep.endpoint.name}`;
+            const depId = `${dep.endpoint.uniqueServiceName}\t${dep.endpoint.method}\t${dep.endpoint.labelName}`;
             links.push({
               source: id,
               target: depId,
@@ -100,7 +101,7 @@ export class EndpointDependencies {
   private createHighlightNodesAndLinks(nodes: INode[], links: ILink[]) {
     const dependencyWithId = this._dependencies.map((dep) => ({
       ...dep,
-      uid: `${dep.endpoint.service}\t${dep.endpoint.namespace}\t${dep.endpoint.version}\t${dep.endpoint.name}`,
+      uid: `${dep.endpoint.uniqueServiceName}\t${dep.endpoint.method}\t${dep.endpoint.labelName}`,
       sid: `${dep.endpoint.service}\t${dep.endpoint.namespace}`,
     }));
 
@@ -154,8 +155,8 @@ export class EndpointDependencies {
   }
   private remapToId(list: TEndpointDependency[]) {
     return list.map(
-      ({ endpoint: { service, namespace, version, name } }) =>
-        `${service}\t${namespace}\t${version}\t${name}`
+      ({ endpoint: { uniqueServiceName, method, labelName } }) =>
+        `${uniqueServiceName}\t${method}\t${labelName}`
     );
   }
   private sortEndpointInfoByDistanceDesc(list: TEndpointDependency[]) {
@@ -163,16 +164,18 @@ export class EndpointDependencies {
   }
   private mapToLinks(list: TEndpointDependency[], node: INode, links: ILink[]) {
     return list
-      .map(({ endpoint: { service, namespace, version, name }, type }, i) => {
-        const id = `${service}\t${namespace}\t${version}\t${name}`;
-        const remaining = new Set([
-          ...this.remapToId(list.slice(i + 1)),
-          node.id,
-        ]);
-        const from = type === "SERVER" ? "target" : "source";
-        const to = type === "SERVER" ? "source" : "target";
-        return links.filter((l) => l[from] === id && remaining.has(l[to]));
-      })
+      .map(
+        ({ endpoint: { uniqueServiceName, method, labelName }, type }, i) => {
+          const id = `${uniqueServiceName}\t${method}\t${labelName}`;
+          const remaining = new Set([
+            ...this.remapToId(list.slice(i + 1)),
+            node.id,
+          ]);
+          const from = type === "SERVER" ? "target" : "source";
+          const to = type === "SERVER" ? "source" : "target";
+          return links.filter((l) => l[from] === id && remaining.has(l[to]));
+        }
+      )
       .flat();
   }
 
@@ -180,27 +183,16 @@ export class EndpointDependencies {
     // gather all service info from endpointDependencies
     const serviceTemplates = [
       ...this._dependencies.reduce(
-        (prev, { endpoint }) =>
-          prev.add(
-            `${endpoint.service}\t${endpoint.namespace}\t${endpoint.version}`
-          ),
+        (prev, { endpoint }) => prev.add(endpoint.uniqueServiceName),
         new Set<string>()
       ),
-    ].map((s) => {
-      // map service info to an unique name for easy comparison
-      const [service, namespace, version] = s.split("\t");
-      return {
-        uniqueName: `${service}\t${namespace}\t${version}`,
-      };
-    });
+    ];
 
     // create service dependencies
-    return serviceTemplates.map(({ uniqueName }) => {
+    return serviceTemplates.map((uniqueName): IServiceDependency => {
       // find dependencies for the current service
       const dependency = this._dependencies.filter(
-        ({ endpoint }) =>
-          `${endpoint.service}\t${endpoint.namespace}\t${endpoint.version}` ===
-          uniqueName
+        ({ endpoint }) => endpoint.uniqueServiceName === uniqueName
       );
 
       // create links info from endpointDependencies
@@ -221,9 +213,11 @@ export class EndpointDependencies {
             namespace,
             version,
             ...info,
+            uniqueServiceName: uniqueName,
           };
         }),
-      } as IServiceDependency;
+        uniqueServiceName: uniqueName,
+      };
     });
   }
 
@@ -235,9 +229,8 @@ export class EndpointDependencies {
       .map((dep) => [...dep.dependsOn, ...dep.dependBy])
       .flat()
       .map((dep) => {
-        const { service: serviceName, namespace, version } = dep.endpoint;
         return {
-          uniqueName: `${serviceName}\t${namespace}\t${version}`,
+          uniqueName: dep.endpoint.uniqueServiceName,
           distance: dep.distance,
           type: dep.type,
         };
@@ -263,10 +256,10 @@ export class EndpointDependencies {
   toChordData() {
     const serviceMap = new Map<string, Map<string, number>>();
     this.dependencies.forEach((ep) => {
-      const service = `${ep.endpoint.service}\t${ep.endpoint.namespace}\t${ep.endpoint.version}`;
+      const service = ep.endpoint.uniqueServiceName;
       if (!serviceMap.has(service)) serviceMap.set(service, new Map());
       ep.dependsOn.forEach((s) => {
-        const dependName = `${s.endpoint.service}\t${s.endpoint.namespace}\t${s.endpoint.version}`;
+        const dependName = s.endpoint.uniqueServiceName;
         serviceMap
           .get(service)!
           .set(dependName, (serviceMap.get(service)!.get(dependName) || 0) + 1);

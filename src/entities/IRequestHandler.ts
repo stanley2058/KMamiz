@@ -1,19 +1,10 @@
 import { Request, Response } from "express";
+import { IRequestTypeLower } from "./IRequestType";
 
-type RequestType =
-  | "get"
-  | "head"
-  | "post"
-  | "put"
-  | "delete"
-  | "connect"
-  | "options"
-  | "trace"
-  | "patch";
 export default abstract class IRequestHandler {
   private readonly identifier: string;
   protected readonly routes: {
-    method: RequestType;
+    method: IRequestTypeLower;
     path: string;
     handler: (req: Request, res: Response) => void;
   }[] = [];
@@ -23,7 +14,7 @@ export default abstract class IRequestHandler {
   }
 
   protected addRoute(
-    method: RequestType,
+    method: IRequestTypeLower,
     path: string,
     handler: (req: Request, res: Response) => void
   ) {

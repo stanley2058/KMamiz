@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { IRequestTypeUpper } from "./IRequestType";
 
 export default interface IAggregateData {
   _id?: Types.ObjectId;
@@ -8,6 +9,7 @@ export default interface IAggregateData {
 }
 
 export interface IAggregateServiceInfo {
+  uniqueServiceName: string;
   service: string;
   namespace: string;
   version: string;
@@ -19,8 +21,9 @@ export interface IAggregateServiceInfo {
   endpoints: IAggregateEndpointInfo[];
 }
 export interface IAggregateEndpointInfo {
-  name: string;
-  protocol: string;
+  uniqueServiceName: string;
+  labelName: string;
+  method: IRequestTypeUpper;
   totalRequests: number;
   totalServerErrors: number;
   totalRequestErrors: number;

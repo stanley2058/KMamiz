@@ -4,6 +4,11 @@ import compression from "compression";
 import Routes from "./src/routes/Routes";
 import GlobalSettings from "./src/GlobalSettings";
 import Logger from "./src/utils/Logger";
+import { EnvoyLogs } from "./src/classes/EnvoyLog";
+import { Trace } from "./src/classes/Trace";
+import KubernetesService from "./src/services/KubernetesService";
+import ZipkinService from "./src/services/ZipkinService";
+import RiskAnalyzer from "./src/utils/RiskAnalyzer";
 
 Logger.setGlobalLogLevel(GlobalSettings.LogLevel);
 Logger.verbose("Configuration loaded:");
@@ -63,7 +68,11 @@ app.use(Routes.getInstance().getRoutes());
   //   )
   // );
   // console.log(print(Object.fromEntries(endpointDataTypeMap)));
-  // console.log(print(rlDataWithLogs.extractEndpointDataType()));
+  // console.log(
+  //   print(
+  //     rlDataWithLogs.extractEndpointDataType().map((d) => d.endpointDataType)
+  //   )
+  // );
 })();
 // End testing area
 

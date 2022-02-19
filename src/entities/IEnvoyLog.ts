@@ -1,3 +1,5 @@
+import { IRequestTypeUpper } from "./IRequestType";
+
 export interface IEnvoyLog {
   namespace: string;
   podName: string;
@@ -6,7 +8,7 @@ export interface IEnvoyLog {
   requestId: string;
   traceId?: string;
   path?: string;
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
+  method?: IRequestTypeUpper;
   status?: string;
   body?: string;
 }

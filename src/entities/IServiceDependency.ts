@@ -3,6 +3,7 @@ import { IEndpointDependency } from "./IEndpointDependency";
 
 export default interface IServiceDependency {
   _id?: Types.ObjectId;
+  uniqueServiceName: string;
   service: string;
   namespace: string;
   version: string;
@@ -11,6 +12,7 @@ export default interface IServiceDependency {
 }
 
 export type IServiceLink = IServiceLinkInfo & {
+  uniqueServiceName: string;
   service: string;
   namespace: string;
   version: string;

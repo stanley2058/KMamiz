@@ -1,5 +1,6 @@
 import { Axios, AxiosRequestConfig, AxiosResponse } from "axios";
 import JsonToTS from "json-to-ts";
+import { IRequestTypeLower, IRequestTypeUpper } from "../entities/IRequestType";
 import Logger from "./Logger";
 
 export default class Utils {

@@ -10,6 +10,7 @@ describe("DataTransformer", () => {
   let endpointDependencies: EndpointDependencies;
   let realtimeData: RealtimeData;
   let serviceDependency: IServiceDependency[];
+  const print = (obj: any) => require("util").inspect(obj, false, null, true);
 
   it("converts traces to endpoint dependencies", () => {
     endpointDependencies = new Trace(MockTrace).toEndpointDependencies();
@@ -40,14 +41,19 @@ describe("DataTransformer", () => {
   it("converts trace to endpoint info", () => {
     const info = Trace.ToEndpointInfo(MockTrace[0][0]);
     expect(info).toEqual({
-      name: "ratings.book.svc.cluster.local:9080/*",
+      labelName: "ratings.book.svc.cluster.local:9080/*",
       version: "v1",
       service: "ratings",
       namespace: "book",
+      url: "http://ratings:9080/ratings/0",
       host: "ratings",
       path: "/ratings/0",
       port: ":9080",
       clusterName: "cluster.local",
+      method: "GET",
+      uniqueServiceName: "ratings\tbook\tv1",
+      uniqueEndpointName:
+        "ratings\tbook\tv1\tGET\thttp://ratings:9080/ratings/0",
     });
   });
 

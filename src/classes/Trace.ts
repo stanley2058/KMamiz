@@ -12,6 +12,7 @@ import {
 } from "../entities/IEnvoyLog";
 import { IRealtimeData } from "../entities/IRealtimeData";
 import Logger from "../utils/Logger";
+import { IRequestTypeUpper } from "../entities/IRequestType";
 
 export class Trace {
   private readonly _traces: ITrace[][];
@@ -26,21 +27,26 @@ export class Trace {
     const realtimeData = this._traces
       .flat()
       .filter((t) => t.kind === "SERVER")
-      .map((t) => {
+      .map((t): IRealtimeData => {
         const [host, port, path, serviceName, namespace] = Utils.ExplodeUrl(
           t.name,
           true
         );
+        const version = t.tags["istio.canonical_revision"];
+        const method = t.tags["http.method"] as IRequestTypeUpper;
+        const uniqueServiceName = `${serviceName}\t${namespace}\t${version}`;
         return {
           timestamp: t.timestamp,
           service: serviceName,
           namespace,
-          version: t.tags["istio.canonical_revision"],
-          protocol: t.tags["http.method"],
-          endpointName: `${host}:${port}${path}`,
+          version,
+          method,
+          labelName: `${host}:${port}${path}`,
           latency: t.duration,
           status: t.tags["http.status_code"],
-        } as IRealtimeData;
+          uniqueServiceName,
+          uniqueEndpointName: `${uniqueServiceName}\t${method}\t${t.tags["http.url"]}`,
+        };
       });
     return new RealtimeData(realtimeData);
   }
@@ -59,36 +65,40 @@ export class Trace {
       this.traces
         .flat()
         .filter((t) => t.kind === "SERVER")
-        .map((trace) => {
+        .map((trace): IRealtimeData | undefined => {
           const logs = traceIdToEnvoyLogsMap.get(trace.traceId);
           const [host, port, path, service, namespace] = Utils.ExplodeUrl(
             trace.name,
             true
           );
-          const endpointName = `${host}${port}${path}`;
+          const labelName = `${host}${port}${path}`;
           const requestUrl = trace.tags["http.url"].replace(
             /(http|https):\/\//,
             ""
           );
-          const protocol = trace.tags["http.method"];
+          const method = trace.tags["http.method"] as IRequestTypeUpper;
           const status = trace.tags["http.status_code"];
           if (!service) return;
+          const version = trace.tags["istio.canonical_revision"];
+          const uniqueServiceName = `${service}\t${namespace}\t${version}`;
           return {
             timestamp: trace.timestamp,
             service,
             namespace,
-            version: trace.tags["istio.canonical_revision"],
-            protocol,
-            endpointName,
+            version,
+            method,
+            labelName,
             latency: trace.duration,
             status,
             body: logs?.find(
               (l) =>
                 l.request.path === requestUrl &&
-                l.request.method === protocol &&
+                l.request.method === method &&
                 l.response.status === status
             )?.response.body,
-          } as IRealtimeData;
+            uniqueServiceName,
+            uniqueEndpointName: `${uniqueServiceName}\t${trace.tags["http.method"]}\t${trace.tags["http.url"]}`,
+          };
         })
         .filter((data) => !!data) as IRealtimeData[]
     );
@@ -125,7 +135,7 @@ export class Trace {
         if (dependency) {
           const exist = !!dependencies.find(
             (e) =>
-              e.endpoint.name === dependency.name &&
+              e.endpoint.labelName === dependency.labelName &&
               e.endpoint.version === dependency.version &&
               e.distance === depth
           );
@@ -156,11 +166,12 @@ export class Trace {
     endpointDependencies.forEach((e) => {
       // for every dependency
       e.dependsOn.forEach((d) => {
-        const uniqueName = `${d.endpoint.version}\t${d.endpoint.name}`;
+        const uniqueName = `${d.endpoint.version}\t${d.endpoint.labelName}`;
         // push self to the dependBy of the dependency
         endpointDependencies
           .find(
-            (ep) => `${ep.endpoint.version}\t${ep.endpoint.name}` === uniqueName
+            (ep) =>
+              `${ep.endpoint.version}\t${ep.endpoint.labelName}` === uniqueName
           )!
           .dependBy.push({
             endpoint: e.endpoint,
@@ -196,7 +207,7 @@ export class Trace {
             parent: span.parentId || "",
             child: new Set<string>(),
           };
-          const uniqueName = `${info.version}\t${info.name}`;
+          const uniqueName = `${info.version}\t${info.labelName}`;
           if (!endpointDependenciesMap.has(uniqueName))
             endpointDependenciesMap.set(uniqueName, new Set<string>());
         });
@@ -205,7 +216,7 @@ export class Trace {
         Object.entries(endpointMap)
           .filter(([, { trace }]) => trace.kind === "SERVER")
           .forEach(([, { info, parent }]) => {
-            const uniqueName = `${info.version}\t${info.name}`;
+            const uniqueName = `${info.version}\t${info.labelName}`;
             endpointInfoMap.set(uniqueName, info);
 
             if (!endpointMap[parent]) {
@@ -218,7 +229,7 @@ export class Trace {
 
             const parentServerId = endpointMap[parent].parent;
             if (parentServerId) {
-              const parentUniqueName = `${endpointMap[parentServerId].info.version}\t${endpointMap[parentServerId].info.name}`;
+              const parentUniqueName = `${endpointMap[parentServerId].info.version}\t${endpointMap[parentServerId].info.labelName}`;
               endpointDependenciesMap.get(parentUniqueName)!.add(uniqueName);
             }
           });
@@ -231,7 +242,7 @@ export class Trace {
     return { endpointInfoMap, endpointDependenciesMap };
   }
 
-  static ToEndpointInfo(trace: ITrace) {
+  static ToEndpointInfo(trace: ITrace): IEndpointInfo {
     const [host, port, path] = Utils.ExplodeUrl(trace.tags["http.url"]);
     let [, , , serviceName, namespace, clusterName] = Utils.ExplodeUrl(
       trace.name,
@@ -243,15 +254,21 @@ export class Trace {
       namespace = trace.tags["istio.namespace"];
       clusterName = trace.tags["istio.mesh_id"];
     }
+    const version = trace.tags["istio.canonical_revision"] || "NONE";
+    const uniqueServiceName = `${serviceName}\t${namespace}\t${version}`;
     return {
-      name: trace.name,
-      version: trace.tags["istio.canonical_revision"] || "NONE",
+      labelName: trace.name,
+      version,
       service: serviceName,
       namespace,
+      url: trace.tags["http.url"],
       host,
       path,
       port,
       clusterName,
-    } as IEndpointInfo;
+      method: trace.tags["http.method"] as IRequestTypeUpper,
+      uniqueServiceName,
+      uniqueEndpointName: `${uniqueServiceName}\t${trace.tags["http.method"]}\t${trace.tags["http.url"]}`,
+    };
   }
 }

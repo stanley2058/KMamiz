@@ -1,3 +1,5 @@
+import { IRequestTypeUpper } from "./IRequestType";
+
 export interface IEndpointDependency {
   endpoint: IEndpointInfo;
   dependsOn: {
@@ -12,13 +14,20 @@ export interface IEndpointDependency {
   }[];
 }
 export interface IEndpointInfo {
-  name: string;
+  uniqueServiceName: string;
+  uniqueEndpointName: string;
+  // trace name, label
+  labelName: string;
   service: string;
   namespace: string;
   version: string;
+  // "http.url", true request url
+  url: string;
+  // host, path, port are from "http.url"
   host: string;
   path: string;
   port: string;
+  method: IRequestTypeUpper;
   clusterName: string;
 }
 

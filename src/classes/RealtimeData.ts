@@ -7,7 +7,6 @@ import IHistoryData, {
 import { IRealtimeData } from "../entities/IRealtimeData";
 import IReplicaCount from "../entities/IReplicaCount";
 import IServiceDependency from "../entities/IServiceDependency";
-import IEndpointDataType from "../entities/IEndpointDataType";
 import EndpointDataType from "./EndpointDataType";
 import IAggregateData, {
   IAggregateEndpointInfo,
@@ -36,7 +35,7 @@ export class RealtimeData {
       ),
     ];
 
-    return uniqueDates.map((d) => {
+    return uniqueDates.map((d): IHistoryData => {
       const date = new Date(d);
       const dataOfADay = this._realtimeData.filter(
         (r) => Utils.BelongsToDateTimestamp(r.timestamp / 1000) === d
@@ -54,7 +53,7 @@ export class RealtimeData {
       );
 
       return { date, services };
-    }) as IHistoryData[];
+    });
   }
   private createEndpointInfoMapping(realtimeData: IRealtimeData[]) {
     const endpointInfoMap = new Map<
@@ -62,32 +61,36 @@ export class RealtimeData {
       Map<string, IHistoryEndpointInfo & { latencies?: number[] }>
     >();
     realtimeData.forEach((r) => {
-      const serviceName = `${r.service}\t${r.namespace}\t${r.version}`;
-      const endpointName = `${r.protocol}\t${r.endpointName}`;
-      if (!endpointInfoMap.has(serviceName)) {
+      if (!endpointInfoMap.has(r.uniqueServiceName)) {
         endpointInfoMap.set(
-          serviceName,
+          r.uniqueServiceName,
           new Map<string, IHistoryEndpointInfo & { latencies?: number[] }>()
         );
       }
-      if (!endpointInfoMap.get(serviceName)!.has(endpointName)) {
-        endpointInfoMap.get(serviceName)!.set(endpointName, {
-          name: r.endpointName,
-          protocol: r.protocol,
+      if (
+        !endpointInfoMap.get(r.uniqueServiceName)!.has(r.uniqueEndpointName)
+      ) {
+        endpointInfoMap.get(r.uniqueServiceName)!.set(r.uniqueEndpointName, {
+          labelName: r.labelName,
+          method: r.method,
           requests: 0,
           requestErrors: 0,
           serverErrors: 0,
           latencyCV: 0,
           latencies: [],
+          uniqueServiceName: r.uniqueServiceName,
+          uniqueEndpointName: r.uniqueEndpointName,
         });
       }
 
-      const info = endpointInfoMap.get(serviceName)!.get(endpointName)!;
+      const info = endpointInfoMap
+        .get(r.uniqueServiceName)!
+        .get(r.uniqueEndpointName)!;
       info.requests++;
       info.latencies!.push(r.latency);
       if (r.status.startsWith("5")) info.serverErrors++;
       if (r.status.startsWith("4")) info.requestErrors++;
-      endpointInfoMap.get(serviceName)!.set(endpointName, info);
+      endpointInfoMap.get(r.uniqueServiceName)!.set(r.uniqueEndpointName, info);
     });
     [...endpointInfoMap.keys()].forEach((s) => {
       endpointInfoMap.get(s)!.forEach((val) => {
@@ -120,10 +123,9 @@ export class RealtimeData {
         namespace,
         version,
         ...status,
-        risk: risks.find(
-          (r) => `${r.service}\t${r.namespace}\t${r.version}` === serviceName
-        )?.norm,
+        risk: risks.find((r) => r.uniqueServiceName === serviceName)?.norm,
         endpoints: [...endpointMap.values()],
+        uniqueServiceName: serviceName,
       };
       return serviceInfo;
     });
@@ -133,24 +135,27 @@ export class RealtimeData {
     const endpointDataTypeMap = this._realtimeData
       .filter((r) => !!r.body)
       .map(
-        ({ service, version, namespace, endpointName, timestamp, body }) =>
+        (r) =>
           new EndpointDataType({
-            service,
-            version,
-            namespace,
-            endpoint: endpointName,
+            service: r.service,
+            version: r.version,
+            namespace: r.namespace,
+            labelName: r.labelName,
             schemas: [
               {
-                time: new Date(timestamp / 1000),
-                sampleObject: JSON.parse(body!),
-                schema: Utils.ObjectToInterfaceString(JSON.parse(body!)),
+                time: new Date(r.timestamp / 1000),
+                sampleObject: JSON.parse(r.body!),
+                schema: Utils.ObjectToInterfaceString(JSON.parse(r.body!)),
               },
             ],
-          } as IEndpointDataType)
+            method: r.method,
+            uniqueServiceName: r.uniqueServiceName,
+            uniqueEndpointName: r.uniqueEndpointName,
+          })
       )
       .reduce((prev, curr) => {
         curr = curr.removeDuplicateSchemas();
-        const id = `${curr.endpointDataType.version}\t${curr.endpointDataType.endpoint}`;
+        const id = `${curr.endpointDataType.version}\t${curr.endpointDataType.labelName}`;
         if (!prev.has(id)) prev.set(id, curr);
         else {
           const existSchemas = prev.get(id)!.endpointDataType.schemas;
@@ -177,7 +182,7 @@ export class RealtimeData {
     const appearsMap = new Map<string, number>();
 
     this._realtimeData.forEach((r) => {
-      const uniqueName = `${r.service}\t${r.namespace}\t${r.version}`;
+      const uniqueName = r.uniqueServiceName;
       if (r.replica) {
         if (!addUpMap.has(uniqueName)) {
           addUpMap.set(uniqueName, 0);
@@ -188,8 +193,8 @@ export class RealtimeData {
       }
     });
     return this._realtimeData
-      .map((r) => {
-        const uniqueName = `${r.service}\t${r.namespace}\t${r.version}`;
+      .map((r): IReplicaCount | undefined => {
+        const uniqueName = r.uniqueServiceName;
         if (!addUpMap.get(uniqueName) || !appearsMap.get(uniqueName)) return;
         const replicas =
           addUpMap.get(uniqueName)! / appearsMap.get(uniqueName)!;
@@ -199,7 +204,8 @@ export class RealtimeData {
           namespace: r.namespace,
           version: r.version,
           replicas,
-        } as IReplicaCount;
+          uniqueServiceName: uniqueName,
+        };
       })
       .filter((r) => !!r) as IReplicaCount[];
   }
@@ -214,10 +220,7 @@ export class RealtimeData {
       ...replicas.filter(
         (r) =>
           !avgReplicas.find(
-            (aR) =>
-              aR.service === r.service &&
-              aR.namespace === r.namespace &&
-              aR.version === r.version
+            (aR) => aR.uniqueServiceName === r.uniqueServiceName
           )
       ),
     ];
@@ -235,11 +238,11 @@ export class RealtimeData {
       .map((h) => h.services)
       .flat()
       .reduce((map, service) => {
-        const uniqueName = `${service.service}\t${service.namespace}\t${service.version}`;
+        const uniqueName = service.uniqueServiceName;
         return map.set(uniqueName, [...(map.get(uniqueName) || []), service]);
       }, historyServiceInfoMap);
     const aggregateServiceInfo = [...historyServiceInfoMap.entries()].map(
-      ([serviceName, serviceInfoList]) => {
+      ([serviceName, serviceInfoList]): IAggregateServiceInfo => {
         const endpointInfo: IHistoryEndpointInfo[] = [];
         const {
           totalRequests,
@@ -285,7 +288,8 @@ export class RealtimeData {
           avgRisk: riskSum / serviceInfoList.length,
           endpoints: [...endpointMap.values()],
           avgLatencyCV: latencyCVSum / endpointMap.size,
-        } as IAggregateServiceInfo;
+          uniqueServiceName: serviceName,
+        };
       }
     );
     const aggregateData: IAggregateData = {
@@ -304,27 +308,28 @@ export class RealtimeData {
     >();
     endpointInfo.forEach(
       ({
-        name,
+        labelName,
         requests,
         requestErrors,
         serverErrors,
         latencyCV,
-        protocol,
+        method,
+        uniqueServiceName,
       }) => {
-        const endpointName = `${protocol}\t${name}`;
-        if (!endpointMap.has(endpointName)) {
-          endpointMap.set(endpointName, {
-            name,
-            protocol,
+        if (!endpointMap.has(labelName)) {
+          endpointMap.set(labelName, {
+            labelName,
+            method,
             totalRequests: requests,
             totalRequestErrors: requestErrors,
             totalServerErrors: serverErrors,
             avgLatencyCV: 0,
             latencyCV: [latencyCV],
+            uniqueServiceName,
           });
         } else {
-          const prev = endpointMap.get(endpointName)!;
-          endpointMap.set(endpointName, {
+          const prev = endpointMap.get(labelName)!;
+          endpointMap.set(labelName, {
             ...prev,
             totalRequests: prev.totalRequests + requests,
             totalRequestErrors: prev.totalRequestErrors + requestErrors,
