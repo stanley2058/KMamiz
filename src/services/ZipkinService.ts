@@ -1,5 +1,5 @@
 import { Axios } from "axios";
-import { ITrace } from "../entities/ITrace";
+import { ITrace } from "../entities/external/ITrace";
 import GlobalSettings from "../GlobalSettings";
 import Utils from "../utils/Utils";
 

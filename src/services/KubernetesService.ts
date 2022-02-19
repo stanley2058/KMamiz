@@ -1,9 +1,9 @@
 import { Axios, AxiosRequestConfig } from "axios";
 import GlobalSettings from "../GlobalSettings";
 import { EnvoyLogs } from "../classes/EnvoyLog";
-import { IPodList } from "../entities/IPodList";
+import { IPodList } from "../entities/external/IPodList";
 import IReplicaCount from "../entities/IReplicaCount";
-import { IServiceList } from "../entities/IServiceList";
+import { IServiceList } from "../entities/external/IServiceList";
 import { IEnvoyLog } from "../entities/IEnvoyLog";
 import Utils from "../utils/Utils";
 import Logger from "../utils/Logger";

@@ -1,9 +1,7 @@
 import Utils from "../utils/Utils";
-import IAggregateData from "../entities/IAggregateData";
 import { EndpointDependencies } from "./EndpointDependency";
-import { ITrace } from "../entities/ITrace";
+import { ITrace } from "../entities/external/ITrace";
 import { RealtimeData } from "./RealtimeData";
-import IReplicaCount from "../entities/IReplicaCount";
 import {
   IEndpointDependency,
   IEndpointInfo,
