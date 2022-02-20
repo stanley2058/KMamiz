@@ -1,5 +1,6 @@
 import { Axios, AxiosRequestConfig, AxiosResponse } from "axios";
 import JsonToTS from "json-to-ts";
+import { IEndpointRequestParam } from "../entities/IEndpointDataType";
 import { IRequestTypeLower, IRequestTypeUpper } from "../entities/IRequestType";
 import Logger from "./Logger";
 
@@ -227,6 +228,11 @@ export default class Utils {
     }
   }
 
+  /**
+   * Map any object to an OpenAPI compliant object description.
+   * @param o Any object
+   * @returns Object type description based on OpenAPI specification
+   */
   static MapObjectToOpenAPITypes(o: any): any {
     if (Array.isArray(o)) {
       if (this.isPrimitive(o[0])) {
@@ -255,5 +261,43 @@ export default class Utils {
         return prev;
       }, {} as any),
     };
+  }
+
+  /**
+   * Get GET parameters from an url
+   * @param url Any url
+   * @returns Pairs of GET parameters, undefined if nothing were matched
+   */
+  static GetParamsFromUrl(url: string) {
+    const matched = url
+      .match(/([?&][^?&]*)/g)
+      ?.map((r) => r.match(/[?&]([^=]*)=([^?&]*)/))
+      .map((r) => r?.slice(1))
+      .filter((r) => !!r) as string[][] | undefined;
+
+    if (!matched) return undefined;
+    const mapped = matched.map(([param, val]) => ({
+      param,
+      type: Number.isFinite(parseFloat(val)) ? "number" : "string",
+    }));
+    return this.UniqueParams(mapped);
+  }
+
+  /**
+   * Remove duplicate parameters
+   * @param parameters GET parameters
+   * @returns Unique GET parameters
+   */
+  static UniqueParams(parameters: IEndpointRequestParam[]) {
+    return Object.values(
+      parameters.reduce((prev, { param, type }) => {
+        if (prev[param] && type !== prev[param].type) type = "string";
+        prev[param] = {
+          param: prev[param]?.param || param,
+          type,
+        };
+        return prev;
+      }, {} as { [param: string]: IEndpointRequestParam })
+    );
   }
 }

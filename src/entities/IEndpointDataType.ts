@@ -20,4 +20,10 @@ export interface IEndpointDataSchema {
   responseSchema: string;
   requestSample?: any;
   requestSchema?: string;
+  requestParams?: IEndpointRequestParam[];
+}
+
+export interface IEndpointRequestParam {
+  param: string;
+  type: string;
 }

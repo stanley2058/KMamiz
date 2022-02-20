@@ -1,5 +1,6 @@
 import IEndpointDataType, {
   IEndpointDataSchema,
+  IEndpointRequestParam,
 } from "../entities/IEndpointDataType";
 import Utils from "../utils/Utils";
 
@@ -41,7 +42,7 @@ export default class EndpointDataType {
     ];
 
     const combinedList = [...existingSchemas, ...newSchemas];
-    const mergedSamples = status.map((s) => {
+    const mergedSamples = status.map((s): IEndpointDataSchema => {
       const matched = combinedList.filter((sc) => sc.status === s);
       const responseSample = matched.reduce(
         (prev, curr) => ({ ...prev, ...curr.responseSample }),
@@ -56,6 +57,7 @@ export default class EndpointDataType {
       const { time } = matched.reduce((prev, curr) =>
         prev.time > curr.time ? prev : curr
       );
+
       return {
         time,
         status: s,
@@ -65,6 +67,11 @@ export default class EndpointDataType {
         requestSchema: requestSample
           ? Utils.ObjectToInterfaceString(requestSample)
           : undefined,
+        requestParams: Utils.UniqueParams(
+          [...(matched.map((m) => m.requestParams)?.flat() || [])].filter(
+            (m) => !!m
+          ) as IEndpointRequestParam[]
+        ),
       };
     });
 

@@ -134,28 +134,29 @@ export class RealtimeData {
   extractEndpointDataType() {
     const endpointDataTypeMap = this._realtimeData
       .filter((r) => !!r.responseBody)
-      .map(
-        (r) =>
-          new EndpointDataType({
-            service: r.service,
-            version: r.version,
-            namespace: r.namespace,
-            labelName: r.labelName,
-            schemas: [
-              {
-                time: new Date(r.timestamp / 1000),
-                responseSample: JSON.parse(r.responseBody!),
-                responseSchema: Utils.ObjectToInterfaceString(
-                  JSON.parse(r.responseBody!)
-                ),
-                status: r.status,
-              },
-            ],
-            method: r.method,
-            uniqueServiceName: r.uniqueServiceName,
-            uniqueEndpointName: r.uniqueEndpointName,
-          })
-      )
+      .map((r) => {
+        const [, , , , url] = r.uniqueEndpointName.split("\t");
+        return new EndpointDataType({
+          service: r.service,
+          version: r.version,
+          namespace: r.namespace,
+          labelName: r.labelName,
+          schemas: [
+            {
+              time: new Date(r.timestamp / 1000),
+              responseSample: JSON.parse(r.responseBody!),
+              responseSchema: Utils.ObjectToInterfaceString(
+                JSON.parse(r.responseBody!)
+              ),
+              status: r.status,
+              requestParams: Utils.GetParamsFromUrl(url),
+            },
+          ],
+          method: r.method,
+          uniqueServiceName: r.uniqueServiceName,
+          uniqueEndpointName: r.uniqueEndpointName,
+        });
+      })
       .reduce((prev, curr) => {
         curr = curr.removeDuplicateSchemas();
         const id = `${curr.endpointDataType.version}\t${curr.endpointDataType.labelName}`;
