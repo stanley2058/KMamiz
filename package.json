@@ -21,7 +21,8 @@
     "express": "^4.17.3",
     "json-to-ts": "^1.7.0",
     "mongoose": "^6.2.2",
-    "npmlog": "^6.0.1"
+    "npmlog": "^6.0.1",
+    "openapi-types": "^10.0.0"
   },
   "devDependencies": {
     "@types/compression": "^1.7.2",

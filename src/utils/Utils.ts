@@ -226,4 +226,34 @@ export default class Utils {
       return null;
     }
   }
+
+  static MapObjectToOpenAPITypes(o: any): any {
+    if (Array.isArray(o)) {
+      if (this.isPrimitive(o[0])) {
+        return {
+          type: "array",
+          items: {
+            type: typeof o[0],
+          },
+        };
+      }
+      return {
+        type: "array",
+        items: this.MapObjectToOpenAPITypes(
+          o.reduce((prev, curr) => ({ ...prev, ...curr }), {})
+        ),
+      };
+    }
+    return {
+      type: "object",
+      properties: Object.keys(o).reduce((prev, k) => {
+        let type = typeof o[k];
+        if (type === "object") {
+          if (Array.isArray(o[k])) prev[k] = this.MapObjectToOpenAPITypes(o[k]);
+          else prev[k] = this.MapObjectToOpenAPITypes(o[k]);
+        } else prev[k] = { type };
+        return prev;
+      }, {} as any),
+    };
+  }
 }
