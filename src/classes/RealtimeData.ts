@@ -133,7 +133,7 @@ export class RealtimeData {
 
   extractEndpointDataType() {
     const endpointDataTypeMap = this._realtimeData
-      .filter((r) => !!r.body)
+      .filter((r) => !!r.responseBody)
       .map(
         (r) =>
           new EndpointDataType({
@@ -144,8 +144,11 @@ export class RealtimeData {
             schemas: [
               {
                 time: new Date(r.timestamp / 1000),
-                sampleObject: JSON.parse(r.body!),
-                schema: Utils.ObjectToInterfaceString(JSON.parse(r.body!)),
+                responseSample: JSON.parse(r.responseBody!),
+                responseSchema: Utils.ObjectToInterfaceString(
+                  JSON.parse(r.responseBody!)
+                ),
+                status: r.status,
               },
             ],
             method: r.method,

@@ -13,6 +13,7 @@ export interface IRealtimeData {
   labelName: string;
   latency: number;
   status: string;
-  body?: string;
+  responseBody?: string;
+  requestBody?: string;
   replica?: number;
 }

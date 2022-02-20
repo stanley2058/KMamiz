@@ -81,6 +81,12 @@ export class Trace {
           if (!service) return;
           const version = trace.tags["istio.canonical_revision"];
           const uniqueServiceName = `${service}\t${namespace}\t${version}`;
+          const log = logs?.find(
+            (l) =>
+              l.request.path === requestUrl &&
+              l.request.method === method &&
+              l.response.status === status
+          );
           return {
             timestamp: trace.timestamp,
             service,
@@ -90,12 +96,8 @@ export class Trace {
             labelName,
             latency: trace.duration,
             status,
-            body: logs?.find(
-              (l) =>
-                l.request.path === requestUrl &&
-                l.request.method === method &&
-                l.response.status === status
-            )?.response.body,
+            responseBody: log?.response.body,
+            requestBody: log?.request.body,
             uniqueServiceName,
             uniqueEndpointName: `${uniqueServiceName}\t${trace.tags["http.method"]}\t${trace.tags["http.url"]}`,
           };
