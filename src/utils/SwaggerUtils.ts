@@ -1,5 +1,7 @@
 import { OpenAPIV3_1 } from "openapi-types";
-import IEndpointDataType from "../entities/IEndpointDataType";
+import IEndpointDataType, {
+  IEndpointRequestParam,
+} from "../entities/IEndpointDataType";
 import Utils from "./Utils";
 
 export default class SwaggerUtils {
@@ -72,6 +74,19 @@ export default class SwaggerUtils {
           }
         : undefined;
 
+    const parameters = endpoint.schemas
+      .reduce(
+        (prev, curr) => prev.concat(curr.requestParams || []),
+        [] as IEndpointRequestParam[]
+      )
+      .map((p) => {
+        return {
+          in: "query",
+          name: p.param,
+          schema: { type: p.type },
+        };
+      });
+
     switch (endpoint.method) {
       case "POST":
         return {
@@ -98,6 +113,7 @@ export default class SwaggerUtils {
         return {
           get: {
             responses: responses as any,
+            parameters: parameters as any,
           },
         };
     }
