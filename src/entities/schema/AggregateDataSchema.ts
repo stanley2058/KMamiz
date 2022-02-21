@@ -19,7 +19,7 @@ export const AggregateDataSchema = new Schema<IAggregateData>({
         {
           uniqueServiceName: { type: String, required: true },
           labelName: { type: String, required: true },
-          methods: { type: String, required: true },
+          method: { type: String, required: true },
           totalRequests: { type: Number, required: true },
           totalServerErrors: { type: Number, required: true },
           totalRequestErrors: { type: Number, required: true },
