@@ -8,6 +8,7 @@ import { IEnvoyLog } from "../entities/IEnvoyLog";
 import Utils from "../utils/Utils";
 import Logger from "../utils/Logger";
 import { IRequestTypeUpper } from "../entities/IRequestType";
+import { readFileSync } from "fs";
 
 export default class KubernetesService {
   private static instance?: KubernetesService;
@@ -16,13 +17,29 @@ export default class KubernetesService {
   private DEFAULT_LOG_LIMIT = 100000;
 
   private kubeApiHost: string;
-  private logClient: Axios;
+  private logClient!: Axios;
   private constructor() {
+    const config: AxiosRequestConfig<any> = {};
+    if (GlobalSettings.IsRunningInKubernetes) {
+      try {
+        const token = readFileSync(
+          "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        ).toString();
+        if (!token) throw new Error("token is empty");
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      } catch (err) {
+        Logger.fatal(
+          "Cannot retrieve authorization token for Kubernetes API server.",
+          err
+        );
+      }
+    }
     this.kubeApiHost = GlobalSettings.KubeApiHost;
-    this.logClient = new Axios({
-      baseURL: `${this.kubeApiHost}/api/v1`,
-    });
-    if (!this.kubeApiHost) throw new Error("Variable [KUBE_API_HOST] not set");
+    if (!this.kubeApiHost) Logger.fatal("Variable [KUBE_API_HOST] not set");
+    config.baseURL = `${this.kubeApiHost}/api/v1`;
+    this.logClient = new Axios(config);
   }
 
   private async mustSuccessRequest<Type>(

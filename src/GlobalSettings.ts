@@ -7,6 +7,7 @@ type Settings = {
   ApiVersion: string;
   LogLevel: LogLevels;
   KubeApiHost: string;
+  IsRunningInKubernetes: boolean;
   ZipkinUrl: string;
   MongoDBUri: string;
   AggregateInterval: string; // cron expression
@@ -25,6 +26,9 @@ const {
   AGGREGATE_INTERVAL,
   REALTIME_INTERVAL,
   ENVOY_LOG_LEVEL,
+  IS_RUNNING_IN_K8S,
+  KUBERNETES_SERVICE_HOST,
+  KUBERNETES_SERVICE_PORT,
 } = process.env;
 
 const GlobalSettings: Settings = {
@@ -33,6 +37,7 @@ const GlobalSettings: Settings = {
   ApiVersion: API_VERSION || "1",
   LogLevel: (LOG_LEVEL as LogLevels | undefined) || "info",
   KubeApiHost: KUBEAPI_HOST || "http://127.0.0.1:8080",
+  IsRunningInKubernetes: IS_RUNNING_IN_K8S === "true",
   ZipkinUrl: ZIPKIN_URL || "http://localhost:9411",
   MongoDBUri:
     MONGODB_URI || "mongodb://admin:admin@localhost:27017/?authSource=admin",
@@ -43,5 +48,13 @@ const GlobalSettings: Settings = {
   EnvoyLogLevel:
     (ENVOY_LOG_LEVEL as "info" | "warning" | "error" | undefined) || "info",
 };
+
+if (
+  GlobalSettings.IsRunningInKubernetes &&
+  KUBERNETES_SERVICE_HOST &&
+  KUBERNETES_SERVICE_PORT
+) {
+  GlobalSettings.KubeApiHost = `https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}`;
+}
 
 export default GlobalSettings;
