@@ -32,6 +32,6 @@ export const HistoryDataSchema = new Schema<IHistoryData>({
 });
 
 export const HistoryDataModel = model<IHistoryData>(
-  "IHistoryData",
+  "HistoryData",
   HistoryDataSchema
 );

@@ -35,6 +35,6 @@ export const EndpointDependencySchema = new Schema<IEndpointDependency>({
 });
 
 export const EndpointDependencyModel = model<IEndpointDependency>(
-  "IEndpointDependency",
+  "EndpointDependency",
   EndpointDependencySchema
 );

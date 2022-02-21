@@ -31,6 +31,6 @@ export const AggregateDataSchema = new Schema<IAggregateData>({
 });
 
 export const AggregateDataModel = model<IAggregateData>(
-  "IAggregateData",
+  "AggregateData",
   AggregateDataSchema
 );

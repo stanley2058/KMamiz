@@ -18,6 +18,6 @@ export const RealtimeDataSchema = new Schema<IRealtimeData>({
 });
 
 export const RealtimeDataModel = model<IRealtimeData>(
-  "IRealtimeData",
+  "RealtimeData",
   RealtimeDataSchema
 );

@@ -28,6 +28,6 @@ export const EndpointDataTypeSchema = new Schema<IEndpointDataType>({
 });
 
 export const EndpointDataTypeModel = model<IEndpointDataType>(
-  "IEndpointDataType",
+  "EndpointDataType",
   EndpointDataTypeSchema
 );
