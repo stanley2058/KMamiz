@@ -8,7 +8,6 @@ export default interface IHistoryData {
 }
 
 export interface IHistoryServiceInfo {
-  _id?: Types.ObjectId;
   uniqueServiceName: string;
   date: Date;
   service: string;
