@@ -46,17 +46,19 @@ export default class MongoOperator {
         },
       },
     ]).exec();
-    return (filtered[0] as IAggregateData) || null;
+    return (filtered[0].toObject() as IAggregateData) || null;
   }
 
   async getHistoryData(namespace?: string, time = 86400000 * 30) {
     const notBefore = new Date(Date.now() - time);
     if (!namespace) {
-      return await HistoryDataModel.find({
-        date: { $gte: notBefore },
-      }).exec();
+      return (
+        await HistoryDataModel.find({
+          date: { $gte: notBefore },
+        }).exec()
+      ).map((r) => r.toObject());
     }
-    return (await HistoryDataModel.aggregate([
+    const res = await HistoryDataModel.aggregate([
       { $match: { date: { $gte: notBefore } } },
       {
         $project: {
@@ -71,7 +73,8 @@ export default class MongoOperator {
           },
         },
       },
-    ]).exec()) as IHistoryData[];
+    ]).exec();
+    return res.map((r) => r.toObject()) as IHistoryData[];
   }
 
   async getEndpointDependencies(namespace?: string) {
@@ -81,7 +84,7 @@ export default class MongoOperator {
         }
       : {};
     const res = await EndpointDependencyModel.find(query).exec();
-    return new EndpointDependencies(res);
+    return new EndpointDependencies(res.map((r) => r.toObject()));
   }
 
   async getEndpointDataType(uniqueEndpointName: string) {
@@ -89,14 +92,14 @@ export default class MongoOperator {
       uniqueEndpointName,
     }).exec();
     if (!res) return null;
-    return new EndpointDataType(res);
+    return new EndpointDataType(res.toObject());
   }
 
   async getEndpointDataTypeByService(uniqueServiceName: string) {
     const res = await EndpointDataTypeModel.find({
       uniqueServiceName,
     }).exec();
-    return res.map((r) => new EndpointDataType(r));
+    return res.map((r) => new EndpointDataType(r.toObject()));
   }
 
   async getEndpointDataTypeByLabel(
@@ -109,7 +112,7 @@ export default class MongoOperator {
       method,
       labelName: label,
     }).exec();
-    return res.map((r) => new EndpointDataType(r));
+    return res.map((r) => new EndpointDataType(r.toObject()));
   }
 
   async saveRealtimeData(realtimeData: RealtimeData) {
@@ -157,6 +160,6 @@ export default class MongoOperator {
     const m = new model(data);
     if (!data._id) return await m.save();
     if (await model.findById(data._id).exec()) m.isNew = false;
-    return await m.save();
+    return (await m.save()).toObject<T>();
   }
 }

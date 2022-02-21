@@ -2,7 +2,6 @@ import { EndpointDependencies } from "../classes/EndpointDependency";
 import IAreaLineChartData from "../entities/IAreaLineChartData";
 import IRequestHandler from "../entities/IRequestHandler";
 import MongoOperator from "../services/MongoOperator";
-import Utils from "../utils/Utils";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
