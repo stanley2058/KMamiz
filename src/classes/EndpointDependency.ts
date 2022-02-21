@@ -255,7 +255,7 @@ export class EndpointDependencies {
 
   toChordData() {
     const serviceMap = new Map<string, Map<string, number>>();
-    this.dependencies.forEach((ep) => {
+    this._dependencies.forEach((ep) => {
       const service = ep.endpoint.uniqueServiceName;
       if (!serviceMap.has(service)) serviceMap.set(service, new Map());
       ep.dependsOn.forEach((s) => {
