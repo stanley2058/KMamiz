@@ -16,12 +16,18 @@ export default class MongoOperator {
   async getAllRealtimeData() {
     return new RealtimeData([]);
   }
-  async deleteAllRealtimeData() {}
 
-  async getAggregateData() {
+  async getAggregateData(namespace?: string) {
     return {} as IAggregateData;
   }
+
+  async getHistoryData(namespace?: string) {
+    return [] as IHistoryData[];
+  }
+
   async saveHistoryData(historyData: IHistoryData[]) {}
   async saveAggregateData(aggregateData: IAggregateData) {}
   async saveRealtimeData(realtimeData: IRealtimeData[]) {}
+
+  async deleteAllRealtimeData() {}
 }
