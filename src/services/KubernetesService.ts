@@ -76,14 +76,14 @@ export default class KubernetesService {
           acc[cur] = (acc[cur] || 0) + 1;
           return acc;
         }, {} as { [id: string]: number })
-    ).map(([uniqueName, replicas]): IReplicaCount => {
-      const [service, namespace, version] = uniqueName.split("\t");
+    ).map(([uniqueServiceName, replicas]): IReplicaCount => {
+      const [service, namespace, version] = uniqueServiceName.split("\t");
       return {
         service,
         namespace,
         version,
         replicas,
-        uniqueServiceName: uniqueName,
+        uniqueServiceName,
       };
     });
   }

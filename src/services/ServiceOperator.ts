@@ -2,6 +2,7 @@ import { AggregateData } from "../classes/AggregateData";
 import { EnvoyLogs } from "../classes/EnvoyLog";
 import { Trace } from "../classes/Trace";
 import IReplicaCount from "../entities/IReplicaCount";
+import Logger from "../utils/Logger";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 import Scheduler from "./Scheduler";
@@ -14,11 +15,8 @@ export default class ServiceOperator {
 
   async aggregateDailyData() {
     const realtimeData = await MongoOperator.getInstance().getAllRealtimeData();
-    const traces = new Trace(
-      await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-        86400000
-      )
-    );
+    const endpointDependencies =
+      await MongoOperator.getInstance().getEndpointDependencies();
     const namespaces = realtimeData.realtimeData.reduce(
       (prev, { namespace }) => prev.add(namespace),
       new Set<string>()
@@ -32,7 +30,7 @@ export default class ServiceOperator {
     }
     const { historyData, aggregateData } =
       realtimeData.toAggregatedDataAndHistoryData(
-        traces.toEndpointDependencies().toServiceDependencies(),
+        endpointDependencies.toServiceDependencies(),
         replicas
       );
 
@@ -43,9 +41,7 @@ export default class ServiceOperator {
     if (prevAggData.aggregateData._id)
       newAggData.aggregateData._id = prevAggData.aggregateData._id;
 
-    await MongoOperator.getInstance().saveAggregateData(
-      newAggData.aggregateData
-    );
+    await MongoOperator.getInstance().saveAggregateData(newAggData);
     await MongoOperator.getInstance().saveHistoryData(historyData);
     await MongoOperator.getInstance().deleteAllRealtimeData();
   }
@@ -53,15 +49,19 @@ export default class ServiceOperator {
   async retrieveRealtimeData() {
     const job = Scheduler.getInstance().get("realtime");
     if (!job) {
-      process.exit(1);
+      return Logger.fatal(
+        "Cannot get CronJob: [realtime], were jobs correctly registered?"
+      );
     }
 
+    // query traces from last job time to now
     const traces = new Trace(
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         Date.now() - job.lastDate().getTime()
       )
     );
 
+    // get namespaces from traces for querying envoy logs
     const namespaces = traces
       .toRealTimeData()
       .realtimeData.reduce(
@@ -69,8 +69,9 @@ export default class ServiceOperator {
         new Set<string>()
       );
 
+    // get all necessary envoy logs
     const envoyLogs: EnvoyLogs[] = [];
-    const replicas = new Map<string, IReplicaCount[]>();
+    const replicas: IReplicaCount[] = [];
     for (const ns of namespaces) {
       for (const podName of await KubernetesService.getInstance().getPodNames(
         ns
@@ -79,23 +80,22 @@ export default class ServiceOperator {
           await KubernetesService.getInstance().getEnvoyLogs(ns, podName)
         );
       }
-      replicas.set(
-        ns,
+      replicas.concat(
         await KubernetesService.getInstance().getReplicasFromPodList(ns)
       );
     }
 
     const data = traces.combineLogsToRealtimeData(
-      EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs)
-    ).realtimeData;
-    await MongoOperator.getInstance().saveRealtimeData(
-      data.map((r) => {
-        const replicaInfo = replicas
-          .get(r.namespace)
-          ?.find((i) => i.service === r.service && i.version === r.version);
-        if (replicaInfo) r.replica = replicaInfo.replicas;
-        return r;
-      })
+      EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs),
+      replicas
+    );
+    await MongoOperator.getInstance().saveRealtimeData(data);
+
+    // merge endpoint dependency and save to database
+    await MongoOperator.getInstance().saveEndpointDependencies(
+      (
+        await MongoOperator.getInstance().getEndpointDependencies()
+      ).combineWith(traces.toEndpointDependencies())
     );
   }
 }

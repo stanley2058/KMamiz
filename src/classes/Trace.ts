@@ -13,6 +13,7 @@ import {
 import { IRealtimeData } from "../entities/IRealtimeData";
 import Logger from "../utils/Logger";
 import { IRequestTypeUpper } from "../entities/IRequestType";
+import IReplicaCount from "../entities/IReplicaCount";
 
 export class Trace {
   private readonly _traces: ITrace[][];
@@ -23,7 +24,7 @@ export class Trace {
     return this._traces;
   }
 
-  toRealTimeData() {
+  toRealTimeData(replicas?: IReplicaCount[]) {
     const realtimeData = this._traces
       .flat()
       .filter((t) => t.kind === "SERVER")
@@ -46,12 +47,18 @@ export class Trace {
           status: t.tags["http.status_code"],
           uniqueServiceName,
           uniqueEndpointName: `${uniqueServiceName}\t${method}\t${t.tags["http.url"]}`,
+          replica: replicas?.find(
+            (r) => r.uniqueServiceName === uniqueServiceName
+          )?.replicas,
         };
       });
     return new RealtimeData(realtimeData);
   }
 
-  combineLogsToRealtimeData(structuredLogs: IStructuredEnvoyLog[]) {
+  combineLogsToRealtimeData(
+    structuredLogs: IStructuredEnvoyLog[],
+    replicas?: IReplicaCount[]
+  ) {
     const traceIdToEnvoyLogsMap = structuredLogs
       .map((log) => log.traces)
       .flat()
@@ -100,6 +107,9 @@ export class Trace {
             requestBody: log?.request.body,
             uniqueServiceName,
             uniqueEndpointName: `${uniqueServiceName}\t${trace.tags["http.method"]}\t${trace.tags["http.url"]}`,
+            replica: replicas?.find(
+              (r) => r.uniqueServiceName === uniqueServiceName
+            )?.replicas,
           };
         })
         .filter((data) => !!data) as IRealtimeData[]

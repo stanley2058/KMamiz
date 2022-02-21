@@ -290,4 +290,67 @@ export class EndpointDependencies {
       .flat();
     return { nodes, links };
   }
+
+  combineWith(endpointDependencies: EndpointDependencies) {
+    const dependencyMap = new Map<
+      string,
+      {
+        endpoint: IEndpointDependency;
+        dependBySet: Set<string>;
+        dependsOnSet: Set<string>;
+      }
+    >();
+    this._dependencies.forEach((d) => {
+      dependencyMap.set(
+        d.endpoint.uniqueEndpointName,
+        this.createDependencyMapObject(d)
+      );
+    });
+    endpointDependencies._dependencies.forEach((d) => {
+      const existing = dependencyMap.get(d.endpoint.uniqueEndpointName);
+      if (existing) {
+        d.dependBy.forEach((dep) => {
+          const id = `${dep.endpoint.uniqueEndpointName}\t${dep.distance}`;
+          if (!existing.dependBySet.has(id)) {
+            existing.endpoint.dependBy.push(dep);
+            existing.dependBySet.add(id);
+          }
+        });
+        d.dependsOn.forEach((dep) => {
+          const id = `${dep.endpoint.uniqueEndpointName}\t${dep.distance}`;
+          if (!existing.dependBySet.has(id)) {
+            existing.endpoint.dependsOn.push(dep);
+            existing.dependsOnSet.add(id);
+          }
+        });
+      } else {
+        dependencyMap.set(
+          d.endpoint.uniqueEndpointName,
+          this.createDependencyMapObject(d)
+        );
+      }
+    });
+    return new EndpointDependencies(
+      [...dependencyMap.values()].map(({ endpoint }) => endpoint)
+    );
+  }
+  private createDependencyMapObject(endpoint: IEndpointDependency): {
+    endpoint: IEndpointDependency;
+    dependBySet: Set<string>;
+    dependsOnSet: Set<string>;
+  } {
+    return {
+      endpoint,
+      dependBySet: new Set(
+        endpoint.dependBy.map(
+          (dep) => `${dep.endpoint.uniqueEndpointName}\t${dep.distance}`
+        )
+      ),
+      dependsOnSet: new Set(
+        endpoint.dependsOn.map(
+          (dep) => `${dep.endpoint.uniqueEndpointName}\t${dep.distance}`
+        )
+      ),
+    };
+  }
 }

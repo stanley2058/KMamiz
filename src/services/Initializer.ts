@@ -1,3 +1,4 @@
+import { AggregateData } from "../classes/AggregateData";
 import { Trace } from "../classes/Trace";
 import IReplicaCount from "../entities/IReplicaCount";
 import GlobalSettings from "../GlobalSettings";
@@ -14,29 +15,49 @@ export default class Initializer {
   private constructor() {}
 
   async firstTimeSetup() {
+    const todayTime = new Date(new Date().toLocaleDateString()).getTime();
+    // get traces from yesterday to 30 days backward
     const traces = new Trace(
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-        86400000 * 30
+        86400000 * 30,
+        todayTime
       )
     );
-    const realtimeData = traces.toRealTimeData();
+
+    // try to create aggregateData and historyData
+    const endpointDependencies = traces.toEndpointDependencies();
     const replicas: IReplicaCount[] = [];
-    for (const ns of realtimeData.realtimeData.reduce(
-      (prev, curr) => prev.add(curr.namespace),
-      new Set<string>()
-    )) {
+    for (const ns of await KubernetesService.getInstance().getNamespaces()) {
       replicas.push(
         ...(await KubernetesService.getInstance().getReplicasFromPodList(ns))
       );
     }
 
+    const realtimeData = traces.toRealTimeData(replicas);
     const { aggregateData, historyData } =
       realtimeData.toAggregatedDataAndHistoryData(
-        traces.toEndpointDependencies().toServiceDependencies(),
+        endpointDependencies.toServiceDependencies(),
         replicas
       );
-    await MongoOperator.getInstance().saveAggregateData(aggregateData);
+    await MongoOperator.getInstance().saveAggregateData(
+      new AggregateData(aggregateData)
+    );
     await MongoOperator.getInstance().saveHistoryData(historyData);
+
+    // get traces from 00:00 today local time to now, and save it to database as realtime data
+    const todayTraces = new Trace(
+      await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
+        Date.now() - todayTime
+      )
+    );
+    await MongoOperator.getInstance().saveRealtimeData(
+      todayTraces.toRealTimeData(replicas)
+    );
+
+    // merge endpoint dependencies and save to database
+    await MongoOperator.getInstance().saveEndpointDependencies(
+      endpointDependencies.combineWith(todayTraces.toEndpointDependencies())
+    );
   }
 
   serverStartUp() {
