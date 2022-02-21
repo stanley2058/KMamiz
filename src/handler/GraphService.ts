@@ -2,20 +2,21 @@ import { EndpointDependencies } from "../classes/EndpointDependency";
 import IAreaLineChartData from "../entities/IAreaLineChartData";
 import IRequestHandler from "../entities/IRequestHandler";
 import MongoOperator from "../services/MongoOperator";
+import Utils from "../utils/Utils";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
     super("graph");
-    this.addRoute("get", "/dependency/:namespace", async (req, res) => {
+    this.addRoute("get", "/dependency/:namespace?", async (req, res) => {
       res.json(await this.getDependencyGraph(req.params["namespace"]));
     });
-    this.addRoute("get", "/chord/direct/:namespace", async (req, res) => {
+    this.addRoute("get", "/chord/direct/:namespace?", async (req, res) => {
       res.json(await this.getDirectServiceChord(req.params["namespace"]));
     });
-    this.addRoute("get", "/chord/indirect/:namespace", async (req, res) => {
+    this.addRoute("get", "/chord/indirect/:namespace?", async (req, res) => {
       res.json(await this.getInDirectServiceChord(req.params["namespace"]));
     });
-    this.addRoute("get", "/line/:namespace", async (req, res) => {
+    this.addRoute("get", "/line/:namespace?", async (req, res) => {
       res.json(await this.getAreaLineData(req.params["namespace"]));
     });
   }
@@ -27,20 +28,19 @@ export default class GraphService extends IRequestHandler {
   }
 
   async getDirectServiceChord(namespace?: string) {
-    return new EndpointDependencies(
-      (
-        await MongoOperator.getInstance().getEndpointDependencies(namespace)
-      ).dependencies.map((ep) => ({
-        ...ep,
-        dependsOn: ep.dependsOn.filter((d) => d.distance === 1),
-      }))
-    ).toChordData();
+    const dependencies =
+      await MongoOperator.getInstance().getEndpointDependencies(namespace);
+    const dep = dependencies.dependencies;
+    dep.forEach((ep) => {
+      ep.dependsOn = ep.dependsOn.filter((d) => d.distance === 1);
+    });
+    return new EndpointDependencies(dep).toChordData();
   }
 
   async getInDirectServiceChord(namespace?: string) {
-    return (
-      await MongoOperator.getInstance().getEndpointDependencies(namespace)
-    ).toChordData();
+    const dependencies =
+      await MongoOperator.getInstance().getEndpointDependencies(namespace);
+    return dependencies.toChordData();
   }
 
   async getAreaLineData(namespace?: string): Promise<IAreaLineChartData[]> {

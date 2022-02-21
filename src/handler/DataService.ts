@@ -4,18 +4,18 @@ import MongoOperator from "../services/MongoOperator";
 export default class DataService extends IRequestHandler {
   constructor() {
     super("data");
-    this.addRoute("get", "/aggregate/:namespace", async (req, res) => {
+    this.addRoute("get", "/aggregate/:namespace?", async (req, res) => {
       res.json(await this.getAggregateData(req.params["namespace"]));
     });
-    this.addRoute("get", "/history/:namespace", async (req, res) => {
+    this.addRoute("get", "/history/:namespace?", async (req, res) => {
       res.json(await this.getHistoryData(req.params["namespace"]));
     });
     this.addRoute("get", "/datatype/:uniqueLabelName", async (req, res) => {
-      res.json(
-        await this.getEndpointDataType(
-          decodeURIComponent(req.params["uniqueLabelName"])
-        )
-      );
+      const labelName = decodeURIComponent(req.params["uniqueLabelName"]);
+      if (!labelName) res.sendStatus(400);
+      else {
+        res.json(await this.getEndpointDataType(labelName));
+      }
     });
   }
 

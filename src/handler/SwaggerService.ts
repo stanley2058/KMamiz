@@ -9,9 +9,10 @@ export default class SwaggerService extends IRequestHandler {
     this.addRoute("get", "/:uniqueServiceName", async (req, res) => {
       const uniqueServiceName = req.params?.uniqueServiceName;
       if (!uniqueServiceName) res.sendStatus(400);
-      res
-        .type("html")
-        .send(await this.getSwagger(decodeURIComponent(uniqueServiceName)));
+      else
+        res
+          .type("html")
+          .send(await this.getSwagger(decodeURIComponent(uniqueServiceName)));
     });
   }
 
