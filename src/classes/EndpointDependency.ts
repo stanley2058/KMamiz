@@ -90,16 +90,22 @@ export class EndpointDependencies {
           .filter((dep) => dep.distance === 1)
           .forEach((dep) => {
             const depId = `${dep.endpoint.uniqueServiceName}\t${dep.endpoint.method}\t${dep.endpoint.labelName}`;
-            links.push({
-              source: id,
-              target: depId,
-            });
+            if (!existLinks.has(`${id}\t${depId}`)) {
+              links.push({
+                source: id,
+                target: depId,
+              });
+              existLinks.add(`${id}\t${depId}`);
+            }
           });
         if (e.dependBy.length === 0) {
-          links.push({
-            source: "null",
-            target: id,
-          });
+          if (!existLinks.has(`null\t${id}`)) {
+            links.push({
+              source: "null",
+              target: id,
+            });
+            existLinks.add(`null\t${id}`);
+          }
         }
       });
     });
