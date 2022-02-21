@@ -37,6 +37,7 @@ export class EndpointDependencies {
   private createBaseNodesAndLinks(
     serviceEndpointMap: Map<string, IEndpointDependency[]>
   ) {
+    const existLabels = new Set<string>();
     const nodes: INode[] = [
       // root node (external)
       {
@@ -63,13 +64,16 @@ export class EndpointDependencies {
         // if endpoint.name changed to none service url, change this
         const [, , path] = Utils.ExplodeUrl(e.endpoint.labelName, true);
         // endpoint node
-        nodes.push({
-          id,
-          group: service,
-          name: `(${e.endpoint.version}) ${path}`,
-          dependencies: [],
-          linkInBetween: [],
-        });
+        if (!existLabels.has(id)) {
+          nodes.push({
+            id,
+            group: service,
+            name: `(${e.endpoint.version}) ${path}`,
+            dependencies: [],
+            linkInBetween: [],
+          });
+          existLabels.add(id);
+        }
 
         // service to endpoint links
         links.push({
