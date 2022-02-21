@@ -95,7 +95,7 @@ export default class ServiceOperator {
     await MongoOperator.getInstance().saveRealtimeData(data);
 
     // dispatch data aggregation asynchronously
-    this.doBackgroundDataAggregation(traces, data);
+    ServiceOperator.getInstance().doBackgroundDataAggregation(traces, data);
   }
 
   private async doBackgroundDataAggregation(traces: Trace, data: RealtimeData) {

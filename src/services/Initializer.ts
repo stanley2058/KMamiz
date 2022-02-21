@@ -34,15 +34,17 @@ export default class Initializer {
     }
 
     const realtimeData = traces.toRealTimeData(replicas);
-    const { aggregateData, historyData } =
-      realtimeData.toAggregatedDataAndHistoryData(
-        endpointDependencies.toServiceDependencies(),
-        replicas
+    if (realtimeData.realtimeData.length !== 0) {
+      const { aggregateData, historyData } =
+        realtimeData.toAggregatedDataAndHistoryData(
+          endpointDependencies.toServiceDependencies(),
+          replicas
+        );
+      await MongoOperator.getInstance().saveAggregateData(
+        new AggregateData(aggregateData)
       );
-    await MongoOperator.getInstance().saveAggregateData(
-      new AggregateData(aggregateData)
-    );
-    await MongoOperator.getInstance().saveHistoryData(historyData);
+      await MongoOperator.getInstance().saveHistoryData(historyData);
+    }
 
     // get traces from 00:00 today local time to now, and save it to database as realtime data
     const todayTraces = new Trace(

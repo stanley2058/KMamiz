@@ -4,11 +4,8 @@ import compression from "compression";
 import Routes from "./src/routes/Routes";
 import GlobalSettings from "./src/GlobalSettings";
 import Logger from "./src/utils/Logger";
-import { EnvoyLogs } from "./src/classes/EnvoyLog";
-import { Trace } from "./src/classes/Trace";
-import KubernetesService from "./src/services/KubernetesService";
-import ZipkinService from "./src/services/ZipkinService";
-import RiskAnalyzer from "./src/utils/RiskAnalyzer";
+import MongoOperator from "./src/services/MongoOperator";
+import Initializer from "./src/services/Initializer";
 
 Logger.setGlobalLogLevel(GlobalSettings.LogLevel);
 Logger.verbose("Configuration loaded:");
@@ -22,60 +19,19 @@ app.use(compression());
 
 app.use(Routes.getInstance().getRoutes());
 
-// Start testing area
 (async () => {
-  // const print = (obj: any) => require("util").inspect(obj, false, null, true);
-  // const namespace = "book";
-  // const traces = new Trace(
-  //   await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-  //     86400000 * 30
-  //   )
-  // );
-  // const envoyLogs: EnvoyLogs[] = [];
-  // for (const podName of await KubernetesService.getInstance().getPodNames(
-  //   namespace
-  // )) {
-  //   envoyLogs.push(
-  //     await KubernetesService.getInstance().getEnvoyLogs(namespace, podName)
-  //   );
-  // }
-  // const replicas = await KubernetesService.getInstance().getReplicasFromPodList(
-  //   namespace
-  // );
-  // // console.log(print(EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs)));
-  // const rlDataWithLogs = traces.combineLogsToRealtimeData(
-  //   EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs)
-  // );
-  // const risk = RiskAnalyzer.RealtimeRisk(
-  //   rlDataWithLogs.realtimeData,
-  //   traces.toEndpointDependencies().toServiceDependencies(),
-  //   replicas
-  // );
-  // console.log(print(risk));
-  // const { aggregateData, historyData } =
-  //   rlDataWithLogs.toAggregatedDataAndHistoryData(
-  //     traces.toEndpointDependencies().toServiceDependencies()
-  //   );
-  // console.log(print(aggregateData));
-  // console.log(print(historyData));
-  // console.log(print(traces.toEndpointDependencies().toGraphData()));
-  // console.log(print(traces.toEndpointDependencies().dependencies));
-  // console.log(
-  //   print(
-  //     traces
-  //       .toRealTimeData()
-  //       .toHistoryData(traces.toEndpointDependencies().toServiceDependencies())
-  //   )
-  // );
-  // console.log(print(Object.fromEntries(endpointDataTypeMap)));
-  // console.log(
-  //   print(
-  //     rlDataWithLogs.extractEndpointDataType().map((d) => d.endpointDataType)
-  //   )
-  // );
-})();
-// End testing area
+  const aggregateData = await MongoOperator.getInstance().getAggregateData();
+  const realtimeData = await MongoOperator.getInstance().getAllRealtimeData();
+  if (!aggregateData && realtimeData.realtimeData.length === 0) {
+    Logger.info("Database is empty, running first time setup.");
+    await Initializer.getInstance().firstTimeSetup();
+  }
 
-app.listen(GlobalSettings.Port, () => {
-  Logger.info(`Express server running on port: ${GlobalSettings.Port}`);
-});
+  Logger.info("Setting up scheduled tasks");
+  Initializer.getInstance().serverStartUp();
+
+  Logger.info("Initialization done, starting server");
+  app.listen(GlobalSettings.Port, () => {
+    Logger.info(`Express server started on port: ${GlobalSettings.Port}`);
+  });
+})();

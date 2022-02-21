@@ -80,9 +80,8 @@ export default class MongoOperator {
           endpoint: { namespace },
         }
       : {};
-    return new EndpointDependencies(
-      await EndpointDependencyModel.find(query).exec()
-    );
+    const res = await EndpointDependencyModel.find(query).exec();
+    return new EndpointDependencies(res);
   }
 
   async getEndpointDataType(uniqueEndpointName: string) {

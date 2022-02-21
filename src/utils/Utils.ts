@@ -1,5 +1,6 @@
 import { Axios, AxiosRequestConfig, AxiosResponse } from "axios";
 import JsonToTS from "json-to-ts";
+import { inspect } from "util";
 import { IEndpointRequestParam } from "../entities/IEndpointDataType";
 import { IRequestTypeLower, IRequestTypeUpper } from "../entities/IRequestType";
 import Logger from "./Logger";
@@ -299,5 +300,9 @@ export default class Utils {
         return prev;
       }, {} as { [param: string]: IEndpointRequestParam })
     );
+  }
+
+  static Inspect(obj: any) {
+    return inspect(obj, false, null, true);
   }
 }
