@@ -189,10 +189,10 @@ export class EndpointDependencies {
     ];
 
     // create service dependencies
-    return serviceTemplates.map((uniqueName): IServiceDependency => {
+    return serviceTemplates.map((uniqueServiceName): IServiceDependency => {
       // find dependencies for the current service
       const dependency = this._dependencies.filter(
-        ({ endpoint }) => endpoint.uniqueServiceName === uniqueName
+        ({ endpoint }) => endpoint.uniqueServiceName === uniqueServiceName
       );
 
       // create links info from endpointDependencies
@@ -200,23 +200,23 @@ export class EndpointDependencies {
         EndpointDependencies.createServiceToLinksMapping(dependency);
 
       // combine all previous data to create a service dependency
-      const [service, namespace, version] = uniqueName.split("\t");
+      const [service, namespace, version] = uniqueServiceName.split("\t");
       return {
         service,
         namespace,
         version,
         dependency,
-        links: Object.entries(linkMap).map(([uniqueName, info]) => {
-          const [service, namespace, version] = uniqueName.split("\t");
+        links: Object.entries(linkMap).map(([uniqueServiceName, info]) => {
+          const [service, namespace, version] = uniqueServiceName.split("\t");
           return {
             service,
             namespace,
             version,
             ...info,
-            uniqueServiceName: uniqueName,
+            uniqueServiceName,
           };
         }),
-        uniqueServiceName: uniqueName,
+        uniqueServiceName,
       };
     });
   }

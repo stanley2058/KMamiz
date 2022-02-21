@@ -1,6 +1,8 @@
+import { Types } from "mongoose";
 import { IRequestTypeUpper } from "./IRequestType";
 
 export interface IEndpointDependency {
+  _id?: Types.ObjectId;
   endpoint: IEndpointInfo;
   dependsOn: {
     endpoint: IEndpointInfo;
@@ -13,6 +15,7 @@ export interface IEndpointDependency {
     type: "CLIENT";
   }[];
 }
+
 export interface IEndpointInfo {
   uniqueServiceName: string;
   uniqueEndpointName: string;
