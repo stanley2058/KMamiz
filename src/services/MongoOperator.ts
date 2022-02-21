@@ -6,6 +6,7 @@ import IAggregateData from "../entities/IAggregateData";
 import IHistoryData from "../entities/IHistoryData";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
+import EndpointDataType from "../classes/EndpointDataType";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
@@ -31,10 +32,29 @@ export default class MongoOperator {
     return new EndpointDependencies([]);
   }
 
+  async getEndpointDataType(
+    uniqueEndpointName: string
+  ): Promise<EndpointDataType | null> {
+    return {} as EndpointDataType;
+  }
+
+  async getEndpointDataTypeByService(uniqueServiceName: string) {
+    return [] as EndpointDataType[];
+  }
+
+  async getEndpointDataTypeByLabel(
+    uniqueServiceName: string,
+    method: string,
+    label: string
+  ) {
+    return [] as EndpointDataType[];
+  }
+
   async saveRealtimeData(realtimeData: RealtimeData) {}
   async saveAggregateData(aggregateData: AggregateData) {}
   async saveHistoryData(historyData: IHistoryData[]) {}
   async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {}
+  async saveEndpointDataType(endpointDataType: EndpointDataType) {}
 
   async deleteAllRealtimeData() {}
 }

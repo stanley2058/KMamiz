@@ -1,9 +1,7 @@
 import { EndpointDependencies } from "../classes/EndpointDependency";
-import { Trace } from "../classes/Trace";
 import IAreaLineChartData from "../entities/IAreaLineChartData";
 import IRequestHandler from "../entities/IRequestHandler";
 import MongoOperator from "../services/MongoOperator";
-import ZipkinService from "../services/ZipkinService";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
@@ -22,36 +20,27 @@ export default class GraphService extends IRequestHandler {
     });
   }
 
-  private async getTraces(namespace?: string): Promise<Trace> {
-    const traces =
-      await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-        86400000 * 30
-      );
-    // TODO: filter by namespace
-    return new Trace(traces);
-  }
-
   async getDependencyGraph(namespace?: string) {
-    return (await this.getTraces(namespace))
-      .toEndpointDependencies()
-      .toGraphData();
+    return (
+      await MongoOperator.getInstance().getEndpointDependencies(namespace)
+    ).toGraphData();
   }
 
   async getDirectServiceChord(namespace?: string) {
     return new EndpointDependencies(
-      (await this.getTraces(namespace))
-        .toEndpointDependencies()
-        .dependencies.map((ep) => ({
-          ...ep,
-          dependsOn: ep.dependsOn.filter((d) => d.distance === 1),
-        }))
+      (
+        await MongoOperator.getInstance().getEndpointDependencies(namespace)
+      ).dependencies.map((ep) => ({
+        ...ep,
+        dependsOn: ep.dependsOn.filter((d) => d.distance === 1),
+      }))
     ).toChordData();
   }
 
   async getInDirectServiceChord(namespace?: string) {
-    return (await this.getTraces(namespace))
-      .toEndpointDependencies()
-      .toChordData();
+    return (
+      await MongoOperator.getInstance().getEndpointDependencies(namespace)
+    ).toChordData();
   }
 
   async getAreaLineData(namespace?: string): Promise<IAreaLineChartData[]> {

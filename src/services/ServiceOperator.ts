@@ -1,5 +1,6 @@
 import { AggregateData } from "../classes/AggregateData";
 import { EnvoyLogs } from "../classes/EnvoyLog";
+import { RealtimeData } from "../classes/RealtimeData";
 import { Trace } from "../classes/Trace";
 import IReplicaCount from "../entities/IReplicaCount";
 import Logger from "../utils/Logger";
@@ -91,11 +92,25 @@ export default class ServiceOperator {
     );
     await MongoOperator.getInstance().saveRealtimeData(data);
 
+    // dispatch data aggregation asynchronously
+    this.doBackgroundDataAggregation(traces, data);
+  }
+
+  private async doBackgroundDataAggregation(traces: Trace, data: RealtimeData) {
     // merge endpoint dependency and save to database
     await MongoOperator.getInstance().saveEndpointDependencies(
       (
         await MongoOperator.getInstance().getEndpointDependencies()
       ).combineWith(traces.toEndpointDependencies())
     );
+
+    // merge endpoint datatype and save to database
+    for (let e of data.extractEndpointDataType()) {
+      const existing = await MongoOperator.getInstance().getEndpointDataType(
+        e.endpointDataType.uniqueEndpointName
+      );
+      if (existing) e = e.mergeSchemaWith(existing);
+      await MongoOperator.getInstance().saveEndpointDataType(e);
+    }
   }
 }
