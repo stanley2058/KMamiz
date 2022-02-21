@@ -38,6 +38,7 @@ export class EndpointDependencies {
     serviceEndpointMap: Map<string, IEndpointDependency[]>
   ) {
     const existLabels = new Set<string>();
+    const existLinks = new Set<string>();
     const nodes: INode[] = [
       // root node (external)
       {
@@ -76,10 +77,13 @@ export class EndpointDependencies {
         }
 
         // service to endpoint links
-        links.push({
-          source: service,
-          target: id,
-        });
+        if (!existLinks.has(`${service}\t${id}`)) {
+          links.push({
+            source: service,
+            target: id,
+          });
+          existLinks.add(`${service}\t${id}`);
+        }
 
         // endpoint to endpoint links
         e.dependsOn
