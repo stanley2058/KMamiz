@@ -1,4 +1,4 @@
-import { connect } from "mongoose";
+import { connect, Model, Types } from "mongoose";
 import { AggregateData } from "../classes/AggregateData";
 import { EndpointDependencies } from "../classes/EndpointDependency";
 import { RealtimeData } from "../classes/RealtimeData";
@@ -7,39 +7,97 @@ import IHistoryData from "../entities/IHistoryData";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
 import EndpointDataType from "../classes/EndpointDataType";
+import { RealtimeDataModel } from "../entities/schema/RealtimeDataSchema";
+import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
+import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
+import { EndpointDataTypeModel } from "../entities/schema/EndpointDataTypeSchema";
+import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
   static getInstance = () => this.instance || (this.instance = new this());
 
   private constructor() {
-    connect(GlobalSettings.MongoDBUri).catch((error) => Logger.error(error));
+    connect(GlobalSettings.MongoDBUri)
+      .then(() => Logger.info("Successfully connected to MongoDB"))
+      .catch((error) => Logger.error(error));
   }
 
   async getAllRealtimeData() {
-    return new RealtimeData([]);
+    return new RealtimeData(await RealtimeDataModel.find({}).exec());
   }
 
   async getAggregateData(namespace?: string) {
-    return {} as IAggregateData;
+    if (!namespace) return await AggregateDataModel.findOne({}).exec();
+    const filtered = await AggregateDataModel.aggregate([
+      { $match: {} },
+      {
+        $project: {
+          _id: "$_id",
+          fromDate: "$fromDate",
+          toDate: "$toDate",
+          services: {
+            $filter: {
+              input: "$services",
+              as: "service",
+              cond: { $eq: ["$$service.namespace", namespace] },
+            },
+          },
+        },
+      },
+    ]).exec();
+    return (filtered[0] as IAggregateData) || null;
   }
 
-  async getHistoryData(namespace?: string) {
-    return [] as IHistoryData[];
+  async getHistoryData(namespace?: string, time = 86400000 * 30) {
+    const notBefore = new Date(Date.now() - time);
+    if (!namespace) {
+      return await HistoryDataModel.find({
+        date: { $gte: notBefore },
+      }).exec();
+    }
+    return (await HistoryDataModel.aggregate([
+      { $match: { date: { $gte: notBefore } } },
+      {
+        $project: {
+          _id: "$_id",
+          date: "$date",
+          services: {
+            $filter: {
+              input: "$services",
+              as: "service",
+              cond: { $eq: ["$$service.namespace", namespace] },
+            },
+          },
+        },
+      },
+    ]).exec()) as IHistoryData[];
   }
 
   async getEndpointDependencies(namespace?: string) {
-    return new EndpointDependencies([]);
+    const query = namespace
+      ? {
+          endpoint: { namespace },
+        }
+      : {};
+    return new EndpointDependencies(
+      await EndpointDependencyModel.find(query).exec()
+    );
   }
 
-  async getEndpointDataType(
-    uniqueEndpointName: string
-  ): Promise<EndpointDataType | null> {
-    return {} as EndpointDataType;
+  async getEndpointDataType(uniqueEndpointName: string) {
+    const res = await EndpointDataTypeModel.findOne({
+      uniqueEndpointName,
+    }).exec();
+    if (!res) return null;
+    return new EndpointDataType(res);
   }
 
   async getEndpointDataTypeByService(uniqueServiceName: string) {
-    return [] as EndpointDataType[];
+    const res = await EndpointDataTypeModel.find({
+      uniqueServiceName,
+    }).exec();
+    return res.map((r) => new EndpointDataType(r));
   }
 
   async getEndpointDataTypeByLabel(
@@ -47,14 +105,59 @@ export default class MongoOperator {
     method: string,
     label: string
   ) {
-    return [] as EndpointDataType[];
+    const res = await EndpointDataTypeModel.find({
+      uniqueServiceName,
+      method,
+      labelName: label,
+    }).exec();
+    return res.map((r) => new EndpointDataType(r));
   }
 
-  async saveRealtimeData(realtimeData: RealtimeData) {}
-  async saveAggregateData(aggregateData: AggregateData) {}
-  async saveHistoryData(historyData: IHistoryData[]) {}
-  async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {}
-  async saveEndpointDataType(endpointDataType: EndpointDataType) {}
+  async saveRealtimeData(realtimeData: RealtimeData) {
+    return new RealtimeData(
+      await RealtimeDataModel.insertMany(realtimeData.realtimeData)
+    );
+  }
 
-  async deleteAllRealtimeData() {}
+  async saveAggregateData(aggregateData: AggregateData) {
+    return await this.smartSave(
+      aggregateData.aggregateData,
+      AggregateDataModel
+    );
+  }
+
+  async saveHistoryData(historyData: IHistoryData[]): Promise<IHistoryData[]> {
+    return await HistoryDataModel.insertMany(historyData);
+  }
+
+  async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {
+    for (const index in endpointDependencies.dependencies) {
+      endpointDependencies.dependencies[index] = await this.smartSave(
+        endpointDependencies.dependencies[index],
+        EndpointDependencyModel
+      );
+    }
+    return endpointDependencies;
+  }
+
+  async saveEndpointDataType(endpointDataType: EndpointDataType) {
+    return await this.smartSave(
+      endpointDataType.endpointDataType,
+      EndpointDataTypeModel
+    );
+  }
+
+  async deleteAllRealtimeData() {
+    return await RealtimeDataModel.deleteMany({});
+  }
+
+  private async smartSave<T extends { _id?: Types.ObjectId }>(
+    data: T,
+    model: Model<T>
+  ): Promise<T> {
+    const m = new model(data);
+    if (!data._id) return await m.save();
+    if (await model.findById(data._id).exec()) m.isNew = false;
+    return await m.save();
+  }
 }

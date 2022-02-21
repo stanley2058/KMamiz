@@ -35,12 +35,14 @@ export default class ServiceOperator {
         replicas
       );
 
-    const prevAggData = new AggregateData(
-      await MongoOperator.getInstance().getAggregateData()
-    );
-    const newAggData = prevAggData.combine(aggregateData);
-    if (prevAggData.aggregateData._id)
-      newAggData.aggregateData._id = prevAggData.aggregateData._id;
+    const prevAggRaw = await MongoOperator.getInstance().getAggregateData();
+    let newAggData = new AggregateData(aggregateData);
+    if (prevAggRaw) {
+      const prevAggData = new AggregateData(prevAggRaw);
+      newAggData = prevAggData.combine(aggregateData);
+      if (prevAggData.aggregateData._id)
+        newAggData.aggregateData._id = prevAggData.aggregateData._id;
+    }
 
     await MongoOperator.getInstance().saveAggregateData(newAggData);
     await MongoOperator.getInstance().saveHistoryData(historyData);
