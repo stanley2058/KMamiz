@@ -1,6 +1,7 @@
 import { Axios } from "axios";
 import { ITrace } from "../entities/external/ITrace";
 import GlobalSettings from "../GlobalSettings";
+import Logger from "../utils/Logger";
 import Utils from "../utils/Utils";
 
 export default class ZipkinService {
@@ -16,7 +17,14 @@ export default class ZipkinService {
     this.zipkinClient = new Axios({
       baseURL: `${this.zipkinHost}/zipkin/api/v2`,
       responseType: "json",
-      transformResponse: (data) => JSON.parse(data),
+      transformResponse: (data) => {
+        try {
+          return JSON.parse(data);
+        } catch (err) {
+          Logger.error("Error parsing json", data);
+          throw err;
+        }
+      },
     });
 
     if (!this.zipkinHost) throw new Error("Variable [ZIPKIN_URL] not set");

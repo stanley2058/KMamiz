@@ -58,9 +58,10 @@ export default class ServiceOperator {
     }
 
     // query traces from last job time to now
+    const lookBack = job.nextDate().toDate().getTime() - Date.now();
     const traces = new Trace(
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-        Date.now() - job.lastDate().getTime()
+        lookBack
       )
     );
 
