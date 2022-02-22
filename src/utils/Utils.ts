@@ -2,7 +2,6 @@ import { Axios, AxiosRequestConfig, AxiosResponse } from "axios";
 import JsonToTS from "json-to-ts";
 import { inspect } from "util";
 import { IEndpointRequestParam } from "../entities/IEndpointDataType";
-import { IRequestTypeLower, IRequestTypeUpper } from "../entities/IRequestType";
 import Logger from "./Logger";
 
 export default class Utils {
@@ -82,7 +81,7 @@ export default class Utils {
       const [, serviceFullName, clusterName] =
         host.match(/(.*).svc.(.*)/) || [];
       if (!serviceFullName) {
-        Logger.warn("Could not parse service url: [", url, "], skipping.");
+        Logger.verbose("Could not parse service url: [", url, "], skipping.");
         Logger.plain.verbose("With trace:", new Error().stack);
       } else {
         const nameDivider = serviceFullName.lastIndexOf(".");

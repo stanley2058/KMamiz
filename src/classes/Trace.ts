@@ -232,7 +232,7 @@ export class Trace {
             endpointInfoMap.set(uniqueName, info);
 
             if (!endpointMap[parent]) {
-              Logger.warn(
+              Logger.verbose(
                 `Parent ID [${parent}] not found, is the sidecar set up incorrect?`
               );
               Logger.verbose("Endpoint map:\n", endpointMap);

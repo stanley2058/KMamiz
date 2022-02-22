@@ -40,7 +40,7 @@ export class EnvoyLogs {
         if (log.type === "Response") {
           const req = traceStack.pop();
           if (!req) {
-            Logger.warn("Mismatch request response in logs");
+            Logger.verbose("Mismatch request response in logs");
             traceStack = [];
             continue;
           }
