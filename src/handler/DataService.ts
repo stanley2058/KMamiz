@@ -14,7 +14,9 @@ export default class DataService extends IRequestHandler {
       const labelName = decodeURIComponent(req.params["uniqueLabelName"]);
       if (!labelName) res.sendStatus(400);
       else {
-        res.json(await this.getEndpointDataType(labelName));
+        const result = await this.getEndpointDataType(labelName);
+        if (result) res.json(result);
+        else res.sendStatus(404);
       }
     });
   }
@@ -38,6 +40,7 @@ export default class DataService extends IRequestHandler {
         label
       );
 
-    return datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr));
+    return datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr))
+      .endpointDataType;
   }
 }
