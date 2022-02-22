@@ -42,7 +42,7 @@ export class Trace {
           namespace,
           version,
           method,
-          labelName: `${host}:${port}${path}`,
+          labelName: `${host}${port}${path}`,
           latency: t.duration,
           status: t.tags["http.status_code"],
           uniqueServiceName,
