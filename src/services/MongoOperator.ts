@@ -24,11 +24,14 @@ export default class MongoOperator {
   }
 
   async getAllRealtimeData() {
-    return new RealtimeData(await RealtimeDataModel.find({}).exec());
+    return new RealtimeData(
+      (await RealtimeDataModel.find({}).exec()).map((r) => r.toObject())
+    );
   }
 
   async getAggregateData(namespace?: string) {
-    if (!namespace) return await AggregateDataModel.findOne({}).exec();
+    if (!namespace)
+      return (await AggregateDataModel.findOne({}).exec())?.toObject();
     const filtered = await AggregateDataModel.aggregate([
       { $match: {} },
       {
@@ -129,7 +132,9 @@ export default class MongoOperator {
   }
 
   async saveHistoryData(historyData: IHistoryData[]): Promise<IHistoryData[]> {
-    return await HistoryDataModel.insertMany(historyData);
+    return (await HistoryDataModel.insertMany(historyData)).map((h) =>
+      h.toObject()
+    );
   }
 
   async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {
