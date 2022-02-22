@@ -350,4 +350,8 @@ export class RealtimeData {
     });
     return endpointMap;
   }
+
+  getContainingNamespaces() {
+    return new Set(this._realtimeData.map((r) => r.namespace));
+  }
 }

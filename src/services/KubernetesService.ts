@@ -105,6 +105,15 @@ export default class KubernetesService {
     });
   }
 
+  async getReplicas(namespaces?: Set<string>) {
+    if (!namespaces) namespaces = new Set(await this.getNamespaces());
+    let replicas: IReplicaCount[] = [];
+    for (const ns of namespaces) {
+      replicas = replicas.concat(await this.getReplicasFromPodList(ns));
+    }
+    return replicas;
+  }
+
   async getPodNames(namespace: string) {
     return (await this.getPodList(namespace)).items.map(
       (pod) => pod.metadata.name
