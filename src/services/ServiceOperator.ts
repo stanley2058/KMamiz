@@ -6,6 +6,7 @@ import IReplicaCount from "../entities/IReplicaCount";
 import Logger from "../utils/Logger";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
+import RealtimeDataService from "./RealtimeDataService";
 import Scheduler from "./Scheduler";
 import ZipkinService from "./ZipkinService";
 
@@ -18,17 +19,10 @@ export default class ServiceOperator {
     const realtimeData = await MongoOperator.getInstance().getAllRealtimeData();
     const endpointDependencies =
       await MongoOperator.getInstance().getEndpointDependencies();
-    const namespaces = realtimeData.realtimeData.reduce(
-      (prev, { namespace }) => prev.add(namespace),
-      new Set<string>()
-    );
+    const namespaces = realtimeData.getContainingNamespaces();
 
-    const replicas: IReplicaCount[] = [];
-    for (const ns of namespaces) {
-      replicas.push(
-        ...(await KubernetesService.getInstance().getReplicasFromPodList(ns))
-      );
-    }
+    const replicas: IReplicaCount[] =
+      await KubernetesService.getInstance().getReplicas(namespaces);
     const { historyData, aggregateData } =
       realtimeData.toAggregatedDataAndHistoryData(
         endpointDependencies.toServiceDependencies(),
@@ -66,16 +60,12 @@ export default class ServiceOperator {
     );
 
     // get namespaces from traces for querying envoy logs
-    const namespaces = traces
-      .toRealTimeData()
-      .realtimeData.reduce(
-        (prev, curr) => prev.add(curr.namespace),
-        new Set<string>()
-      );
+    const namespaces = traces.toRealTimeData().getContainingNamespaces();
 
     // get all necessary envoy logs
     const envoyLogs: EnvoyLogs[] = [];
-    const replicas: IReplicaCount[] = [];
+    const replicas: IReplicaCount[] =
+      await KubernetesService.getInstance().getReplicas(namespaces);
     for (const ns of namespaces) {
       for (const podName of await KubernetesService.getInstance().getPodNames(
         ns
@@ -84,9 +74,6 @@ export default class ServiceOperator {
           await KubernetesService.getInstance().getEnvoyLogs(ns, podName)
         );
       }
-      replicas.concat(
-        await KubernetesService.getInstance().getReplicasFromPodList(ns)
-      );
     }
 
     const data = traces.combineLogsToRealtimeData(
@@ -96,15 +83,24 @@ export default class ServiceOperator {
     await MongoOperator.getInstance().saveRealtimeData(data);
 
     // dispatch data aggregation asynchronously
-    ServiceOperator.getInstance().doBackgroundDataAggregation(traces, data);
+    ServiceOperator.getInstance().doBackgroundDataAggregation(
+      traces,
+      data,
+      replicas
+    );
   }
 
-  private async doBackgroundDataAggregation(traces: Trace, data: RealtimeData) {
+  private async doBackgroundDataAggregation(
+    traces: Trace,
+    data: RealtimeData,
+    replicas: IReplicaCount[]
+  ) {
     // merge endpoint dependency and save to database
+    const endpointDependencies = (
+      await MongoOperator.getInstance().getEndpointDependencies()
+    ).combineWith(traces.toEndpointDependencies());
     await MongoOperator.getInstance().saveEndpointDependencies(
-      (
-        await MongoOperator.getInstance().getEndpointDependencies()
-      ).combineWith(traces.toEndpointDependencies())
+      endpointDependencies
     );
 
     // merge endpoint datatype and save to database
@@ -115,5 +111,11 @@ export default class ServiceOperator {
       if (existing) e = e.mergeSchemaWith(existing);
       await MongoOperator.getInstance().saveEndpointDataType(e);
     }
+
+    RealtimeDataService.getInstance().updateCurrentView(
+      data,
+      endpointDependencies,
+      replicas
+    );
   }
 }

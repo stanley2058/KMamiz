@@ -1,5 +1,6 @@
 import IRequestHandler from "../entities/IRequestHandler";
 import MongoOperator from "../services/MongoOperator";
+import RealtimeDataService from "../services/RealtimeDataService";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -22,11 +23,15 @@ export default class DataService extends IRequestHandler {
   }
 
   async getAggregateData(namespace?: string) {
-    return await MongoOperator.getInstance().getAggregateData(namespace);
+    return await RealtimeDataService.getInstance().getRealtimeAggregateData(
+      namespace
+    );
   }
 
   async getHistoryData(namespace?: string) {
-    return await MongoOperator.getInstance().getHistoryData(namespace);
+    return await RealtimeDataService.getInstance().getRealtimeHistoryData(
+      namespace
+    );
   }
 
   async getEndpointDataType(uniqueLabelName: string) {

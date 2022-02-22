@@ -1,7 +1,10 @@
 import { EndpointDependencies } from "../classes/EndpointDependency";
 import IAreaLineChartData from "../entities/IAreaLineChartData";
 import IRequestHandler from "../entities/IRequestHandler";
+import KubernetesService from "../services/KubernetesService";
 import MongoOperator from "../services/MongoOperator";
+import RealtimeDataService from "../services/RealtimeDataService";
+import Utils from "../utils/Utils";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
@@ -43,9 +46,8 @@ export default class GraphService extends IRequestHandler {
   }
 
   async getAreaLineData(namespace?: string): Promise<IAreaLineChartData[]> {
-    const historyData = await MongoOperator.getInstance().getHistoryData(
-      namespace
-    );
+    const historyData =
+      await RealtimeDataService.getInstance().getRealtimeHistoryData(namespace);
     return historyData
       .map((h) => {
         return h.services.map((s) => {
