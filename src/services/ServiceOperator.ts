@@ -113,7 +113,7 @@ export default class ServiceOperator {
     }
 
     RealtimeDataService.getInstance().updateCurrentView(
-      data,
+      await MongoOperator.getInstance().getAllRealtimeData(),
       endpointDependencies,
       replicas
     );
