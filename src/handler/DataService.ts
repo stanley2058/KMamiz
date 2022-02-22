@@ -40,7 +40,8 @@ export default class DataService extends IRequestHandler {
         label
       );
 
-    return datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr))
-      .endpointDataType;
+    if (datatype.length === 0) return null;
+    const merged = datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr));
+    return merged.endpointDataType;
   }
 }
