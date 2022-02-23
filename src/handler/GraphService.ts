@@ -3,7 +3,7 @@ import IAreaLineChartData from "../entities/IAreaLineChartData";
 import IRequestHandler from "../entities/IRequestHandler";
 import KubernetesService from "../services/KubernetesService";
 import MongoOperator from "../services/MongoOperator";
-import RealtimeDataService from "../services/RealtimeDataService";
+import DataCache from "../services/DataCache";
 import Utils from "../utils/Utils";
 
 export default class GraphService extends IRequestHandler {
@@ -46,8 +46,9 @@ export default class GraphService extends IRequestHandler {
   }
 
   async getAreaLineData(namespace?: string): Promise<IAreaLineChartData[]> {
-    const historyData =
-      await RealtimeDataService.getInstance().getRealtimeHistoryData(namespace);
+    const historyData = await DataCache.getInstance().getRealtimeHistoryData(
+      namespace
+    );
     return historyData
       .map((h) => {
         return h.services.map((s) => {

@@ -6,7 +6,7 @@ import IReplicaCount from "../entities/IReplicaCount";
 import Logger from "../utils/Logger";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
-import RealtimeDataService from "./RealtimeDataService";
+import DataCache from "./DataCache";
 import Scheduler from "./Scheduler";
 import ZipkinService from "./ZipkinService";
 
@@ -112,7 +112,7 @@ export default class ServiceOperator {
       await MongoOperator.getInstance().saveEndpointDataType(e);
     }
 
-    RealtimeDataService.getInstance().updateCurrentView(
+    DataCache.getInstance().updateCurrentView(
       await MongoOperator.getInstance().getAllRealtimeData(),
       endpointDependencies,
       replicas

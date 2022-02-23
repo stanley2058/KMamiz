@@ -5,8 +5,8 @@ import IReplicaCount from "../entities/IReplicaCount";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 
-export default class RealtimeDataService {
-  private static instance?: RealtimeDataService;
+export default class DataCache {
+  private static instance?: DataCache;
   static getInstance = () => this.instance || (this.instance = new this());
 
   private constructor() {}
