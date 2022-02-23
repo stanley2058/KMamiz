@@ -69,7 +69,7 @@ export class EndpointDependencies {
           nodes.push({
             id,
             group: service,
-            name: `(${e.endpoint.version}) ${path}`,
+            name: `(${e.endpoint.version}) ${e.endpoint.method} ${path}`,
             dependencies: [],
             linkInBetween: [],
           });
