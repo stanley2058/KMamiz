@@ -5,6 +5,7 @@ import IServiceDependency from "../src/entities/IServiceDependency";
 
 import { MockEndpointDependencies, MockLogs, MockTrace } from "./MockData";
 import { EndpointDependencies } from "../src/classes/EndpointDependency";
+import Utils from "../src/utils/Utils";
 
 describe("DataTransformer", () => {
   let endpointDependencies: EndpointDependencies;
@@ -78,7 +79,7 @@ describe("DataTransformer", () => {
             response: {
               timestamp: new Date("2022-01-01T06:48:31.058Z"),
               type: "Response",
-              requestId: "NO_ID",
+              requestId: "e8c54b43-d810-912c-8b08-e4c2f6249b19",
               status: "200",
               body: '{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}',
               namespace: "book",
@@ -105,7 +106,7 @@ describe("DataTransformer", () => {
             response: {
               timestamp: new Date("2022-01-01T06:48:32.706Z"),
               type: "Response",
-              requestId: "NO_ID",
+              requestId: "e3ca2764-766b-9b8f-8384-bd893cd76dab",
               status: "200",
               body: '{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}',
               namespace: "book",

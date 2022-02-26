@@ -15,9 +15,11 @@ export class EnvoyLogs {
     let currentRequestId = this._envoyLogs[0].requestId;
     let entropy = 0;
     let currentLogStack = [];
-    for (const log of this._envoyLogs) {
+    for (let i = 0; i < this._envoyLogs.length; i++) {
+      const log = this._envoyLogs[i];
       if (log.requestId !== "NO_ID" && currentRequestId !== log.requestId) {
         if (entropy === 0) logsMap.set(currentRequestId, currentLogStack);
+        entropy = 0;
         currentLogStack = [];
         currentRequestId = log.requestId;
       }
@@ -25,6 +27,7 @@ export class EnvoyLogs {
       if (log.type === "Response") entropy--;
       currentLogStack.push(log);
     }
+    if (entropy === 0) logsMap.set(currentRequestId, currentLogStack);
 
     const structuredEnvoyLogs: IStructuredEnvoyLog[] = [];
     for (const [requestId, logs] of logsMap.entries()) {
