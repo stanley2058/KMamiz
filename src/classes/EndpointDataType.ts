@@ -44,14 +44,19 @@ export default class EndpointDataType {
     const combinedList = [...existingSchemas, ...newSchemas];
     const mergedSamples = status.map((s): IEndpointDataSchema => {
       const matched = combinedList.filter((sc) => sc.status === s);
-      const responseSample = matched.reduce(
-        (prev, curr) => ({ ...prev, ...curr.responseSample }),
-        {}
-      );
-      const mergedRequests = matched.reduce(
-        (prev, curr) => ({ ...prev, ...curr.requestSample }),
-        {}
-      );
+      const first = matched[0];
+      const responseSample = matched.reduce((prev, curr) => {
+        if (Array.isArray(prev)) {
+          return this.mergeArray(prev, curr.responseSample);
+        }
+        return this.mergeObject(prev, curr.responseSample);
+      }, first.responseSample);
+      const mergedRequests = matched.reduce((prev, curr) => {
+        if (Array.isArray(prev)) {
+          return this.mergeArray(prev, curr.requestSample);
+        }
+        return this.mergeObject(prev, curr.requestSample);
+      }, first.requestSample);
       const requestSample =
         Object.keys(mergedRequests).length > 0 ? mergedRequests : undefined;
       const { time } = matched.reduce((prev, curr) =>
@@ -79,5 +84,11 @@ export default class EndpointDataType {
       ...this._endpointDataType,
       schemas: mergedSamples,
     });
+  }
+  private mergeObject(a: any, b: any) {
+    return { ...a, ...b };
+  }
+  private mergeArray(a: any[], b: any[]) {
+    return [...a, ...b];
   }
 }
