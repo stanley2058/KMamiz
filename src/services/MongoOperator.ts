@@ -138,13 +138,12 @@ export default class MongoOperator {
   }
 
   async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {
-    for (const index in endpointDependencies.dependencies) {
-      endpointDependencies.dependencies[index] = await this.smartSave(
-        endpointDependencies.dependencies[index],
-        EndpointDependencyModel
-      );
-    }
-    return endpointDependencies;
+    const models = endpointDependencies.dependencies.map((d) => {
+      const model = new EndpointDependencyModel(d);
+      if (d._id) model.isNew = false;
+      return model;
+    });
+    await EndpointDependencyModel.bulkSave(models);
   }
 
   async saveEndpointDataType(endpointDataType: EndpointDataType) {
