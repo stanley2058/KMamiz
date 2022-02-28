@@ -149,33 +149,34 @@ export default class KubernetesService {
           "\t"
         )
       );
-
     return KubernetesService.ParseEnvoyLogs(logs, namespace, podName);
   }
 
   static ParseEnvoyLogs(logs: string[], namespace: string, podName: string) {
-    const envoyLogs = logs.map((l): IEnvoyLog => {
-      const [time, log] = l.split("\t");
-      const [, requestRid, traceId, responseRid] =
-        log.match(/\[Request ([\w-]+)\/(\w+)|Response ([\w-]+)\]/) || [];
-      const [, status] = log.match(/\[Status\] ([0-9]+)/) || [];
-      const [, method, path] =
-        log.match(/(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) ([^\]]+)/) || [];
-      const [, body] = log.match(/\[Body\] (.*)/) || [];
-
-      return {
-        timestamp: new Date(time),
-        type: requestRid ? "Request" : "Response",
-        requestId: requestRid || responseRid,
-        traceId,
-        method: method as IRequestTypeUpper,
-        path,
-        status,
-        body,
-        namespace,
-        podName,
-      };
-    });
+    const envoyLogs = logs
+      .map((l): IEnvoyLog | null => {
+        const [time, log] = l.split("\t");
+        const [, requestRid, traceId, responseRid] =
+          log.match(/\[Request ([\w-]+)\/(\w+)|Response ([\w-]+)\]/) || [];
+        if (traceId === "NO_ID") return null;
+        const [, status] = log.match(/\[Status\] ([0-9]+)/) || [];
+        const [, method, path] =
+          log.match(/(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) ([^\]]+)/) || [];
+        const [, body] = log.match(/\[Body\] (.*)/) || [];
+        return {
+          timestamp: new Date(time),
+          type: requestRid ? "Request" : "Response",
+          requestId: requestRid || responseRid,
+          traceId,
+          method: method as IRequestTypeUpper,
+          path,
+          status,
+          body,
+          namespace,
+          podName,
+        };
+      })
+      .filter((l) => !!l) as IEnvoyLog[];
     return new EnvoyLogs(envoyLogs);
   }
 }

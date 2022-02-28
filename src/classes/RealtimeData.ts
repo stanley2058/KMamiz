@@ -13,6 +13,7 @@ import IAggregateData, {
   IAggregateServiceInfo,
 } from "../entities/IAggregateData";
 import IRiskResult from "../entities/IRiskResult";
+import Logger from "../utils/Logger";
 
 export class RealtimeData {
   private readonly _realtimeData: IRealtimeData[];
@@ -136,6 +137,15 @@ export class RealtimeData {
       .filter((r) => !!r.responseBody)
       .map((r) => {
         const [, , , , url] = r.uniqueEndpointName.split("\t");
+        let parsed: any;
+        let parsedInterface: any;
+        try {
+          parsed = JSON.parse(r.responseBody!);
+          parsedInterface = Utils.ObjectToInterfaceString(parsed);
+        } catch (e) {
+          Logger.verbose("Invalid JSON schema, skip parsing.");
+        }
+
         return new EndpointDataType({
           service: r.service,
           version: r.version,
@@ -144,10 +154,8 @@ export class RealtimeData {
           schemas: [
             {
               time: new Date(r.timestamp / 1000),
-              responseSample: JSON.parse(r.responseBody!),
-              responseSchema: Utils.ObjectToInterfaceString(
-                JSON.parse(r.responseBody!)
-              ),
+              responseSample: parsed || undefined,
+              responseSchema: parsedInterface || undefined,
               status: r.status,
               requestParams: Utils.GetParamsFromUrl(url),
             },

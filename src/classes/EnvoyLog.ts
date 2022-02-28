@@ -11,6 +11,7 @@ export class EnvoyLogs {
   }
 
   toStructured() {
+    if (this._envoyLogs.length === 0) return [];
     const logsMap = new Map<string, IEnvoyLog[]>();
     let currentRequestId = this._envoyLogs[0].requestId;
     let entropy = 0;

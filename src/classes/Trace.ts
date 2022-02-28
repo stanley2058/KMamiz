@@ -276,7 +276,7 @@ export class Trace {
       url: trace.tags["http.url"],
       host,
       path,
-      port,
+      port: port || "80",
       clusterName,
       method: trace.tags["http.method"] as IRequestTypeUpper,
       uniqueServiceName,
