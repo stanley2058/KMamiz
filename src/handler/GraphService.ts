@@ -1,16 +1,15 @@
 import { EndpointDependencies } from "../classes/EndpointDependency";
 import IAreaLineChartData from "../entities/IAreaLineChartData";
 import IRequestHandler from "../entities/IRequestHandler";
-import KubernetesService from "../services/KubernetesService";
-import MongoOperator from "../services/MongoOperator";
 import DataCache from "../services/DataCache";
-import Utils from "../utils/Utils";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
     super("graph");
     this.addRoute("get", "/dependency/:namespace?", async (req, res) => {
-      res.json(await this.getDependencyGraph(req.params["namespace"]));
+      const graph = await this.getDependencyGraph(req.params["namespace"]);
+      if (graph) res.json(graph);
+      else res.sendStatus(404);
     });
     this.addRoute("get", "/chord/direct/:namespace?", async (req, res) => {
       res.json(await this.getDirectServiceChord(req.params["namespace"]));
@@ -24,14 +23,15 @@ export default class GraphService extends IRequestHandler {
   }
 
   async getDependencyGraph(namespace?: string) {
-    return (
-      await MongoOperator.getInstance().getEndpointDependencies(namespace)
-    ).toGraphData();
+    return DataCache.getInstance()
+      .getEndpointDependenciesSnap(namespace)
+      ?.toGraphData();
   }
 
   async getDirectServiceChord(namespace?: string) {
     const dependencies =
-      await MongoOperator.getInstance().getEndpointDependencies(namespace);
+      DataCache.getInstance().getEndpointDependenciesSnap(namespace);
+    if (!dependencies) return [];
     const dep = dependencies.dependencies;
     dep.forEach((ep) => {
       ep.dependsOn = ep.dependsOn.filter((d) => d.distance === 1);
@@ -40,9 +40,11 @@ export default class GraphService extends IRequestHandler {
   }
 
   async getInDirectServiceChord(namespace?: string) {
-    const dependencies =
-      await MongoOperator.getInstance().getEndpointDependencies(namespace);
-    return dependencies.toChordData();
+    return (
+      DataCache.getInstance()
+        .getEndpointDependenciesSnap(namespace)
+        ?.toChordData() || []
+    );
   }
 
   async getAreaLineData(namespace?: string): Promise<IAreaLineChartData[]> {

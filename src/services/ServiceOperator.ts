@@ -108,7 +108,7 @@ export default class ServiceOperator {
       const existing = await MongoOperator.getInstance().getEndpointDataType(
         e.endpointDataType.uniqueEndpointName
       );
-      if (existing) e = e.mergeSchemaWith(existing);
+      if (existing) e = existing.mergeSchemaWith(e);
       await MongoOperator.getInstance().saveEndpointDataType(e);
     }
 

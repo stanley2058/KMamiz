@@ -15,6 +15,16 @@ export default class DataCache {
   private _currentEndpointDependenciesView?: EndpointDependencies;
   private _currentReplicasView?: IReplicaCount[];
 
+  updateCurrentView(
+    data: RealtimeData,
+    endpointDependencies: EndpointDependencies,
+    replicas: IReplicaCount[]
+  ) {
+    this._currentRealtimeDataView = data;
+    this._currentEndpointDependenciesView = endpointDependencies;
+    this._currentReplicasView = replicas;
+  }
+
   async getRealtimeHistoryData(namespace?: string) {
     const { realtimeData, endpointDependencies, replicas } =
       await this.getNecessaryData(namespace);
@@ -25,16 +35,6 @@ export default class DataCache {
         replicas
       )
     );
-  }
-
-  updateCurrentView(
-    data: RealtimeData,
-    endpointDependencies: EndpointDependencies,
-    replicas: IReplicaCount[]
-  ) {
-    this._currentRealtimeDataView = data;
-    this._currentEndpointDependenciesView = endpointDependencies;
-    this._currentReplicasView = replicas;
   }
 
   async getRealtimeAggregateData(namespace?: string) {
@@ -53,6 +53,25 @@ export default class DataCache {
     if (!aggregateData) return rlAggregateData;
     return new AggregateData(aggregateData).combine(rlAggregateData)
       .aggregateData;
+  }
+
+  get realtimeDataSnap() {
+    return this._currentRealtimeDataView;
+  }
+
+  getEndpointDependenciesSnap(namespace?: string) {
+    if (namespace && this._currentEndpointDependenciesView) {
+      return new EndpointDependencies(
+        this._currentEndpointDependenciesView.dependencies.filter(
+          (d) => d.endpoint.namespace === namespace
+        )
+      );
+    }
+    return this._currentEndpointDependenciesView;
+  }
+
+  get replicasSnap() {
+    return this._currentReplicasView;
   }
 
   private async getNecessaryData(namespace?: string) {

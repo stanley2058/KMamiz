@@ -250,6 +250,7 @@ export default class Utils {
         ),
       };
     }
+    if (!o) return { type: "object", nullable: true };
     return {
       type: "object",
       properties: Object.keys(o).reduce((prev, k) => {
