@@ -20,7 +20,7 @@ export interface IEndpointInfo {
   uniqueServiceName: string;
   uniqueEndpointName: string;
   // trace name, label
-  labelName: string;
+  labelName?: string;
   service: string;
   namespace: string;
   version: string;

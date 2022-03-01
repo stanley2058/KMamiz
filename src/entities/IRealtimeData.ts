@@ -10,7 +10,6 @@ export interface IRealtimeData {
   service: string;
   namespace: string;
   version: string;
-  labelName: string;
   latency: number;
   status: string;
   responseBody?: string;

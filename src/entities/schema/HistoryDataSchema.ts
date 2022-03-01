@@ -19,7 +19,6 @@ export const HistoryDataSchema = new Schema<IHistoryData>({
         {
           uniqueServiceName: { type: String, required: true },
           uniqueEndpointName: { type: String, required: true },
-          labelName: { type: String, required: true },
           method: { type: String, required: true },
           requests: { type: Number, required: true },
           serverErrors: { type: Number, required: true },

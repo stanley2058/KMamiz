@@ -9,11 +9,12 @@ export const RealtimeDataSchema = new Schema<IRealtimeData>({
   service: { type: String, required: true },
   namespace: { type: String, required: true },
   version: { type: String, required: true },
-  labelName: { type: String, required: true },
   latency: { type: Number, required: true },
   status: { type: String, required: true },
   responseBody: { type: String },
+  responseContentType: { type: String },
   requestBody: { type: String },
+  requestContentType: { type: String },
   replica: { type: Number },
 });
 

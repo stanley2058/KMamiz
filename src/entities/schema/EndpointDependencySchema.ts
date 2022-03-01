@@ -4,7 +4,6 @@ import { IEndpointDependency, IEndpointInfo } from "../IEndpointDependency";
 export const EndpointInfoSchema: SchemaDefinitionProperty<IEndpointInfo> = {
   uniqueServiceName: { type: String, required: true },
   uniqueEndpointName: { type: String, required: true },
-  labelName: { type: String, required: true },
   service: { type: String, required: true },
   namespace: { type: String, required: true },
   version: { type: String, required: true },

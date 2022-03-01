@@ -24,7 +24,7 @@ export interface IHistoryServiceInfo {
 export interface IHistoryEndpointInfo {
   uniqueServiceName: string;
   uniqueEndpointName: string;
-  labelName: string;
+  labelName?: string;
   method: IRequestTypeUpper;
   requests: number;
   serverErrors: number;

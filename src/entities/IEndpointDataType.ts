@@ -8,7 +8,7 @@ export default interface IEndpointDataType {
   service: string;
   namespace: string;
   version: string;
-  labelName: string;
+  labelName?: string;
   method: IRequestTypeUpper;
   schemas: IEndpointDataSchema[];
 }
