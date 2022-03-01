@@ -2,6 +2,8 @@ import { AggregateData } from "../classes/AggregateData";
 import { Trace } from "../classes/Trace";
 import IReplicaCount from "../entities/IReplicaCount";
 import GlobalSettings from "../GlobalSettings";
+import Logger from "../utils/Logger";
+import DataCache from "./DataCache";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 import Scheduler from "./Scheduler";
@@ -62,7 +64,10 @@ export default class Initializer {
     );
   }
 
-  serverStartUp() {
+  async serverStartUp() {
+    Logger.info("Loading data into cache.");
+    await DataCache.getInstance().loadBaseData();
+    Logger.info("Setting up scheduled tasks.");
     Scheduler.getInstance().register(
       "aggregation",
       GlobalSettings.AggregateInterval,
