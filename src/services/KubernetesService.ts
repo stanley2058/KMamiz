@@ -156,22 +156,28 @@ export default class KubernetesService {
     const envoyLogs = logs
       .map((l): IEnvoyLog | null => {
         const [time, log] = l.split("\t");
-        const [, requestRid, traceId, responseRid] =
-          log.match(/\[Request ([\w-]+)\/(\w+)|Response ([\w-]+)\]/) || [];
+        const [, type, requestId, traceId, spanId, parentSpanId] =
+          log.match(
+            /\[(Request|Response) ([\w-_]+)\/([\w_]+)\/([\w_]+)\/([\w_]+)\]/
+          ) || [];
         if (traceId === "NO_ID") return null;
         const [, status] = log.match(/\[Status\] ([0-9]+)/) || [];
         const [, method, path] =
           log.match(/(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) ([^\]]+)/) || [];
+        const [, contentType] = log.match(/\[ContentType\ ([^\]]*)]/) || [];
         const [, body] = log.match(/\[Body\] (.*)/) || [];
         return {
           timestamp: new Date(time),
-          type: requestRid ? "Request" : "Response",
-          requestId: requestRid || responseRid,
+          type: type as "Request" | "Response",
+          requestId,
           traceId,
+          spanId,
+          parentSpanId,
           method: method as IRequestTypeUpper,
           path,
           status,
           body,
+          contentType,
           namespace,
           podName,
         };

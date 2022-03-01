@@ -55,6 +55,54 @@ export class Trace {
     return new RealtimeData(realtimeData);
   }
 
+  combineLogsToRealtimeData2(
+    structuredLogs: IStructuredEnvoyLog[],
+    replicas?: IReplicaCount[]
+  ) {
+    const logMap = new Map<string, Map<string, IStructuredEnvoyLogTrace>>();
+    structuredLogs.forEach((l) => {
+      if (l.traces.length === 0) return;
+      const { traceId } = l.traces[0];
+      if (!logMap.has(traceId)) logMap.set(traceId, new Map());
+      l.traces.forEach((t) => {
+        logMap.get(traceId)!.set(t.spanId, t);
+      });
+    });
+
+    this.traces
+      .flat()
+      .filter((t) => t.kind === "SERVER")
+      .map((trace): IRealtimeData | undefined => {
+        const service = trace.tags["istio.canonical_service"];
+        const namespace = trace.tags["istio.namespace"];
+        const version = trace.tags["istio.canonical_revision"];
+        const method = trace.tags["http.method"] as IRequestTypeUpper;
+        const status = trace.tags["http.status_code"];
+        const uniqueServiceName = `${service}\t${namespace}\t${version}`;
+
+        const log = logMap.get(trace.traceId)?.get(trace.id);
+        return {
+          timestamp: trace.timestamp,
+          service,
+          namespace,
+          version,
+          method,
+          labelName: trace.name, // fill in labelName temporarily
+          latency: trace.duration,
+          status,
+          responseBody: log?.response.body,
+          responseContentType: log?.response.contentType,
+          requestBody: log?.request.body,
+          requestContentType: log?.request.contentType,
+          uniqueServiceName,
+          uniqueEndpointName: `${uniqueServiceName}\t${trace.tags["http.method"]}\t${trace.tags["http.url"]}`,
+          replica: replicas?.find(
+            (r) => r.uniqueServiceName === uniqueServiceName
+          )?.replicas,
+        };
+      });
+  }
+
   combineLogsToRealtimeData(
     structuredLogs: IStructuredEnvoyLog[],
     replicas?: IReplicaCount[]

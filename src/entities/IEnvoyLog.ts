@@ -6,11 +6,14 @@ export interface IEnvoyLog {
   timestamp: Date;
   type: "Request" | "Response";
   requestId: string;
-  traceId?: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId: string;
   path?: string;
   method?: IRequestTypeUpper;
   status?: string;
   body?: string;
+  contentType?: string;
 }
 
 export interface IStructuredEnvoyLog {
@@ -20,6 +23,8 @@ export interface IStructuredEnvoyLog {
 
 export interface IStructuredEnvoyLogTrace {
   traceId: string;
+  spanId: string;
+  parentSpanId: string;
   request: IEnvoyLog;
   response: IEnvoyLog;
 }

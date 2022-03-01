@@ -1,5 +1,9 @@
 import Logger from "../utils/Logger";
-import { IEnvoyLog, IStructuredEnvoyLog } from "../entities/IEnvoyLog";
+import {
+  IEnvoyLog,
+  IStructuredEnvoyLog,
+  IStructuredEnvoyLogTrace,
+} from "../entities/IEnvoyLog";
 
 export class EnvoyLogs {
   private readonly _envoyLogs: IEnvoyLog[];
@@ -12,56 +16,37 @@ export class EnvoyLogs {
 
   toStructured() {
     if (this._envoyLogs.length === 0) return [];
-    const logsMap = new Map<string, IEnvoyLog[]>();
-    let currentRequestId = this._envoyLogs[0].requestId;
-    let entropy = 0;
-    let currentLogStack = [];
-    for (let i = 0; i < this._envoyLogs.length; i++) {
-      const log = this._envoyLogs[i];
-      if (log.requestId !== "NO_ID" && currentRequestId !== log.requestId) {
-        if (entropy === 0) logsMap.set(currentRequestId, currentLogStack);
-        entropy = 0;
-        currentLogStack = [];
-        currentRequestId = log.requestId;
-      }
-      if (log.type === "Request") entropy++;
-      if (log.type === "Response") entropy--;
-      currentLogStack.push(log);
-    }
-    if (entropy === 0) logsMap.set(currentRequestId, currentLogStack);
+    const logMap = new Map<string, Map<string, IEnvoyLog>>();
+    this._envoyLogs.forEach((e) => {
+      const id = `${e.requestId}/${e.traceId}`;
+      if (!logMap.has(id)) logMap.set(id, new Map());
+      logMap.get(id)!.set(e.spanId, e);
+    });
 
     const structuredEnvoyLogs: IStructuredEnvoyLog[] = [];
-    for (const [requestId, logs] of logsMap.entries()) {
-      const traces: {
-        traceId: string;
-        request: IEnvoyLog;
-        response: IEnvoyLog;
-      }[] = [];
-
-      let traceStack = [];
-      for (const log of logs) {
-        if (log.type === "Request") traceStack.push(log);
-        if (log.type === "Response") {
-          const req = traceStack.pop();
-          if (!req) {
-            Logger.verbose("Mismatch request response in logs");
-            traceStack = [];
-            continue;
-          }
+    for (const [id, spanMap] of logMap.entries()) {
+      const [requestId, traceId] = id.split("/");
+      const traces: IStructuredEnvoyLogTrace[] = [];
+      for (const [spanId, log] of spanMap.entries()) {
+        if (
+          log.type === "Response" &&
+          spanMap.has(log.parentSpanId) &&
+          spanMap.get(log.parentSpanId)!.type === "Request"
+        ) {
           traces.push({
-            traceId: req.traceId!,
-            request: req,
+            traceId,
+            spanId,
+            parentSpanId: log.parentSpanId,
+            request: spanMap.get(log.parentSpanId)!,
             response: log,
           });
         }
       }
-
       structuredEnvoyLogs.push({
         requestId,
         traces,
       });
     }
-
     return structuredEnvoyLogs;
   }
 
@@ -70,14 +55,7 @@ export class EnvoyLogs {
   }
 
   static CombineStructuredEnvoyLogs(logs: IStructuredEnvoyLog[][]) {
-    const logMap = new Map<
-      string,
-      {
-        traceId: string;
-        request: IEnvoyLog;
-        response: IEnvoyLog;
-      }[]
-    >();
+    const logMap = new Map<string, IStructuredEnvoyLogTrace[]>();
 
     logs.forEach((serviceLog) =>
       serviceLog.forEach((log) => {
