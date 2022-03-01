@@ -146,31 +146,19 @@ export default class RiskAnalyzer {
   }
 
   static RelyingFactor(dependencies: IServiceDependency[]) {
-    return Object.entries(
-      dependencies.reduce((prev, { links }) => {
-        links.forEach((l) => {
-          const uniqueName = l.uniqueServiceName;
-          if (!prev[uniqueName]) {
-            prev[uniqueName] = {
-              factor: 0,
-            };
-          }
-          prev[uniqueName].factor += l.dependsOn / l.distance;
-        });
-        return prev;
-      }, {} as { [id: string]: { factor: number } })
-    ).map(([uniqueServiceName, { factor }]) => {
-      // if service is being called from external services, e.g., frontend webpages, add 1
-      const isGateway = dependencies
-        .find((s) => s.uniqueServiceName === uniqueServiceName)!
-        .dependency.find((d) => d.dependBy.length === 0);
-      if (isGateway) factor++;
-
-      return {
-        uniqueServiceName,
-        factor,
-      };
+    const factorMap = new Map<string, number>();
+    dependencies.forEach(({ uniqueServiceName, links, dependency }) => {
+      const factor = links.reduce(
+        (prev, curr) => prev + curr.dependsOn / curr.distance,
+        0
+      );
+      const isGateway = dependency.find((d) => d.dependBy.length === 0);
+      factorMap.set(uniqueServiceName, factor + (isGateway ? 1 : 0));
     });
+    return [...factorMap.entries()].map(([uniqueServiceName, factor]) => ({
+      uniqueServiceName,
+      factor,
+    }));
   }
 
   /**
@@ -187,23 +175,21 @@ export default class RiskAnalyzer {
      * ADS: Absolute Dependence of the Service
      *      Count of upper dependency (dependsOn/SERVER)
      */
-    return Object.entries(
-      dependencies.reduce((prev, { uniqueServiceName, links, dependency }) => {
-        const isGateway = dependency.find((d) => d.dependBy.length === 0);
-        const { ais, ads } = links
-          .filter((l) => l.distance === 1)
-          .reduce(
-            (prev, l) => {
-              if (l.dependBy > 0) prev.ais++;
-              if (l.dependsOn > 0) prev.ads++;
-              return prev;
-            },
-            { ais: isGateway ? 1 : 0, ads: 0 }
-          );
-        prev[uniqueServiceName] = { factor: ais * ads };
-        return prev;
-      }, {} as { [id: string]: { factor: number } })
-    ).map(([uniqueServiceName, { factor }]) => ({ uniqueServiceName, factor }));
+    return dependencies.map(({ uniqueServiceName, links, dependency }) => {
+      const isGateway = dependency.find((d) => d.dependBy.length === 0);
+      const { ais, ads } = links
+        .filter((l) => l.distance === 1)
+        .reduce(
+          (prev, l) => {
+            if (l.dependBy > 0) prev.ais++;
+            if (l.dependsOn > 0) prev.ads++;
+            return prev;
+          },
+          { ais: isGateway ? 1 : 0, ads: 0 }
+        );
+      const factor = ais * ads;
+      return { uniqueServiceName, factor };
+    });
   }
 
   static InvokeProbabilityAndErrorRate(
