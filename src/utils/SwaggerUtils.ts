@@ -2,6 +2,7 @@ import { OpenAPIV3_1 } from "openapi-types";
 import IEndpointDataType, {
   IEndpointRequestParam,
 } from "../entities/IEndpointDataType";
+import DataCache from "../services/DataCache";
 import Utils from "./Utils";
 
 export default class SwaggerUtils {
@@ -11,9 +12,10 @@ export default class SwaggerUtils {
     endpoints: IEndpointDataType[]
   ) {
     const endpointMapping = endpoints.reduce((prev, curr) => {
-      prev.set(curr.labelName, [...(prev.get(curr.labelName) || []), curr]);
+      prev.set(curr.labelName!, [...(prev.get(curr.labelName!) || []), curr]);
       return prev;
     }, new Map<string, IEndpointDataType[]>());
+
     const paths = [...endpointMapping.entries()].reduce(
       (acc, [label, endpoints]): OpenAPIV3_1.PathsObject => {
         const paths = endpoints.reduce(
@@ -23,11 +25,9 @@ export default class SwaggerUtils {
           }),
           {}
         );
-
-        const path = `/${label.split("/")[1]}`;
         return {
           ...acc,
-          [path]: paths,
+          [label]: paths,
         };
       },
       {}
@@ -87,12 +87,25 @@ export default class SwaggerUtils {
         };
       });
 
+    const endpoints = DataCache.getInstance().getEndpointsFromLabel(
+      endpoint.labelName!
+    );
+    const exampleUrls = endpoints
+      .slice(0, 10)
+      .map((e) => {
+        const token = e.split("\t");
+        return `  - ${token[token.length - 1]}`;
+      })
+      .join("\n");
+    const description = `**Recorded examples:**\n\n${exampleUrls}`;
+
     switch (endpoint.method) {
       case "POST":
         return {
           post: {
             responses: responses as any,
             requestBody,
+            description,
           },
         };
       case "PUT":
@@ -100,6 +113,7 @@ export default class SwaggerUtils {
           put: {
             responses: responses as any,
             requestBody,
+            description,
           },
         };
       case "DELETE":
@@ -107,6 +121,7 @@ export default class SwaggerUtils {
           delete: {
             responses: responses as any,
             requestBody,
+            description,
           },
         };
       default:
@@ -114,6 +129,7 @@ export default class SwaggerUtils {
           get: {
             responses: responses as any,
             parameters: parameters as any,
+            description,
           },
         };
     }
