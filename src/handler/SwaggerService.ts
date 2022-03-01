@@ -2,6 +2,7 @@ import IRequestHandler from "../entities/IRequestHandler";
 import SwaggerUtils from "../utils/SwaggerUtils";
 import MongoOperator from "../services/MongoOperator";
 import YAML from "yamljs";
+import DataCache from "../services/DataCache";
 
 export default class SwaggerService extends IRequestHandler {
   constructor() {
@@ -34,7 +35,13 @@ export default class SwaggerService extends IRequestHandler {
     return SwaggerUtils.FromEndpoints(
       `${service}.${namespace}`,
       version,
-      endpoints.map((e) => e.endpointDataType)
+      endpoints.map((e) => {
+        e.endpointDataType.labelName =
+          DataCache.getInstance().getLabelFromUniqueEndpointName(
+            e.endpointDataType.uniqueEndpointName
+          );
+        return e.endpointDataType;
+      })
     );
   }
 }

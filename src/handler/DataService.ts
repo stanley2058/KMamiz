@@ -1,6 +1,7 @@
 import IRequestHandler from "../entities/IRequestHandler";
 import MongoOperator from "../services/MongoOperator";
 import DataCache from "../services/DataCache";
+import IEndpointDataType from "../entities/IEndpointDataType";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -30,19 +31,21 @@ export default class DataService extends IRequestHandler {
     return await DataCache.getInstance().getRealtimeHistoryData(namespace);
   }
 
-  async getEndpointDataType(uniqueLabelName: string) {
-    const [service, namespace, version, method, label] =
-      uniqueLabelName.split("\t");
+  async getEndpointDataType(
+    uniqueLabelName: string
+  ): Promise<IEndpointDataType | null> {
+    const [, , , method, label] = uniqueLabelName.split("\t");
     if (!method || !label) return null;
-    const datatype =
-      await MongoOperator.getInstance().getEndpointDataTypeByLabel(
-        `${service}\t${namespace}\t${version}`,
-        method,
-        label
-      );
+
+    const names = [...DataCache.getInstance().labelMapping.entries()]
+      .filter(([, labelName]) => labelName === label)
+      .map(([uniqueName]) => uniqueName);
+    const datatype = await MongoOperator.getInstance().getEndpointDataTypes(
+      names
+    );
 
     if (datatype.length === 0) return null;
     const merged = datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr));
-    return merged.endpointDataType;
+    return { ...merged.endpointDataType, labelName: label };
   }
 }
