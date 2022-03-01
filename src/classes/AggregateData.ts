@@ -62,13 +62,14 @@ export class AggregateData {
   ) {
     const endpointMap = new Map<string, IAggregateEndpointInfo>();
     [...a, ...b].forEach((e) => {
-      if (!endpointMap.has(e.labelName)) endpointMap.set(e.labelName, e);
-      else {
-        const prev = endpointMap.get(e.labelName)!;
+      if (!endpointMap.has(e.uniqueEndpointName)) {
+        endpointMap.set(e.uniqueEndpointName, e);
+      } else {
+        const prev = endpointMap.get(e.uniqueEndpointName)!;
         prev.totalRequests += e.totalRequests;
         prev.totalRequestErrors += e.totalRequestErrors;
         prev.totalServerErrors += e.totalServerErrors;
-        endpointMap.set(e.labelName, prev);
+        endpointMap.set(e.uniqueEndpointName, prev);
       }
     });
     return [...endpointMap.values()];

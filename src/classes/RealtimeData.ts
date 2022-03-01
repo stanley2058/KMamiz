@@ -72,7 +72,6 @@ export class RealtimeData {
         !endpointInfoMap.get(r.uniqueServiceName)!.has(r.uniqueEndpointName)
       ) {
         endpointInfoMap.get(r.uniqueServiceName)!.set(r.uniqueEndpointName, {
-          labelName: r.labelName,
           method: r.method,
           requests: 0,
           requestErrors: 0,
@@ -143,7 +142,6 @@ export class RealtimeData {
           service: r.service,
           version: r.version,
           namespace: r.namespace,
-          labelName: r.labelName,
           schemas: [
             {
               time: new Date(r.timestamp / 1000),
@@ -164,7 +162,7 @@ export class RealtimeData {
       })
       .reduce((prev, curr) => {
         curr = curr.removeDuplicateSchemas();
-        const id = `${curr.endpointDataType.version}\t${curr.endpointDataType.labelName}`;
+        const id = curr.endpointDataType.uniqueEndpointName;
         if (!prev.has(id)) prev.set(id, curr);
         else {
           const existSchemas = prev.get(id)!.endpointDataType.schemas;
@@ -186,16 +184,17 @@ export class RealtimeData {
     );
   }
   private parseRequestResponseBody(data: IRealtimeData) {
-    let requestBody: string | undefined;
+    let requestBody: any | undefined;
     let requestSchema: string | undefined;
-    let responseBody: string | undefined;
+    let responseBody: any | undefined;
     let responseSchema: string | undefined;
     if (data.requestContentType === "application/json") {
       try {
         requestBody = JSON.parse(data.requestBody!);
         requestSchema = Utils.ObjectToInterfaceString(requestBody);
       } catch (e) {
-        Logger.verbose("Invalid JSON schema, skip parsing.");
+        Logger.verbose(`Not a JSON, skipping: [${data.requestBody}]`);
+        requestBody = requestSchema = undefined;
       }
     }
     if (data.responseContentType === "application/json") {
@@ -203,7 +202,8 @@ export class RealtimeData {
         responseBody = JSON.parse(data.responseBody!);
         responseSchema = Utils.ObjectToInterfaceString(responseBody);
       } catch (e) {
-        Logger.verbose("Invalid JSON schema, skip parsing.");
+        Logger.verbose(`Not a JSON, skipping: [${data.responseBody}]`);
+        responseBody = responseSchema = undefined;
       }
     }
     return {
@@ -345,17 +345,16 @@ export class RealtimeData {
     >();
     endpointInfo.forEach(
       ({
-        labelName,
         requests,
         requestErrors,
         serverErrors,
         latencyCV,
         method,
         uniqueServiceName,
+        uniqueEndpointName,
       }) => {
-        if (!endpointMap.has(labelName)) {
-          endpointMap.set(labelName, {
-            labelName,
+        if (!endpointMap.has(uniqueEndpointName)) {
+          endpointMap.set(uniqueEndpointName, {
             method,
             totalRequests: requests,
             totalRequestErrors: requestErrors,
@@ -363,10 +362,11 @@ export class RealtimeData {
             avgLatencyCV: 0,
             latencyCV: [latencyCV],
             uniqueServiceName,
+            uniqueEndpointName,
           });
         } else {
-          const prev = endpointMap.get(labelName)!;
-          endpointMap.set(labelName, {
+          const prev = endpointMap.get(uniqueEndpointName)!;
+          endpointMap.set(uniqueEndpointName, {
             ...prev,
             totalRequests: prev.totalRequests + requests,
             totalRequestErrors: prev.totalRequestErrors + requestErrors,

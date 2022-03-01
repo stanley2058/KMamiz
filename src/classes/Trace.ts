@@ -42,7 +42,6 @@ export class Trace {
           namespace,
           version,
           method,
-          labelName: `${host}${port}${path}`,
           latency: t.duration,
           status: t.tags["http.status_code"],
           uniqueServiceName,
@@ -55,7 +54,7 @@ export class Trace {
     return new RealtimeData(realtimeData);
   }
 
-  combineLogsToRealtimeData2(
+  combineLogsToRealtimeData(
     structuredLogs: IStructuredEnvoyLog[],
     replicas?: IReplicaCount[]
   ) {
@@ -69,10 +68,10 @@ export class Trace {
       });
     });
 
-    this.traces
+    const raw = this.traces
       .flat()
       .filter((t) => t.kind === "SERVER")
-      .map((trace): IRealtimeData | undefined => {
+      .map((trace): IRealtimeData => {
         const service = trace.tags["istio.canonical_service"];
         const namespace = trace.tags["istio.namespace"];
         const version = trace.tags["istio.canonical_revision"];
@@ -87,7 +86,6 @@ export class Trace {
           namespace,
           version,
           method,
-          labelName: trace.name, // fill in labelName temporarily
           latency: trace.duration,
           status,
           responseBody: log?.response.body,
@@ -101,205 +99,76 @@ export class Trace {
           )?.replicas,
         };
       });
-  }
-
-  combineLogsToRealtimeData(
-    structuredLogs: IStructuredEnvoyLog[],
-    replicas?: IReplicaCount[]
-  ) {
-    const traceIdToEnvoyLogsMap = structuredLogs
-      .map((log) => log.traces)
-      .flat()
-      .reduce(
-        (prev, curr) =>
-          prev.set(curr.traceId, [...(prev.get(curr.traceId) || []), curr]),
-        new Map<string, IStructuredEnvoyLogTrace[]>()
-      );
-
-    return new RealtimeData(
-      this.traces
-        .flat()
-        .filter((t) => t.kind === "SERVER")
-        .map((trace): IRealtimeData | undefined => {
-          const logs = traceIdToEnvoyLogsMap.get(trace.traceId);
-          const [host, port, path, service, namespace] = Utils.ExplodeUrl(
-            trace.name,
-            true
-          );
-          const labelName = `${host}${port}${path}`;
-          const requestUrl = trace.tags["http.url"].replace(
-            /(http|https):\/\//,
-            ""
-          );
-          const method = trace.tags["http.method"] as IRequestTypeUpper;
-          const status = trace.tags["http.status_code"];
-          if (!service) return;
-          const version = trace.tags["istio.canonical_revision"];
-          const uniqueServiceName = `${service}\t${namespace}\t${version}`;
-          const log = logs?.find(
-            (l) =>
-              l.request.path === requestUrl &&
-              l.request.method === method &&
-              l.response.status === status
-          );
-          return {
-            timestamp: trace.timestamp,
-            service,
-            namespace,
-            version,
-            method,
-            labelName,
-            latency: trace.duration,
-            status,
-            responseBody: log?.response.body,
-            requestBody: log?.request.body,
-            uniqueServiceName,
-            uniqueEndpointName: `${uniqueServiceName}\t${trace.tags["http.method"]}\t${trace.tags["http.url"]}`,
-            replica: replicas?.find(
-              (r) => r.uniqueServiceName === uniqueServiceName
-            )?.replicas,
-          };
-        })
-        .filter((data) => !!data) as IRealtimeData[]
-    );
+    return new RealtimeData(raw);
   }
 
   toEndpointDependencies() {
-    const { endpointInfoMap, endpointDependenciesMap } =
-      this.createEndpointInfoAndDependenciesMap();
+    const spanDependencyMap = new Map<
+      string,
+      { span: ITrace; upper: Map<string, number>; lower: Map<string, number> }
+    >();
+    this._traces.flat().forEach((span) => {
+      spanDependencyMap.set(span.id, {
+        span,
+        upper: new Map(),
+        lower: new Map(),
+      });
+    });
 
-    // create endpoint dependencies from endpoint mapping and dependencies mapping
-    const endpointDependencies: IEndpointDependency[] = [];
-    [...endpointInfoMap.entries()].map(([uniqueName, info]) => {
-      const dependencies: {
-        endpoint: IEndpointInfo;
-        distance: number;
-      }[] = [];
-      /**
-       * algorithm description:
-       * 1. pop an endpoint from the dependencyList, add it to the dependencies
-       * 2. add all of its children to the queue
-       * 3. if the dependencyList is empty, increase the distance by 1,
-       *    assign queue to dependentList, clear the queue and repeat step 1
-       */
-      let queue = [];
-      let dependentList = [...(endpointDependenciesMap.get(uniqueName) || [])];
+    for (const [spanId, { span, upper }] of [...spanDependencyMap.entries()]) {
+      let parentId = span.parentId;
       let depth = 1;
-      while (dependentList.length > 0) {
-        const depId = dependentList.pop()!;
-        const dependency = endpointInfoMap.get(depId);
-
-        const children = endpointDependenciesMap.get(depId);
-        if (children) queue.push(...children);
-
-        if (dependency) {
-          const exist = !!dependencies.find(
-            (e) =>
-              e.endpoint.labelName === dependency.labelName &&
-              e.endpoint.version === dependency.version &&
-              e.distance === depth
-          );
-          if (!exist) {
-            dependencies.push({
-              endpoint: dependency,
-              distance: depth,
-            });
-          }
-        }
-
-        if (dependentList.length === 0) {
-          dependentList = [...queue];
-          queue = [];
-          depth++;
-        }
+      while (parentId) {
+        const parentNode = spanDependencyMap.get(parentId);
+        if (!parentNode) break;
+        upper.set(parentId, depth);
+        parentNode.lower.set(spanId, depth);
+        parentId = parentNode.span.parentId;
+        depth++;
       }
-      // add endpoint info and dependencies to overall endpoint dependencies
-      endpointDependencies.push({
-        endpoint: info,
-        dependsOn: dependencies.map((d) => ({ ...d, type: "SERVER" })),
-        // fill dependBy later
-        dependBy: [],
-      });
-    });
+    }
 
-    // fill dependBy
-    endpointDependencies.forEach((e) => {
-      // for every dependency
-      e.dependsOn.forEach((d) => {
-        const uniqueName = `${d.endpoint.version}\t${d.endpoint.labelName}`;
-        // push self to the dependBy of the dependency
-        endpointDependencies
-          .find(
-            (ep) =>
-              `${ep.endpoint.version}\t${ep.endpoint.labelName}` === uniqueName
-          )!
-          .dependBy.push({
-            endpoint: e.endpoint,
-            distance: d.distance,
-            type: "CLIENT",
-          });
-      });
-    });
-    return new EndpointDependencies(endpointDependencies);
-  }
-
-  private createEndpointInfoAndDependenciesMap() {
-    // endpointInfoMap: uniqueName -> EndpointInfo
-    const endpointInfoMap = new Map<string, IEndpointInfo>();
-    // endpointDependenciesMap: uniqueName -> [dependent service uniqueName]
-    const endpointDependenciesMap = new Map<string, Set<string>>();
-    this._traces.forEach((trace) => {
-      const endpointMap: {
-        [id: string]: {
-          info: IEndpointInfo;
-          trace: ITrace;
-          parent: string;
-          child: Set<string>;
-        };
-      } = {};
-      try {
-        // create endpoint mapping id -> endpoint
-        trace.forEach((span) => {
-          const info = Trace.ToEndpointInfo(span);
-          endpointMap[span.id] = {
-            info,
-            trace: span,
-            parent: span.parentId || "",
-            child: new Set<string>(),
-          };
-          const uniqueName = `${info.version}\t${info.labelName}`;
-          if (!endpointDependenciesMap.has(uniqueName))
-            endpointDependenciesMap.set(uniqueName, new Set<string>());
+    const dependencies = [...spanDependencyMap.values()].map(
+      ({ span, upper, lower }): IEndpointDependency => {
+        const upperMap = new Map<string, IEndpointInfo>();
+        [...upper.entries()].map(([s, distance]) => {
+          const endpoint = Trace.ToEndpointInfo(spanDependencyMap.get(s)!.span);
+          upperMap.set(`${endpoint.uniqueEndpointName}\t${distance}`, endpoint);
+        });
+        const lowerMap = new Map<string, IEndpointInfo>();
+        [...lower.entries()].map(([s, distance]) => {
+          const endpoint = Trace.ToEndpointInfo(spanDependencyMap.get(s)!.span);
+          lowerMap.set(`${endpoint.uniqueEndpointName}\t${distance}`, endpoint);
         });
 
-        // use only SERVER node, child then register itself to parent
-        Object.entries(endpointMap)
-          .filter(([, { trace }]) => trace.kind === "SERVER")
-          .forEach(([, { info, parent }]) => {
-            const uniqueName = `${info.version}\t${info.labelName}`;
-            endpointInfoMap.set(uniqueName, info);
+        const dependBy = [...upperMap.entries()].map(([id, endpoint]) => {
+          const token = id.split("\t");
+          const distance = parseInt(token[token.length - 1]);
+          return {
+            endpoint,
+            distance,
+            type: "CLIENT" as "CLIENT",
+          };
+        });
 
-            if (!endpointMap[parent]) {
-              Logger.verbose(
-                `Parent ID [${parent}] not found, is the sidecar set up incorrect?`
-              );
-              Logger.verbose("Endpoint map:\n", endpointMap);
-              throw new Error(`parent id not found: ${parent}`);
-            }
+        const dependsOn = [...lowerMap.entries()].map(([id, endpoint]) => {
+          const token = id.split("\t");
+          const distance = parseInt(token[token.length - 1]);
+          return {
+            endpoint,
+            distance,
+            type: "SERVER" as "SERVER",
+          };
+        });
 
-            const parentServerId = endpointMap[parent].parent;
-            if (parentServerId) {
-              const parentUniqueName = `${endpointMap[parentServerId].info.version}\t${endpointMap[parentServerId].info.labelName}`;
-              endpointDependenciesMap.get(parentUniqueName)!.add(uniqueName);
-            }
-          });
-      } catch (err) {
-        // already handled, more logging
-        Logger.verbose("Verbose causes:");
-        Logger.plain.verbose("", err);
+        return {
+          endpoint: Trace.ToEndpointInfo(span),
+          dependBy,
+          dependsOn,
+        };
       }
-    });
-    return { endpointInfoMap, endpointDependenciesMap };
+    );
+    return new EndpointDependencies(dependencies);
   }
 
   static ToEndpointInfo(trace: ITrace): IEndpointInfo {
@@ -317,7 +186,6 @@ export class Trace {
     const version = trace.tags["istio.canonical_revision"] || "NONE";
     const uniqueServiceName = `${serviceName}\t${namespace}\t${version}`;
     return {
-      labelName: trace.name,
       version,
       service: serviceName,
       namespace,

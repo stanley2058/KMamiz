@@ -1,7 +1,5 @@
-import { cursorTo } from "readline";
 import IEndpointDataType, {
   IEndpointDataSchema,
-  IEndpointRequestParam,
 } from "../entities/IEndpointDataType";
 import Utils from "../utils/Utils";
 
@@ -26,73 +24,102 @@ export default class EndpointDataType {
     });
   }
 
+  hasMatchedSchema(endpointData: EndpointDataType) {
+    const thisSchemas = new Map<string, IEndpointDataSchema>();
+    this._endpointDataType.schemas.forEach((s) => thisSchemas.set(s.status, s));
+    const cmpSchemas = new Map<string, IEndpointDataSchema>();
+    endpointData._endpointDataType.schemas.forEach((s) =>
+      cmpSchemas.set(s.status, s)
+    );
+
+    const commonKeys = [...thisSchemas.keys()].filter((k) => cmpSchemas.has(k));
+    let result = false;
+    for (const k of commonKeys) {
+      const tSchema = thisSchemas.get(k)!;
+      const cSchema = cmpSchemas.get(k)!;
+      if (!this.isMatched(tSchema, cSchema)) {
+        return false;
+      }
+      if (tSchema.requestContentType || tSchema.responseContentType) {
+        result = true;
+      }
+    }
+    return result;
+  }
+  private isMatched(
+    schemaA: IEndpointDataSchema,
+    schemaB: IEndpointDataSchema
+  ) {
+    return (
+      schemaA.requestContentType === schemaB.requestContentType &&
+      schemaA.requestSchema === schemaB.requestSchema &&
+      schemaA.responseContentType === schemaB.responseContentType &&
+      schemaA.responseSchema === schemaB.responseSchema
+    );
+  }
+
   mergeSchemaWith(endpointData: EndpointDataType) {
-    const existingSchemas = this._endpointDataType.schemas;
-    const newSchemas = endpointData._endpointDataType.schemas;
+    const mapToMap = (schemas: IEndpointDataSchema[]) =>
+      schemas
+        .sort((a, b) => b.time.getTime() - a.time.getTime())
+        .reduce((prev, curr) => {
+          if (prev.has(curr.status)) return prev;
+          return prev.set(curr.status, curr);
+        }, new Map<string, IEndpointDataSchema>());
+    const existingMap = mapToMap(this._endpointDataType.schemas);
+    const newMap = mapToMap(endpointData._endpointDataType.schemas);
 
-    const status = [
-      ...existingSchemas.reduce(
-        (prev, curr) => prev.add(curr.status),
-        new Set<string>()
-      ),
-      ...newSchemas.reduce(
-        (prev, curr) => prev.add(curr.status),
-        new Set<string>()
-      ),
-    ];
-
-    const combinedList = [...existingSchemas, ...newSchemas];
-    const mergedSamples = status.map((s): IEndpointDataSchema => {
-      const matched = combinedList.filter((sc) => sc.status === s);
-      const first = matched[0];
-      const last = matched[matched.length - 1];
-      const responseSample = matched.reduce((prev, curr) => {
-        if (Array.isArray(prev)) {
-          return this.mergeArray(prev, curr.responseSample);
-        }
-        return this.mergeObject(prev, curr.responseSample);
-      }, first.responseSample);
-      const mergedRequests = matched.reduce((prev, curr) => {
-        if (Array.isArray(prev)) {
-          return this.mergeArray(prev, curr.requestSample);
-        }
-        return this.mergeObject(prev, curr.requestSample);
-      }, first.requestSample);
-      const requestSample =
-        Object.keys(mergedRequests).length > 0 ? mergedRequests : undefined;
-      const { time } = matched.reduce((prev, curr) =>
-        prev.time > curr.time ? prev : curr
+    const combinedMap = new Map<string, IEndpointDataSchema>();
+    [...existingMap.entries()].forEach(([status, eSchema]) => {
+      const nSchema = newMap.get(status);
+      if (!nSchema) return;
+      const requestParams = (eSchema.requestParams || []).concat(
+        nSchema.requestParams || []
       );
 
-      return {
-        time,
-        status: s,
-        responseSample,
+      const requestSample = this.merge(
+        eSchema.requestSample,
+        nSchema.requestSample
+      );
+      const responseSample = this.merge(
+        eSchema.responseSample,
+        nSchema.responseSample
+      );
+
+      combinedMap.set(status, {
+        status,
+        time: new Date(),
+        requestParams: Utils.UniqueParams(requestParams),
+        requestSample,
         responseSchema: responseSample
           ? Utils.ObjectToInterfaceString(responseSample)
           : undefined,
-        responseContentType: last.responseContentType,
-        requestSample,
+        responseSample,
         requestSchema: requestSample
           ? Utils.ObjectToInterfaceString(requestSample)
           : undefined,
-        requestContentType: last.requestContentType,
-        requestParams: Utils.UniqueParams(
-          [...(matched.map((m) => m.requestParams)?.flat() || [])].filter(
-            (m) => !!m
-          ) as IEndpointRequestParam[]
-        ),
-      };
+        requestContentType:
+          eSchema.requestContentType || nSchema.requestContentType,
+        responseContentType:
+          eSchema.responseContentType || nSchema.responseContentType,
+      });
     });
-
     return new EndpointDataType({
       ...this._endpointDataType,
-      schemas: mergedSamples,
+      schemas: this._endpointDataType.schemas.concat([...combinedMap.values()]),
     });
   }
+
+  private merge(a: any, b: any) {
+    if (Array.isArray(a) && Array.isArray(b)) return this.mergeArray(a, b);
+    if (!Array.isArray(a) && !Array.isArray(b)) return this.mergeObject(a, b);
+    return a || b;
+  }
+
   private mergeObject(a: any, b: any) {
     return { ...a, ...b };
   }
+
   private mergeArray(a: any[], b: any[]) {
     return [...a, ...b];
   }
