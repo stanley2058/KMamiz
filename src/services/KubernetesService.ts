@@ -83,26 +83,23 @@ export default class KubernetesService {
 
   async getReplicasFromPodList(namespace: string) {
     const pods = await this.getPodList(namespace);
-    return Object.entries(
-      pods.items
-        .map(
-          (p) =>
-            `${p.metadata.labels.app}\t${p.metadata.namespace}\t${p.metadata.labels.version}`
-        )
-        .reduce((acc, cur) => {
-          acc[cur] = (acc[cur] || 0) + 1;
-          return acc;
-        }, {} as { [id: string]: number })
-    ).map(([uniqueServiceName, replicas]): IReplicaCount => {
-      const [service, namespace, version] = uniqueServiceName.split("\t");
-      return {
-        service,
-        namespace,
-        version,
-        replicas,
-        uniqueServiceName,
-      };
-    });
+    const replicaMap = pods.items
+      .map((p) => {
+        const service = p.metadata.labels["service.istio.io/canonical-name"];
+        const namespace = p.metadata.namespace;
+        const version =
+          p.metadata.labels["service.istio.io/canonical-revision"];
+        const uniqueServiceName = `${service}\t${namespace}\t${version}`;
+        return { service, namespace, version, uniqueServiceName };
+      })
+      .reduce((prev, curr) => {
+        const existing = prev.get(curr.uniqueServiceName);
+        return prev.set(curr.uniqueServiceName, {
+          ...curr,
+          replicas: (existing?.replicas || 0) + 1,
+        });
+      }, new Map<string, IReplicaCount>());
+    return [...replicaMap.values()];
   }
 
   async getReplicas(namespaces?: Set<string>) {
