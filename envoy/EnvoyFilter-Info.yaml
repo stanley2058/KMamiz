@@ -1,0 +1,125 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: log-body
+  annotations:
+    sidecar.istio.io/componentLogLevel: "lua:info"
+    sidecar.istio.io/logLevel: info
+spec:
+  configPatches:
+    # The first patch adds the lua filter to the listener/http connection manager
+    - applyTo: HTTP_FILTER
+      match:
+        # context omitted so that this applies to both sidecars and gateways
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+      patch:
+        operation: INSERT_BEFORE
+        value: # lua filter specification
+          name: envoy.lua
+          typed_config:
+            "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua"
+            inlineCode: |
+              function envoy_on_request(request_handle)
+                  local contentType = request_handle:headers():get("content-type")
+                  local host = request_handle:headers():get("host")
+                  local path = request_handle:headers():get(":path")
+                  local method = request_handle:headers():get(":method")
+                  local requestId = request_handle:headers():get("x-request-id")
+                  local traceId = request_handle:headers():get("x-b3-traceid")
+                  local spanId = request_handle:headers():get("x-b3-spanid")
+                  local parentSpanId = request_handle:headers():get("x-b3-parentspanid")
+                  
+                  if(traceId == nil or traceId == "") then
+                      traceId = "NO_ID"
+                  end
+                  if(spanId == nil or spanId == "") then
+                      spanId = "NO_ID"
+                  end
+                  if(parentSpanId == nil or parentSpanId == "") then
+                      parentSpanId = "NO_ID"
+                  end
+
+                  local direction = "Request"
+                  local output = string.format(
+                      "[%s %s/%s/%s/%s] [%s %s%s]",
+                      direction,
+                      requestId,
+                      traceId,
+                      spanId,
+                      parentSpanId,
+                      method,
+                      host,
+                      path
+                  )
+
+                  if(contentType ~= nil and contentType ~= "") then
+                    output = output.." [ContentType "..contentType.."]"
+                  end
+
+                  if(contentType == "application/json") then
+                      local body = request_handle:body(true)
+                      if(body:length() > 0) then
+                        output = output.." [Body] "..body:getBytes(0, body:length())
+                      end
+                  end
+                  request_handle:logInfo(output)
+              end
+
+              function envoy_on_response(response_handle)
+                  local status = response_handle:headers():get(":status")
+                  local contentType = response_handle:headers():get("content-type")
+                  local requestId = response_handle:headers():get("x-request-id")
+                  local traceId = response_handle:headers():get("x-b3-traceid")
+                  local spanId = response_handle:headers():get("x-b3-spanid")
+                  local parentSpanId = response_handle:headers():get("x-b3-parentspanid")
+                  
+                  if(requestId == nil or requestId == "") then
+                      requestId = "NO_ID"
+                  end
+                  if(traceId == nil or traceId == "") then
+                      traceId = "NO_ID"
+                  end
+                  if(spanId == nil or spanId == "") then
+                      spanId = "NO_ID"
+                  end
+                  if(parentSpanId == nil or parentSpanId == "") then
+                      parentSpanId = "NO_ID"
+                  end
+                  
+                  local direction = "Response"
+                  local output = string.format(
+                      "[%s %s/%s/%s/%s] [Status] %s [ContentType %s]",
+                      direction,
+                      requestId,
+                      traceId,
+                      spanId,
+                      parentSpanId,
+                      status,
+                      contentType
+                  )
+                  if(contentType == "application/json") then
+                      local body = response_handle:body(true)
+                      if(body:length() > 0) then
+                        output = output.." [Body] "..body:getBytes(0, body:length())
+                      end
+                  end
+                  response_handle:logInfo(output)
+              end
+
+    - applyTo: NETWORK_FILTER
+      match:
+        # context omitted so that this applies to both sidecars and gateways
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+      patch:
+        operation: MERGE
+        value: # lua filter specification
+          name: envoy.filters.network.http_connection_manager
+          typed_config:
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager"
+            always_set_request_id_in_response: true
