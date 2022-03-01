@@ -3,10 +3,13 @@ import log from "npmlog";
 const LogLevelList = ["verbose", "info", "warn", "error"] as const;
 export type LogLevels = typeof LogLevelList[number];
 
-const prefixed = (prefix: string) => {
+const prefixed = (prefix: string | (() => string)) => {
   return LogLevelList.reduce(
     (acc, l) => {
-      acc[l] = (message, ...args) => log[l](prefix, message, ...args);
+      acc[l] = (message, ...args) => {
+        const prefixStr = typeof prefix === "function" ? prefix() : prefix;
+        log[l](prefixStr, message, ...args);
+      };
       return acc;
     },
     {} as {
@@ -19,7 +22,7 @@ const Logger = {
   /**
    *  Defaults loggers, prefixed with timestamp
    */
-  ...prefixed(`[${new Date().toISOString()}]`),
+  ...prefixed(() => `[${new Date().toISOString()}]`),
   /**
    * Logger.plain logs plain messages without any prefixes
    */
