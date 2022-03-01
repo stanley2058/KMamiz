@@ -110,6 +110,10 @@ export default class DataCache {
     return this._currentReplicasView;
   }
 
+  get endpointDataTypeSnap() {
+    return this._currentEndpointDataType;
+  }
+
   get labelMapping() {
     return this._currentLabelMapping;
   }

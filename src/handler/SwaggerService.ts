@@ -27,10 +27,9 @@ export default class SwaggerService extends IRequestHandler {
 
   async getSwagger(uniqueServiceName: string) {
     const [service, namespace, version] = uniqueServiceName.split("\t");
-    const endpoints =
-      await MongoOperator.getInstance().getEndpointDataTypeByService(
-        uniqueServiceName
-      );
+    const endpoints = DataCache.getInstance().endpointDataTypeSnap.filter(
+      (e) => e.endpointDataType.uniqueServiceName === uniqueServiceName
+    );
 
     return SwaggerUtils.FromEndpoints(
       `${service}.${namespace}`,
