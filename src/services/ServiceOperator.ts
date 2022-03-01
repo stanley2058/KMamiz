@@ -9,6 +9,7 @@ import MongoOperator from "./MongoOperator";
 import DataCache from "./DataCache";
 import Scheduler from "./Scheduler";
 import ZipkinService from "./ZipkinService";
+import EndpointDataType from "../classes/EndpointDataType";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -53,11 +54,12 @@ export default class ServiceOperator {
 
     // query traces from last job time to now
     const lookBack = job.nextDate().toDate().getTime() - Date.now();
-    const traces = new Trace(
+    let rawTrace = (
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         lookBack
       )
-    );
+    ).slice(0, 25000);
+    const traces = new Trace(rawTrace);
 
     // get namespaces from traces for querying envoy logs
     const namespaces = traces.toRealTimeData().getContainingNamespaces();
@@ -83,39 +85,27 @@ export default class ServiceOperator {
     await MongoOperator.getInstance().saveRealtimeData(data);
 
     // dispatch data aggregation asynchronously
-    ServiceOperator.getInstance().doBackgroundDataAggregation(
-      traces,
-      data,
-      replicas
-    );
+    ServiceOperator.getInstance().doBackgroundDataAggregation(traces, data);
   }
 
-  private async doBackgroundDataAggregation(
-    traces: Trace,
-    data: RealtimeData,
-    replicas: IReplicaCount[]
-  ) {
+  private async doBackgroundDataAggregation(traces: Trace, data: RealtimeData) {
     // merge endpoint dependency and save to database
     const endpointDependencies = (
       await MongoOperator.getInstance().getEndpointDependencies()
     ).combineWith(traces.toEndpointDependencies());
-    await MongoOperator.getInstance().saveEndpointDependencies(
-      endpointDependencies
-    );
+    MongoOperator.getInstance().saveEndpointDependencies(endpointDependencies);
 
     // merge endpoint datatype and save to database
+    const dataTypes: EndpointDataType[] = [];
     for (let e of data.extractEndpointDataType()) {
       const existing = await MongoOperator.getInstance().getEndpointDataType(
         e.endpointDataType.uniqueEndpointName
       );
       if (existing) e = existing.mergeSchemaWith(e);
-      await MongoOperator.getInstance().saveEndpointDataType(e);
+      dataTypes.push(e);
     }
+    MongoOperator.getInstance().saveEndpointDataTypes(dataTypes);
 
-    DataCache.getInstance().updateCurrentView(
-      await MongoOperator.getInstance().getAllRealtimeData(),
-      endpointDependencies,
-      replicas
-    );
+    DataCache.getInstance().updateCurrentView(data, endpointDependencies);
   }
 }
