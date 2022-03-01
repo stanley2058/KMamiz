@@ -27,8 +27,8 @@ app.use(Routes.getInstance().getRoutes());
     await Initializer.getInstance().firstTimeSetup();
   }
 
-  Logger.info("Setting up scheduled tasks");
-  Initializer.getInstance().serverStartUp();
+  Logger.info("Running startup tasks.");
+  await Initializer.getInstance().serverStartUp();
 
   Logger.info("Initialization done, starting server");
   app.listen(GlobalSettings.Port, () => {
