@@ -16,10 +16,12 @@ export default interface IEndpointDataType {
 export interface IEndpointDataSchema {
   time: Date;
   status: string;
-  responseSample: any;
-  responseSchema: string;
+  responseSample?: any;
+  responseSchema?: string;
+  responseContentType?: string;
   requestSample?: any;
   requestSchema?: string;
+  requestContentType?: string;
   requestParams?: IEndpointRequestParam[];
 }
 

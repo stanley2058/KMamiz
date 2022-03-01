@@ -13,8 +13,8 @@ export const EndpointDataTypeSchema = new Schema<IEndpointDataType>({
     {
       time: { type: Date, required: true },
       status: { type: String, required: true },
-      responseSample: { type: Schema.Types.Mixed, required: true },
-      responseSchema: { type: String, required: true },
+      responseSample: { type: Schema.Types.Mixed },
+      responseSchema: { type: String },
       requestSample: { type: Schema.Types.Mixed },
       requestSchema: { type: String },
       requestParams: [

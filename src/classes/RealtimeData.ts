@@ -134,18 +134,11 @@ export class RealtimeData {
 
   extractEndpointDataType() {
     const endpointDataTypeMap = this._realtimeData
-      .filter((r) => !!r.responseBody)
+      .filter((r) => !!r.responseBody || !!r.requestBody)
       .map((r) => {
         const [, , , , url] = r.uniqueEndpointName.split("\t");
-        let parsed: any;
-        let parsedInterface: any;
-        try {
-          parsed = JSON.parse(r.responseBody!);
-          parsedInterface = Utils.ObjectToInterfaceString(parsed);
-        } catch (e) {
-          Logger.verbose("Invalid JSON schema, skip parsing.");
-        }
-
+        const { requestBody, requestSchema, responseBody, responseSchema } =
+          this.parseRequestResponseBody(r);
         return new EndpointDataType({
           service: r.service,
           version: r.version,
@@ -154,8 +147,12 @@ export class RealtimeData {
           schemas: [
             {
               time: new Date(r.timestamp / 1000),
-              responseSample: parsed || undefined,
-              responseSchema: parsedInterface || undefined,
+              responseSample: responseBody,
+              responseSchema,
+              responseContentType: r.responseContentType,
+              requestSample: requestBody,
+              requestSchema,
+              requestContentType: r.requestContentType,
               status: r.status,
               requestParams: Utils.GetParamsFromUrl(url),
             },
@@ -187,6 +184,34 @@ export class RealtimeData {
     return [...endpointDataTypeMap.entries()].map(
       ([, endpointDataType]) => endpointDataType
     );
+  }
+  private parseRequestResponseBody(data: IRealtimeData) {
+    let requestBody: string | undefined;
+    let requestSchema: string | undefined;
+    let responseBody: string | undefined;
+    let responseSchema: string | undefined;
+    if (data.requestContentType === "application/json") {
+      try {
+        requestBody = JSON.parse(data.requestBody!);
+        requestSchema = Utils.ObjectToInterfaceString(requestBody);
+      } catch (e) {
+        Logger.verbose("Invalid JSON schema, skip parsing.");
+      }
+    }
+    if (data.responseContentType === "application/json") {
+      try {
+        responseBody = JSON.parse(data.responseBody!);
+        responseSchema = Utils.ObjectToInterfaceString(responseBody);
+      } catch (e) {
+        Logger.verbose("Invalid JSON schema, skip parsing.");
+      }
+    }
+    return {
+      requestBody,
+      requestSchema,
+      responseBody,
+      responseSchema,
+    };
   }
 
   getAvgReplicaCount() {

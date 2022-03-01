@@ -1,3 +1,4 @@
+import { cursorTo } from "readline";
 import IEndpointDataType, {
   IEndpointDataSchema,
   IEndpointRequestParam,
@@ -14,15 +15,14 @@ export default class EndpointDataType {
   }
 
   removeDuplicateSchemas() {
-    const schemaSet = new Set<string>(
-      this._endpointDataType.schemas.map((s) => s.responseSchema)
-    );
+    const schemaMap = new Map<string, IEndpointDataSchema>();
+    this._endpointDataType.schemas.forEach((s) => {
+      const id = `${s.responseSchema || ""}\t${s.requestSchema || ""}`;
+      schemaMap.set(id, s);
+    });
     return new EndpointDataType({
       ...this._endpointDataType,
-      schemas: [...schemaSet].map(
-        (s) =>
-          this._endpointDataType.schemas.find((sc) => sc.responseSchema === s)!
-      ),
+      schemas: [...schemaMap.values()],
     });
   }
 
@@ -45,6 +45,7 @@ export default class EndpointDataType {
     const mergedSamples = status.map((s): IEndpointDataSchema => {
       const matched = combinedList.filter((sc) => sc.status === s);
       const first = matched[0];
+      const last = matched[matched.length - 1];
       const responseSample = matched.reduce((prev, curr) => {
         if (Array.isArray(prev)) {
           return this.mergeArray(prev, curr.responseSample);
@@ -67,11 +68,15 @@ export default class EndpointDataType {
         time,
         status: s,
         responseSample,
-        responseSchema: Utils.ObjectToInterfaceString(responseSample),
+        responseSchema: responseSample
+          ? Utils.ObjectToInterfaceString(responseSample)
+          : undefined,
+        responseContentType: last.responseContentType,
         requestSample,
         requestSchema: requestSample
           ? Utils.ObjectToInterfaceString(requestSample)
           : undefined,
+        requestContentType: last.requestContentType,
         requestParams: Utils.UniqueParams(
           [...(matched.map((m) => m.requestParams)?.flat() || [])].filter(
             (m) => !!m
