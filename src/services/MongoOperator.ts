@@ -97,23 +97,16 @@ export default class MongoOperator {
     if (!res) return null;
     return new EndpointDataType(res.toObject());
   }
-
-  async getEndpointDataTypeByService(uniqueServiceName: string) {
+  async getEndpointDataTypes(uniqueEndpointNames: string[]) {
     const res = await EndpointDataTypeModel.find({
-      uniqueServiceName,
+      uniqueEndpointName: { $in: uniqueEndpointNames },
     }).exec();
     return res.map((r) => new EndpointDataType(r.toObject()));
   }
 
-  async getEndpointDataTypeByLabel(
-    uniqueServiceName: string,
-    method: string,
-    label: string
-  ) {
+  async getEndpointDataTypeByService(uniqueServiceName: string) {
     const res = await EndpointDataTypeModel.find({
       uniqueServiceName,
-      method,
-      labelName: label,
     }).exec();
     return res.map((r) => new EndpointDataType(r.toObject()));
   }
@@ -151,6 +144,15 @@ export default class MongoOperator {
       endpointDataType.endpointDataType,
       EndpointDataTypeModel
     );
+  }
+
+  async saveEndpointDataTypes(endpointDataType: EndpointDataType[]) {
+    const models = endpointDataType.map(({ endpointDataType }) => {
+      const model = new EndpointDataTypeModel(endpointDataType);
+      if (endpointDataType._id) model.isNew = false;
+      return model;
+    });
+    await EndpointDataTypeModel.bulkSave(models);
   }
 
   async deleteAllRealtimeData() {
