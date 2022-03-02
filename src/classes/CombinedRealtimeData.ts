@@ -331,7 +331,7 @@ export default class CombinedRealtimeData {
           version: sample.version,
           method: sample.method,
           status: sample.status,
-          combined: group.length,
+          combined: group.reduce((prev, curr) => prev + curr.combined, 0),
           requestContentType: sample.requestContentType,
           responseContentType: sample.responseContentType,
         };
