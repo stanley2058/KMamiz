@@ -339,12 +339,17 @@ export class EndpointDependencies {
 
   toChordData() {
     const dependencies = this._dependencies;
+    const dependencyMap = new Map<string, IEndpointDependency>();
+    dependencies.forEach((d) => {
+      dependencyMap.set(d.endpoint.labelName!, d);
+    });
+
     const serviceMap = new Map<string, Map<string, number>>();
-    dependencies.forEach((ep) => {
-      const service = ep.endpoint.labelName!;
+    [...dependencyMap.values()].forEach((ep) => {
+      const service = ep.endpoint.uniqueServiceName!;
       if (!serviceMap.has(service)) serviceMap.set(service, new Map());
       ep.dependsOn.forEach((s) => {
-        const dependName = s.endpoint.labelName!;
+        const dependName = s.endpoint.uniqueServiceName!;
         serviceMap
           .get(service)!
           .set(dependName, (serviceMap.get(service)!.get(dependName) || 0) + 1);
