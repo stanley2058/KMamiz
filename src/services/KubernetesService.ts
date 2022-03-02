@@ -53,10 +53,12 @@ export default class KubernetesService {
       path,
       config
     );
-    if (response) return response.data;
-    return Logger.fatal(
-      "Cannot retrieve necessary data from Kubernetes API server."
-    );
+    if (!response) {
+      Logger.fatal(
+        "Cannot retrieve necessary data from Kubernetes API server."
+      );
+    }
+    return response!.data;
   }
 
   async getPodList(namespace: string) {

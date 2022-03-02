@@ -7,6 +7,8 @@ import Logger from "./src/utils/Logger";
 import MongoOperator from "./src/services/MongoOperator";
 import Initializer from "./src/services/Initializer";
 import DataCache from "./src/services/DataCache";
+import exitHook from "async-exit-hook";
+import DispatchStorage from "./src/services/DispatchStorage";
 
 Logger.setGlobalLogLevel(GlobalSettings.LogLevel);
 Logger.verbose("Configuration loaded:");
@@ -19,8 +21,6 @@ app.use(cors());
 app.use(compression());
 
 app.use(Routes.getInstance().getRoutes());
-
-process.on("SIGTERM", () => {});
 
 (async () => {
   const aggregateData = await MongoOperator.getInstance().getAggregateData();
@@ -40,5 +40,12 @@ process.on("SIGTERM", () => {});
   Logger.info("Initialization done, starting server");
   app.listen(GlobalSettings.Port, () => {
     Logger.info(`Express server started on port: ${GlobalSettings.Port}`);
+    exitHook(async (callback) => {
+      Logger.info("Received termination signal, execute teardown procedures.");
+      Logger.info("Syncing to database.");
+      await DispatchStorage.getInstance().sync();
+      Logger.info("Done, stopping the server.");
+      callback();
+    });
   });
 })();

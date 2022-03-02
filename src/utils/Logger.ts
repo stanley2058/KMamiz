@@ -1,4 +1,5 @@
 import log from "npmlog";
+import exitHook from "async-exit-hook";
 
 const LogLevelList = ["verbose", "info", "warn", "error"] as const;
 export type LogLevels = typeof LogLevelList[number];
@@ -47,7 +48,7 @@ const Logger = {
     Logger.prefixed("FATAL").error(
       "Encountered unrecoverable fatal error, exiting."
     );
-    process.exit(1);
+    process.emit("SIGTERM", "SIGTERM");
   },
 };
 
