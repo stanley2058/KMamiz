@@ -1,6 +1,5 @@
 import IRequestHandler from "../entities/IRequestHandler";
 import SwaggerUtils from "../utils/SwaggerUtils";
-import MongoOperator from "../services/MongoOperator";
 import YAML from "yamljs";
 import DataCache from "../services/DataCache";
 
