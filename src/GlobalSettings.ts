@@ -12,6 +12,7 @@ type Settings = {
   MongoDBUri: string;
   AggregateInterval: string; // cron expression
   RealtimeInterval: string; // cron expression
+  DispatchInterval: string; // cron expression
   EnvoyLogLevel: "info" | "warning" | "error";
 };
 
@@ -25,6 +26,7 @@ const {
   MONGODB_URI,
   AGGREGATE_INTERVAL,
   REALTIME_INTERVAL,
+  DISPATCH_INTERVAL,
   ENVOY_LOG_LEVEL,
   IS_RUNNING_IN_K8S,
   KUBERNETES_SERVICE_HOST,
@@ -45,6 +47,8 @@ const GlobalSettings: Settings = {
   AggregateInterval: AGGREGATE_INTERVAL || "0 0 * * *",
   // default: every 5 seconds
   RealtimeInterval: REALTIME_INTERVAL || "0/5 * * * *",
+  // default: every 30 seconds
+  DispatchInterval: DISPATCH_INTERVAL || "0/30 * * * *",
   EnvoyLogLevel:
     (ENVOY_LOG_LEVEL as "info" | "warning" | "error" | undefined) || "info",
 };
