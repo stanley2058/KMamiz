@@ -132,56 +132,62 @@ export class RealtimeData {
   }
 
   extractEndpointDataType() {
-    const endpointDataTypeMap = this._realtimeData
-      .filter((r) => !!r.responseBody || !!r.requestBody)
-      .map((r) => {
-        const [, , , , url] = r.uniqueEndpointName.split("\t");
+    const rlDataMapping = new Map<string, IRealtimeData[]>();
+    const filtered = this._realtimeData.filter(
+      (r) => !!r.responseBody || !!r.requestBody
+    );
+    filtered.forEach((r) => {
+      rlDataMapping.set(
+        r.uniqueEndpointName,
+        (rlDataMapping.get(r.uniqueEndpointName) || []).concat([r])
+      );
+    });
+
+    return [...rlDataMapping.entries()].map(([uniqueEndpointName, rList]) => {
+      rList.sort((a, b) => b.timestamp - a.timestamp);
+      const tokens = uniqueEndpointName.split("\t");
+      const requestParams = Utils.GetParamsFromUrl(tokens[tokens.length - 1]);
+
+      const rlDataMap = new Map<string, IRealtimeData>();
+      rList.forEach((r) => {
+        if (rlDataMap.has(r.status)) {
+          const existing = rlDataMap.get(r.status)!;
+          r = {
+            ...existing,
+            requestBody: this.mergeBody(existing.requestBody, r.requestBody),
+            responseBody: this.mergeBody(existing.responseBody, r.responseBody),
+          };
+        }
+        rlDataMap.set(r.status, r);
+      });
+
+      const schemas = [...rlDataMap.values()].map((r) => {
         const { requestBody, requestSchema, responseBody, responseSchema } =
           this.parseRequestResponseBody(r);
-        return new EndpointDataType({
-          service: r.service,
-          version: r.version,
-          namespace: r.namespace,
-          schemas: [
-            {
-              time: new Date(r.timestamp / 1000),
-              responseSample: responseBody,
-              responseSchema,
-              responseContentType: r.responseContentType,
-              requestSample: requestBody,
-              requestSchema,
-              requestContentType: r.requestContentType,
-              status: r.status,
-              requestParams: Utils.GetParamsFromUrl(url),
-            },
-          ],
-          method: r.method,
-          uniqueServiceName: r.uniqueServiceName,
-          uniqueEndpointName: r.uniqueEndpointName,
-        });
-      })
-      .reduce((prev, curr) => {
-        curr = curr.removeDuplicateSchemas();
-        const id = curr.endpointDataType.uniqueEndpointName;
-        if (!prev.has(id)) prev.set(id, curr);
-        else {
-          const existSchemas = prev.get(id)!.endpointDataType.schemas;
-          const currentSchemas = curr.endpointDataType.schemas;
-          if (
-            existSchemas[existSchemas.length - 1] !==
-            currentSchemas[currentSchemas.length - 1]
-          ) {
-            prev.set(
-              id,
-              prev.get(id)!.mergeSchemaWith(curr).removeDuplicateSchemas()
-            );
-          }
-        }
-        return prev;
-      }, new Map<string, EndpointDataType>());
-    return [...endpointDataTypeMap.entries()].map(
-      ([, endpointDataType]) => endpointDataType
-    );
+        return {
+          time: new Date(r.timestamp / 1000),
+          responseSample: responseBody,
+          responseSchema,
+          responseContentType: r.responseContentType,
+          requestSample: requestBody,
+          requestSchema,
+          requestContentType: r.requestContentType,
+          status: r.status,
+          requestParams,
+        };
+      });
+
+      const sample = rList[0];
+      return new EndpointDataType({
+        service: sample.service,
+        version: sample.version,
+        namespace: sample.namespace,
+        method: sample.method,
+        uniqueServiceName: sample.uniqueServiceName,
+        uniqueEndpointName: sample.uniqueEndpointName,
+        schemas,
+      });
+    });
   }
   private parseRequestResponseBody(data: IRealtimeData) {
     let requestBody: any | undefined;
@@ -212,6 +218,23 @@ export class RealtimeData {
       responseBody,
       responseSchema,
     };
+  }
+  private mergeBody(a?: string, b?: string) {
+    if (a && b) {
+      let parsedA: any;
+      let parsedB: any;
+      try {
+        parsedA = JSON.parse(a);
+      } catch (err) {}
+      try {
+        parsedB = JSON.parse(b);
+      } catch (err) {}
+      if (parsedA && parsedB) {
+        return JSON.stringify(Utils.Merge(parsedA, parsedB));
+      }
+      return JSON.stringify(parsedA || parsedB);
+    }
+    return a || b;
   }
 
   getAvgReplicaCount() {
