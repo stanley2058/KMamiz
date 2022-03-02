@@ -37,12 +37,7 @@ export default class DataService extends IRequestHandler {
     const [, , , method, label] = uniqueLabelName.split("\t");
     if (!method || !label) return null;
 
-    const names = [...DataCache.getInstance().labelMapping.entries()]
-      .filter(([, labelName]) => labelName === label)
-      .map(([uniqueName]) => uniqueName);
-    const datatype = await MongoOperator.getInstance().getEndpointDataTypes(
-      names
-    );
+    const datatype = DataCache.getInstance().getEndpointDataTypesByLabel(label);
 
     if (datatype.length === 0) return null;
     const merged = datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr));

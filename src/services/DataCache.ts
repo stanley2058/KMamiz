@@ -42,9 +42,29 @@ export default class DataCache {
         data.realtimeData
       )
     );
-    this._currentEndpointDataType = this._currentEndpointDataType.concat(
-      data.extractEndpointDataType()
+
+    let time = Date.now();
+    const dataTypeMap = new Map<string, EndpointDataType>();
+    this._currentEndpointDataType.forEach((d) => {
+      dataTypeMap.set(d.endpointDataType.uniqueEndpointName, d);
+    });
+
+    const dataTypes = data.extractEndpointDataType();
+    const modifiedTypes = dataTypes.map((d) => {
+      const id = d.endpointDataType.uniqueEndpointName;
+      const existing = dataTypeMap.get(id);
+      if (existing) {
+        dataTypeMap.delete(id);
+        return existing.mergeSchemaWith(d);
+      }
+      return d;
+    });
+
+    this._currentEndpointDataType = [...dataTypeMap.values()].concat(
+      modifiedTypes
     );
+
+    time = Date.now();
     this._currentLabelMapping = EndpointUtils.CreateEndpointLabelMapping(
       this._currentEndpointDataType
     );
@@ -116,6 +136,13 @@ export default class DataCache {
 
   get labelMapping() {
     return this._currentLabelMapping;
+  }
+
+  getEndpointDataTypesByLabel(label: string) {
+    const names = new Set(this.getEndpointsFromLabel(label));
+    return this._currentEndpointDataType.filter((d) =>
+      names.has(d.endpointDataType.uniqueEndpointName)
+    );
   }
 
   private async getNecessaryData(namespace?: string) {
