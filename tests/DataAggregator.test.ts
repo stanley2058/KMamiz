@@ -21,9 +21,11 @@ describe("DataAggregator", () => {
   it("creates aggregated data and history data from traces", () => {
     const trace = new Trace(MockTrace);
     const rlData = trace.toRealTimeData();
-    const data = rlData.toAggregatedDataAndHistoryData(
-      trace.toEndpointDependencies().toServiceDependencies()
-    );
+    const data = rlData
+      .toCombinedRealtimeData()
+      .toAggregatedDataAndHistoryData(
+        trace.toEndpointDependencies().toServiceDependencies()
+      );
     expect(data).toHaveProperty("historyData");
     expect(data).toHaveProperty("aggregateData");
     expect(data.historyData).toHaveLength(1);

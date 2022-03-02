@@ -119,7 +119,9 @@ describe("DataTransformer", () => {
   });
 
   it("converts realtime data to history data", () => {
-    const historyData = realtimeData.toHistoryData(serviceDependency);
+    const historyData = realtimeData
+      .toCombinedRealtimeData()
+      .toHistoryData(serviceDependency);
     expect(historyData[0].services).toHaveLength(6);
   });
 });

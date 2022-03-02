@@ -1,7 +1,7 @@
 import { AggregateData } from "../classes/AggregateData";
+import CombinedRealtimeData from "../classes/CombinedRealtimeData";
 import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependency";
-import { RealtimeData } from "../classes/RealtimeData";
 import IAggregateData from "../entities/IAggregateData";
 import IHistoryData from "../entities/IHistoryData";
 import IReplicaCount from "../entities/IReplicaCount";
@@ -17,34 +17,44 @@ export default class DataCache {
 
   private constructor() {}
 
-  private _currentRealtimeDataView?: RealtimeData;
-  private _currentEndpointDependenciesView?: EndpointDependencies;
-  private _currentLabeledEndpointDependenciesView?: EndpointDependencies;
-  private _currentEndpointDataType: EndpointDataType[] = [];
-  private _currentReplicasView?: IReplicaCount[];
-  private _currentLabelMapping = new Map<string, string>();
+  private _combinedRealtimeDataView?: CombinedRealtimeData;
+  private _endpointDependenciesView?: EndpointDependencies;
+  private _labeledEndpointDependenciesView?: EndpointDependencies;
+  private _endpointDataType: EndpointDataType[] = [];
+  private _replicasView?: IReplicaCount[];
+  private _labelMapping = new Map<string, string>();
 
   updateCurrentView(
-    data: RealtimeData,
+    data: CombinedRealtimeData,
     endpointDependencies: EndpointDependencies
   ) {
-    this.setRealtimeData(data);
+    this.setCombinedRealtimeData(data);
     this.setEndpointDependencies(endpointDependencies);
 
     KubernetesService.getInstance()
-      .getReplicas(this._currentRealtimeDataView?.getContainingNamespaces())
-      .then((res) => (this._currentReplicasView = res));
+      .getReplicas(this._combinedRealtimeDataView?.getContainingNamespaces())
+      .then((res) => (this._replicasView = res));
   }
 
-  private setRealtimeData(data: RealtimeData) {
-    this._currentRealtimeDataView = new RealtimeData(
-      (this._currentRealtimeDataView?.realtimeData || []).concat(
-        data.realtimeData
-      )
-    );
+  replaceCurrentView(
+    dataType: EndpointDataType[],
+    data?: CombinedRealtimeData,
+    endpointDependencies?: EndpointDependencies
+  ) {
+    this._endpointDataType = dataType;
+    if (data) this._combinedRealtimeDataView = data;
+    if (endpointDependencies)
+      this.setEndpointDependencies(endpointDependencies);
+  }
+
+  private setCombinedRealtimeData(data: CombinedRealtimeData) {
+    if (!this._combinedRealtimeDataView) this._combinedRealtimeDataView = data;
+    else
+      this._combinedRealtimeDataView =
+        this._combinedRealtimeDataView.combineWith(data);
 
     const dataTypeMap = new Map<string, EndpointDataType>();
-    this._currentEndpointDataType.forEach((d) => {
+    this._endpointDataType.forEach((d) => {
       dataTypeMap.set(d.endpointDataType.uniqueEndpointName, d);
     });
 
@@ -59,132 +69,105 @@ export default class DataCache {
       return d;
     });
 
-    this._currentEndpointDataType = [...dataTypeMap.values()].concat(
-      modifiedTypes
-    );
-    this._currentLabelMapping = EndpointUtils.CreateEndpointLabelMapping(
-      this._currentEndpointDataType
+    this._endpointDataType = [...dataTypeMap.values()].concat(modifiedTypes);
+    this._labelMapping = EndpointUtils.CreateEndpointLabelMapping(
+      this._endpointDataType
     );
   }
   private setEndpointDependencies(endpointDependencies: EndpointDependencies) {
     endpointDependencies = endpointDependencies.trim();
-    this._currentEndpointDependenciesView = endpointDependencies;
-    this._currentLabeledEndpointDependenciesView = new EndpointDependencies(
+    this._endpointDependenciesView = endpointDependencies;
+    this._labeledEndpointDependenciesView = new EndpointDependencies(
       endpointDependencies.label()
     );
   }
 
   async getRealtimeHistoryData(namespace?: string) {
-    const { realtimeData, endpointDependencies, replicas } =
-      await this.getNecessaryData(namespace);
-
-    const historyData = (
-      await MongoOperator.getInstance().getHistoryData(namespace)
-    ).concat(
-      realtimeData.toHistoryData(
-        endpointDependencies.toServiceDependencies(),
-        replicas
-      )
+    const historyData = await MongoOperator.getInstance().getHistoryData(
+      namespace
     );
-    return this.labelHistoryData(historyData);
+
+    if (!this._combinedRealtimeDataView || !this._endpointDependenciesView) {
+      return historyData;
+    }
+
+    const rlHistory = this._combinedRealtimeDataView.toHistoryData(
+      this._endpointDependenciesView.toServiceDependencies(),
+      this._replicasView,
+      this._labelMapping
+    );
+    return this.labelHistoryData(historyData).concat(rlHistory);
   }
 
   async getRealtimeAggregateData(namespace?: string) {
-    const { realtimeData, endpointDependencies, replicas } =
-      await this.getNecessaryData(namespace);
-
     const aggregateData = await MongoOperator.getInstance().getAggregateData(
       namespace
     );
-    if (realtimeData.realtimeData.length === 0) return aggregateData;
-    const { aggregateData: rlAggregateData } =
-      realtimeData.toAggregatedDataAndHistoryData(
-        endpointDependencies.toServiceDependencies(),
-        replicas
-      );
+    if (!this._combinedRealtimeDataView || !this._endpointDependenciesView) {
+      return aggregateData;
+    }
+    const { aggregateData: rlAggregateData } = this.filterCombinedRealtimeData(
+      this._combinedRealtimeDataView,
+      namespace
+    ).toAggregatedDataAndHistoryData(
+      this._endpointDependenciesView.toServiceDependencies(),
+      this._replicasView,
+      this._labelMapping
+    );
     if (!aggregateData) return this.labelAggregateData(rlAggregateData);
-    const aggData = new AggregateData(aggregateData).combine(
+
+    return new AggregateData(this.labelAggregateData(aggregateData)).combine(
       rlAggregateData
     ).aggregateData;
-    return this.labelAggregateData(aggData);
   }
 
-  get realtimeDataSnap() {
-    return this._currentRealtimeDataView;
+  private filterCombinedRealtimeData(
+    data: CombinedRealtimeData,
+    namespace?: string
+  ) {
+    if (!namespace) return data;
+    const { combinedRealtimeData } = data;
+    return new CombinedRealtimeData(
+      combinedRealtimeData.filter((r) => r.namespace === namespace)
+    );
+  }
+
+  get combinedRealtimeDataSnap() {
+    return this._combinedRealtimeDataView;
+  }
+
+  get replicasSnap() {
+    return this._replicasView;
+  }
+
+  get endpointDataTypeSnap() {
+    return this._endpointDataType;
+  }
+
+  get labelMapping() {
+    return this._labelMapping;
   }
 
   getEndpointDependenciesSnap(namespace?: string) {
-    if (namespace && this._currentLabeledEndpointDependenciesView) {
+    if (namespace && this._labeledEndpointDependenciesView) {
       return new EndpointDependencies(
-        this._currentLabeledEndpointDependenciesView.dependencies.filter(
+        this._labeledEndpointDependenciesView.dependencies.filter(
           (d) => d.endpoint.namespace === namespace
         )
       );
     }
-    return this._currentLabeledEndpointDependenciesView;
-  }
-
-  get replicasSnap() {
-    return this._currentReplicasView;
-  }
-
-  get endpointDataTypeSnap() {
-    return this._currentEndpointDataType;
-  }
-
-  get labelMapping() {
-    return this._currentLabelMapping;
+    return this._labeledEndpointDependenciesView;
   }
 
   getEndpointDataTypesByLabel(label: string) {
     const names = new Set(this.getEndpointsFromLabel(label));
-    return this._currentEndpointDataType.filter((d) =>
+    return this._endpointDataType.filter((d) =>
       names.has(d.endpointDataType.uniqueEndpointName)
     );
   }
 
-  private async getNecessaryData(namespace?: string) {
-    const realtimeData = await this.getRealtimeData(namespace);
-    const endpointDependencies = await this.getEndpointDependencies(namespace);
-    const replicas = await this.getReplicas(realtimeData);
-    return { realtimeData, endpointDependencies, replicas };
-  }
-
-  private filterRealtimeData(data: RealtimeData, namespace?: string) {
-    if (!namespace) return data;
-    const { realtimeData } = data;
-    return new RealtimeData(
-      realtimeData.filter((r) => r.namespace === namespace)
-    );
-  }
-  private async getRealtimeData(namespace?: string) {
-    if (!this._currentRealtimeDataView) {
-      this.setRealtimeData(
-        await MongoOperator.getInstance().getAllRealtimeData()
-      );
-    }
-    return this.filterRealtimeData(this._currentRealtimeDataView!, namespace);
-  }
-  private async getEndpointDependencies(namespace?: string) {
-    if (!this._currentEndpointDependenciesView) {
-      this.setEndpointDependencies(
-        await MongoOperator.getInstance().getEndpointDependencies(namespace)
-      );
-    }
-    return this._currentEndpointDependenciesView!;
-  }
-  private async getReplicas(realtimeData: RealtimeData) {
-    if (!this._currentReplicasView) {
-      this._currentReplicasView =
-        await KubernetesService.getInstance().getReplicas(
-          realtimeData.getContainingNamespaces()
-        );
-    }
-    return this._currentReplicasView;
-  }
-
   getLabelFromUniqueEndpointName(uniqueName: string) {
-    const label = this._currentLabelMapping.get(uniqueName);
+    const label = this._labelMapping.get(uniqueName);
     if (label) return label;
     const [, , , , url] = uniqueName.split("\t");
     const [, , path] = Utils.ExplodeUrl(url);
@@ -193,22 +176,25 @@ export default class DataCache {
 
   getEndpointsFromLabel(label: string) {
     const labelMap = new Map<string, string[]>();
-    [...this._currentLabelMapping.entries()].forEach(([name, l]) => {
+    [...this._labelMapping.entries()].forEach(([name, l]) => {
       labelMap.set(l, (labelMap.get(l) || []).concat([name]));
     });
     return labelMap.get(label) || [label];
   }
 
   async loadBaseData() {
-    Logger.verbose("Loading RealtimeData into cache.");
-    await this.getRealtimeData();
+    Logger.verbose("Loading CombinedRealtimeData into cache.");
+    this.setCombinedRealtimeData(
+      await MongoOperator.getInstance().getAllCombinedRealtimeData()
+    );
     Logger.verbose("Loading EndpointDependencies into cache.");
-    await this.getEndpointDependencies();
+    this.setEndpointDependencies(
+      await MongoOperator.getInstance().getEndpointDependencies()
+    );
     Logger.verbose("Loading current ReplicaCounts into cache.");
-    this._currentReplicasView =
-      await KubernetesService.getInstance().getReplicas(
-        this._currentRealtimeDataView?.getContainingNamespaces()
-      );
+    this._replicasView = await KubernetesService.getInstance().getReplicas(
+      this._combinedRealtimeDataView?.getContainingNamespaces()
+    );
   }
 
   labelHistoryData(historyData: IHistoryData[]) {

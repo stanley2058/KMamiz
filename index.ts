@@ -20,6 +20,8 @@ app.use(compression());
 
 app.use(Routes.getInstance().getRoutes());
 
+process.on("SIGTERM", () => {});
+
 (async () => {
   const aggregateData = await MongoOperator.getInstance().getAggregateData();
 
@@ -28,7 +30,8 @@ app.use(Routes.getInstance().getRoutes());
 
   if (
     !aggregateData &&
-    DataCache.getInstance().realtimeDataSnap?.realtimeData.length === 0
+    DataCache.getInstance().combinedRealtimeDataSnap?.combinedRealtimeData
+      .length === 0
   ) {
     Logger.info("Database is empty, running first time setup.");
     await Initializer.getInstance().firstTimeSetup();

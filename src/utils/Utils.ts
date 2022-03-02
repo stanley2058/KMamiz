@@ -252,4 +252,22 @@ export default class Utils {
   static MergeArray(a: any[], b: any[], limit = 10) {
     return [...a.slice(0, limit), ...b.slice(0, limit)];
   }
+
+  static MergeStringBody(a?: string, b?: string) {
+    if (a && b) {
+      let parsedA: any;
+      let parsedB: any;
+      try {
+        parsedA = JSON.parse(a);
+      } catch (err) {}
+      try {
+        parsedB = JSON.parse(b);
+      } catch (err) {}
+      if (parsedA && parsedB) {
+        return JSON.stringify(Utils.Merge(parsedA, parsedB));
+      }
+      return JSON.stringify(parsedA || parsedB);
+    }
+    return a || b;
+  }
 }

@@ -1,17 +1,19 @@
 import { connect, Model, Types } from "mongoose";
 import { AggregateData } from "../classes/AggregateData";
 import { EndpointDependencies } from "../classes/EndpointDependency";
-import { RealtimeData } from "../classes/RealtimeData";
 import IAggregateData from "../entities/IAggregateData";
 import IHistoryData from "../entities/IHistoryData";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
 import EndpointDataType from "../classes/EndpointDataType";
-import { RealtimeDataModel } from "../entities/schema/RealtimeDataSchema";
 import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
 import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
 import { EndpointDataTypeModel } from "../entities/schema/EndpointDataTypeSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
+import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
+import CombinedRealtimeData from "../classes/CombinedRealtimeData";
+import { IEndpointDependency } from "../entities/IEndpointDependency";
+import { ICombinedRealtimeData } from "../entities/ICombinedRealtimeData";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
@@ -21,12 +23,6 @@ export default class MongoOperator {
     connect(GlobalSettings.MongoDBUri)
       .then(() => Logger.info("Successfully connected to MongoDB"))
       .catch((error) => Logger.error(error));
-  }
-
-  async getAllRealtimeData() {
-    return new RealtimeData(
-      (await RealtimeDataModel.find({}).exec()).map((r) => r.toObject())
-    );
   }
 
   async getAggregateData(namespace?: string) {
@@ -111,12 +107,6 @@ export default class MongoOperator {
     return res.map((r) => new EndpointDataType(r.toObject()));
   }
 
-  async saveRealtimeData(realtimeData: RealtimeData) {
-    return new RealtimeData(
-      await RealtimeDataModel.insertMany(realtimeData.realtimeData)
-    );
-  }
-
   async saveAggregateData(aggregateData: AggregateData) {
     return await this.smartSave(
       aggregateData.aggregateData,
@@ -131,19 +121,19 @@ export default class MongoOperator {
   }
 
   async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {
-    const models = endpointDependencies.dependencies.map((d) => {
-      const model = new EndpointDependencyModel(d);
-      if (d._id) model.isNew = false;
-      return model;
-    });
-    for (const model of models) {
+    const results: IEndpointDependency[] = [];
+    for (const dep of endpointDependencies.dependencies) {
+      const model = new EndpointDependencyModel(dep);
+      if (dep._id) model.isNew = false;
       try {
-        await model.save();
+        const result = (await model.save()).toObject();
+        results.push(result);
       } catch (ex) {
         Logger.error("Error saving EndpointDependencies, skipping.");
         Logger.verbose("", ex);
       }
     }
+    return new EndpointDependencies(results);
   }
 
   async saveEndpointDataType(endpointDataType: EndpointDataType) {
@@ -154,23 +144,57 @@ export default class MongoOperator {
   }
 
   async saveEndpointDataTypes(endpointDataType: EndpointDataType[]) {
-    const models = endpointDataType.map(({ endpointDataType }) => {
+    const results: EndpointDataType[] = [];
+    for (const dataType of endpointDataType) {
+      const { endpointDataType } = dataType;
       const model = new EndpointDataTypeModel(endpointDataType);
       if (endpointDataType._id) model.isNew = false;
-      return model;
-    });
-    for (const model of models) {
       try {
-        await model.save();
+        const result = (await model.save()).toObject();
+        results.push(new EndpointDataType(result));
       } catch (ex) {
         Logger.error("Error saving EndpointDataType, skipping.");
         Logger.verbose("", ex);
       }
     }
+    return results;
   }
 
-  async deleteAllRealtimeData() {
-    return await RealtimeDataModel.deleteMany({});
+  async getAllCombinedRealtimeData() {
+    return new CombinedRealtimeData(
+      (await CombinedRealtimeDataModel.find({}).exec()).map((r) => r.toObject())
+    );
+  }
+
+  async insertCombinedRealtimeData(cRlData: CombinedRealtimeData) {
+    return new CombinedRealtimeData(
+      await CombinedRealtimeDataModel.insertMany(cRlData.combinedRealtimeData)
+    );
+  }
+  async saveCombinedRealtimeData(cRlData: CombinedRealtimeData) {
+    const results: ICombinedRealtimeData[] = [];
+    for (const rlData of cRlData.combinedRealtimeData) {
+      const model = new CombinedRealtimeDataModel(rlData);
+      if (rlData._id) model.isNew = false;
+      try {
+        const result = (await model.save()).toObject();
+        results.push(result);
+      } catch (ex) {
+        Logger.error("Error saving EndpointDataType, skipping.");
+        Logger.verbose("", ex);
+      }
+    }
+    return new CombinedRealtimeData(results);
+  }
+
+  async deleteAllCombinedRealtimeData() {
+    return await CombinedRealtimeDataModel.deleteMany({});
+  }
+  async deleteAllEndpointDependencies() {
+    return await EndpointDataTypeModel.deleteMany({});
+  }
+  async deleteAllEndpointDataType() {
+    return await EndpointDataTypeModel.deleteMany({});
   }
 
   private async smartSave<T extends { _id?: Types.ObjectId }>(

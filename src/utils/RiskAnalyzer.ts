@@ -49,26 +49,6 @@ export default class RiskAnalyzer {
     return risks.map((r, i) => ({ ...r, norm: normRisk[i] }));
   }
 
-  static CombinedRisk(
-    realtimeRisks: IRiskResult[],
-    aggregateData: IAggregateData
-  ) {
-    const totalDays =
-      (aggregateData.toDate.getTime() - aggregateData.fromDate.getTime()) /
-      (1000 * 60 * 60 * 24);
-    return aggregateData.services.map((s) => {
-      const currentRisk =
-        realtimeRisks.find(
-          ({ uniqueServiceName }) => uniqueServiceName === s.uniqueServiceName
-        )?.risk || this.MINIMUM_PROB;
-      return {
-        service: s.service,
-        version: s.version,
-        risk: (currentRisk + s.avgRisk) / (totalDays + 1),
-      };
-    });
-  }
-
   static Impact(dependencies: IServiceDependency[], replicas: IReplicaCount[]) {
     const relyingFactor = this.RelyingFactor(dependencies);
     const acs = this.AbsoluteCriticalityOfServices(dependencies);

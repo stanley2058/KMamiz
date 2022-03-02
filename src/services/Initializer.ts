@@ -36,8 +36,10 @@ export default class Initializer {
       );
     }
 
-    const realtimeData = traces.toRealTimeData(replicas);
-    if (realtimeData.realtimeData.length !== 0) {
+    const realtimeData = traces
+      .toRealTimeData(replicas)
+      .toCombinedRealtimeData();
+    if (realtimeData.combinedRealtimeData.length !== 0) {
       const { aggregateData, historyData } =
         realtimeData.toAggregatedDataAndHistoryData(
           endpointDependencies.toServiceDependencies(),
@@ -55,8 +57,8 @@ export default class Initializer {
         Date.now() - todayTime
       )
     );
-    await MongoOperator.getInstance().saveRealtimeData(
-      todayTraces.toRealTimeData(replicas)
+    await MongoOperator.getInstance().insertCombinedRealtimeData(
+      todayTraces.toRealTimeData(replicas).toCombinedRealtimeData()
     );
 
     // merge endpoint dependencies and save to database

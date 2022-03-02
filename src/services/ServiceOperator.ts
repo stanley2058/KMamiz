@@ -1,6 +1,5 @@
 import { AggregateData } from "../classes/AggregateData";
 import { EnvoyLogs } from "../classes/EnvoyLog";
-import { RealtimeData } from "../classes/RealtimeData";
 import { Trace } from "../classes/Trace";
 import IReplicaCount from "../entities/IReplicaCount";
 import Logger from "../utils/Logger";
@@ -9,6 +8,7 @@ import MongoOperator from "./MongoOperator";
 import DataCache from "./DataCache";
 import Scheduler from "./Scheduler";
 import ZipkinService from "./ZipkinService";
+import CombinedRealtimeData from "../classes/CombinedRealtimeData";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -16,15 +16,16 @@ export default class ServiceOperator {
   private constructor() {}
 
   async aggregateDailyData() {
-    const realtimeData = await MongoOperator.getInstance().getAllRealtimeData();
+    const combinedRealtimeData =
+      await MongoOperator.getInstance().getAllCombinedRealtimeData();
     const endpointDependencies =
       await MongoOperator.getInstance().getEndpointDependencies();
-    const namespaces = realtimeData.getContainingNamespaces();
+    const namespaces = combinedRealtimeData.getContainingNamespaces();
 
     const replicas: IReplicaCount[] =
       await KubernetesService.getInstance().getReplicas(namespaces);
     const { historyData, aggregateData } =
-      realtimeData.toAggregatedDataAndHistoryData(
+      combinedRealtimeData.toAggregatedDataAndHistoryData(
         endpointDependencies.toServiceDependencies(),
         replicas
       );
@@ -40,7 +41,7 @@ export default class ServiceOperator {
 
     await MongoOperator.getInstance().saveAggregateData(newAggData);
     await MongoOperator.getInstance().saveHistoryData(historyData);
-    await MongoOperator.getInstance().deleteAllRealtimeData();
+    await MongoOperator.getInstance().deleteAllCombinedRealtimeData();
   }
 
   async retrieveRealtimeData() {
@@ -83,10 +84,16 @@ export default class ServiceOperator {
     );
 
     // dispatch data aggregation asynchronously
-    ServiceOperator.getInstance().doBackgroundDataAggregation(traces, data);
+    ServiceOperator.getInstance().doBackgroundDataAggregation(
+      traces,
+      data.toCombinedRealtimeData()
+    );
   }
 
-  private async doBackgroundDataAggregation(traces: Trace, data: RealtimeData) {
+  private async doBackgroundDataAggregation(
+    traces: Trace,
+    data: CombinedRealtimeData
+  ) {
     const existingDep = DataCache.getInstance().getEndpointDependenciesSnap();
     const newDep = traces.toEndpointDependencies();
     const dep = existingDep ? existingDep.combineWith(newDep) : newDep;

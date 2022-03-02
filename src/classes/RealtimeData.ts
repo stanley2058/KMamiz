@@ -1,19 +1,8 @@
-import RiskAnalyzer from "../utils/RiskAnalyzer";
 import Utils from "../utils/Utils";
-import IHistoryData, {
-  IHistoryEndpointInfo,
-  IHistoryServiceInfo,
-} from "../entities/IHistoryData";
 import { IRealtimeData } from "../entities/IRealtimeData";
-import IReplicaCount from "../entities/IReplicaCount";
-import IServiceDependency from "../entities/IServiceDependency";
-import EndpointDataType from "./EndpointDataType";
-import IAggregateData, {
-  IAggregateEndpointInfo,
-  IAggregateServiceInfo,
-} from "../entities/IAggregateData";
-import IRiskResult from "../entities/IRiskResult";
+import { ICombinedRealtimeData } from "../entities/ICombinedRealtimeData";
 import Logger from "../utils/Logger";
+import CombinedRealtimeData from "./CombinedRealtimeData";
 
 export class RealtimeData {
   private readonly _realtimeData: IRealtimeData[];
@@ -24,171 +13,79 @@ export class RealtimeData {
     return this._realtimeData;
   }
 
-  toHistoryData(
-    serviceDependencies: IServiceDependency[],
-    replicas: IReplicaCount[] = []
-  ) {
-    const uniqueDates = [
-      ...new Set(
-        this._realtimeData.map((r) =>
-          Utils.BelongsToDateTimestamp(r.timestamp / 1000)
-        )
-      ),
-    ];
-
-    return uniqueDates.map((d): IHistoryData => {
-      const date = new Date(d);
-      const dataOfADay = this._realtimeData.filter(
-        (r) => Utils.BelongsToDateTimestamp(r.timestamp / 1000) === d
-      );
-      const risks = RiskAnalyzer.RealtimeRisk(
-        dataOfADay,
-        serviceDependencies,
-        replicas
-      );
-      const endpointInfoMap = this.createEndpointInfoMapping(dataOfADay);
-      const services = this.createServiceHistoryData(
-        date,
-        risks,
-        endpointInfoMap
-      );
-
-      return { date, services };
-    });
+  getContainingNamespaces() {
+    return new Set(this._realtimeData.map((r) => r.namespace));
   }
-  private createEndpointInfoMapping(realtimeData: IRealtimeData[]) {
-    const endpointInfoMap = new Map<
-      string,
-      Map<string, IHistoryEndpointInfo & { latencies?: number[] }>
-    >();
-    realtimeData.forEach((r) => {
-      if (!endpointInfoMap.has(r.uniqueServiceName)) {
-        endpointInfoMap.set(
-          r.uniqueServiceName,
-          new Map<string, IHistoryEndpointInfo & { latencies?: number[] }>()
-        );
-      }
-      if (
-        !endpointInfoMap.get(r.uniqueServiceName)!.has(r.uniqueEndpointName)
-      ) {
-        endpointInfoMap.get(r.uniqueServiceName)!.set(r.uniqueEndpointName, {
-          method: r.method,
-          requests: 0,
-          requestErrors: 0,
-          serverErrors: 0,
-          latencyCV: 0,
-          latencies: [],
-          uniqueServiceName: r.uniqueServiceName,
-          uniqueEndpointName: r.uniqueEndpointName,
+
+  toCombinedRealtimeData() {
+    const uniqueNameMapping = new Map<string, IRealtimeData[]>();
+    this._realtimeData.forEach((r) => {
+      const id = r.uniqueEndpointName;
+      uniqueNameMapping.set(id, (uniqueNameMapping.get(id) || []).concat([r]));
+    });
+
+    const combined = [...uniqueNameMapping.values()]
+      .map((group): ICombinedRealtimeData[] => {
+        const statusMap = new Map<string, IRealtimeData[]>();
+        group.forEach((r) => {
+          statusMap.set(r.status, (statusMap.get(r.status) || []).concat([r]));
         });
-      }
-
-      const info = endpointInfoMap
-        .get(r.uniqueServiceName)!
-        .get(r.uniqueEndpointName)!;
-      info.requests++;
-      info.latencies!.push(r.latency);
-      if (r.status.startsWith("5")) info.serverErrors++;
-      if (r.status.startsWith("4")) info.requestErrors++;
-      endpointInfoMap.get(r.uniqueServiceName)!.set(r.uniqueEndpointName, info);
-    });
-    [...endpointInfoMap.keys()].forEach((s) => {
-      endpointInfoMap.get(s)!.forEach((val) => {
-        val.latencyCV = RiskAnalyzer.CoefficientOfVariation(val.latencies!);
-        delete val.latencies;
-      });
-    });
-    return endpointInfoMap;
-  }
-  private createServiceHistoryData(
-    date: Date,
-    risks: IRiskResult[],
-    endpointInfoMap: Map<string, Map<string, IHistoryEndpointInfo>>
-  ): IHistoryServiceInfo[] {
-    return [...endpointInfoMap.entries()].map(([serviceName, endpointMap]) => {
-      const [service, namespace, version] = serviceName.split("\t");
-      const status = [...endpointMap.values()].reduce(
-        (prev, curr) => ({
-          requests: prev.requests + curr.requests,
-          serverErrors: prev.serverErrors + curr.serverErrors,
-          requestErrors: prev.requestErrors + curr.requestErrors,
-          latencyCV: Math.max(prev.latencyCV, curr.latencyCV),
-        }),
-        { requests: 0, serverErrors: 0, requestErrors: 0, latencyCV: 0 }
-      );
-
-      const serviceInfo: IHistoryServiceInfo = {
-        date,
-        service,
-        namespace,
-        version,
-        ...status,
-        risk: risks.find((r) => r.uniqueServiceName === serviceName)?.norm,
-        endpoints: [...endpointMap.values()],
-        uniqueServiceName: serviceName,
-      };
-      return serviceInfo;
-    });
-  }
-
-  extractEndpointDataType() {
-    const rlDataMapping = new Map<string, IRealtimeData[]>();
-    const filtered = this._realtimeData.filter(
-      (r) => !!r.responseBody || !!r.requestBody
-    );
-    filtered.forEach((r) => {
-      rlDataMapping.set(
-        r.uniqueEndpointName,
-        (rlDataMapping.get(r.uniqueEndpointName) || []).concat([r])
-      );
-    });
-
-    return [...rlDataMapping.entries()].map(([uniqueEndpointName, rList]) => {
-      rList.sort((a, b) => b.timestamp - a.timestamp);
-      const tokens = uniqueEndpointName.split("\t");
-      const requestParams = Utils.GetParamsFromUrl(tokens[tokens.length - 1]);
-
-      const rlDataMap = new Map<string, IRealtimeData>();
-      rList.forEach((r) => {
-        if (rlDataMap.has(r.status)) {
-          const existing = rlDataMap.get(r.status)!;
-          r = {
-            ...existing,
-            requestBody: this.mergeBody(existing.requestBody, r.requestBody),
-            responseBody: this.mergeBody(existing.responseBody, r.responseBody),
-          };
-        }
-        rlDataMap.set(r.status, r);
-      });
-
-      const schemas = [...rlDataMap.values()].map((r) => {
-        const { requestBody, requestSchema, responseBody, responseSchema } =
-          this.parseRequestResponseBody(r);
-        return {
-          time: new Date(r.timestamp / 1000),
-          responseSample: responseBody,
-          responseSchema,
-          responseContentType: r.responseContentType,
-          requestSample: requestBody,
-          requestSchema,
-          requestContentType: r.requestContentType,
-          status: r.status,
-          requestParams,
+        const sample = group[0];
+        const baseSample = {
+          uniqueServiceName: sample.uniqueServiceName,
+          uniqueEndpointName: sample.uniqueEndpointName,
+          service: sample.service,
+          namespace: sample.namespace,
+          version: sample.version,
+          method: sample.method,
         };
-      });
 
-      const sample = rList[0];
-      return new EndpointDataType({
-        service: sample.service,
-        version: sample.version,
-        namespace: sample.namespace,
-        method: sample.method,
-        uniqueServiceName: sample.uniqueServiceName,
-        uniqueEndpointName: sample.uniqueEndpointName,
-        schemas,
-      });
-    });
+        const combinedSubGroup = [...statusMap.entries()].map(
+          ([status, subGroup]): ICombinedRealtimeData => {
+            const combined = subGroup.reduce((prev, curr) => {
+              prev.latency += curr.latency;
+              prev.requestBody = Utils.MergeStringBody(
+                prev.requestBody,
+                curr.requestBody
+              );
+              prev.responseBody = Utils.MergeStringBody(
+                prev.responseBody,
+                curr.responseBody
+              );
+              prev.timestamp =
+                prev.timestamp > curr.timestamp
+                  ? prev.timestamp
+                  : curr.timestamp;
+              if (prev.replica && curr.replica) prev.replica += curr.replica;
+              return prev;
+            });
+            const { requestBody, requestSchema, responseBody, responseSchema } =
+              this.parseRequestResponseBody(combined);
+
+            return {
+              ...baseSample,
+              status,
+              combined: subGroup.length,
+              requestBody,
+              requestSchema,
+              responseBody,
+              responseSchema,
+              avgLatency: combined.latency / subGroup.length,
+              avgReplica: combined.replica
+                ? combined.replica / subGroup.length
+                : undefined,
+              latestTimestamp: combined.timestamp,
+              latencies: subGroup.map((r) => r.latency),
+            };
+          }
+        );
+        return combinedSubGroup;
+      })
+      .flat();
+
+    return new CombinedRealtimeData(combined);
   }
+
   private parseRequestResponseBody(data: IRealtimeData) {
     let requestBody: any | undefined;
     let requestSchema: string | undefined;
@@ -218,196 +115,5 @@ export class RealtimeData {
       responseBody,
       responseSchema,
     };
-  }
-  private mergeBody(a?: string, b?: string) {
-    if (a && b) {
-      let parsedA: any;
-      let parsedB: any;
-      try {
-        parsedA = JSON.parse(a);
-      } catch (err) {}
-      try {
-        parsedB = JSON.parse(b);
-      } catch (err) {}
-      if (parsedA && parsedB) {
-        return JSON.stringify(Utils.Merge(parsedA, parsedB));
-      }
-      return JSON.stringify(parsedA || parsedB);
-    }
-    return a || b;
-  }
-
-  getAvgReplicaCount() {
-    const addUpMap = new Map<string, number>();
-    const appearsMap = new Map<string, number>();
-
-    this._realtimeData.forEach((r) => {
-      const uniqueName = r.uniqueServiceName;
-      if (r.replica) {
-        if (!addUpMap.has(uniqueName)) {
-          addUpMap.set(uniqueName, 0);
-          appearsMap.set(uniqueName, 0);
-        }
-        addUpMap.set(uniqueName, addUpMap.get(uniqueName)! + r.replica);
-        appearsMap.set(uniqueName, appearsMap.get(uniqueName)! + 1);
-      }
-    });
-    return this._realtimeData
-      .map((r): IReplicaCount | undefined => {
-        const uniqueName = r.uniqueServiceName;
-        if (!addUpMap.get(uniqueName) || !appearsMap.get(uniqueName)) return;
-        const replicas =
-          addUpMap.get(uniqueName)! / appearsMap.get(uniqueName)!;
-
-        return {
-          service: r.service,
-          namespace: r.namespace,
-          version: r.version,
-          replicas,
-          uniqueServiceName: uniqueName,
-        };
-      })
-      .filter((r) => !!r) as IReplicaCount[];
-  }
-
-  toAggregatedDataAndHistoryData(
-    serviceDependencies: IServiceDependency[],
-    replicas: IReplicaCount[] = []
-  ) {
-    const avgReplicas = this.getAvgReplicaCount();
-    const combinedReplicas = [
-      ...avgReplicas,
-      ...replicas.filter(
-        (r) =>
-          !avgReplicas.find(
-            (aR) => aR.uniqueServiceName === r.uniqueServiceName
-          )
-      ),
-    ];
-
-    const historyData = this.toHistoryData(
-      serviceDependencies,
-      combinedReplicas
-    );
-    const dates = historyData.map((d) => d.date.getTime()).sort();
-    const fromDate = new Date(dates[0]);
-    const toDate = new Date(dates[dates.length - 1]);
-
-    const historyServiceInfoMap = new Map<string, IHistoryServiceInfo[]>();
-    historyData
-      .map((h) => h.services)
-      .flat()
-      .reduce((map, service) => {
-        const uniqueName = service.uniqueServiceName;
-        return map.set(uniqueName, [...(map.get(uniqueName) || []), service]);
-      }, historyServiceInfoMap);
-    const aggregateServiceInfo = [...historyServiceInfoMap.entries()].map(
-      ([serviceName, serviceInfoList]): IAggregateServiceInfo => {
-        const endpointInfo: IHistoryEndpointInfo[] = [];
-        const {
-          totalRequests,
-          totalRequestErrors,
-          totalServerErrors,
-          riskSum,
-        } = serviceInfoList.reduce(
-          (
-            prev,
-            { requests, serverErrors, requestErrors, risk, endpoints }
-          ) => {
-            endpointInfo.push(...endpoints);
-            prev.totalRequests += requests;
-            prev.totalServerErrors += serverErrors;
-            prev.totalRequestErrors += requestErrors;
-            prev.riskSum += risk || 0;
-            return prev;
-          },
-          {
-            totalRequests: 0,
-            totalRequestErrors: 0,
-            totalServerErrors: 0,
-            riskSum: 0,
-          }
-        );
-
-        const endpointMap =
-          this.createAggregatedEndpointInfoMapping(endpointInfo);
-
-        const latencyCVSum = [...endpointMap.values()].reduce(
-          (prev, curr) => prev + curr.avgLatencyCV,
-          0
-        );
-
-        const [service, namespace, version] = serviceName.split("\t");
-        return {
-          service,
-          namespace,
-          version,
-          totalRequests,
-          totalRequestErrors,
-          totalServerErrors,
-          avgRisk: riskSum / serviceInfoList.length,
-          endpoints: [...endpointMap.values()],
-          avgLatencyCV: latencyCVSum / endpointMap.size,
-          uniqueServiceName: serviceName,
-        };
-      }
-    );
-    const aggregateData: IAggregateData = {
-      fromDate,
-      toDate,
-      services: aggregateServiceInfo,
-    };
-    return { historyData, aggregateData };
-  }
-  private createAggregatedEndpointInfoMapping(
-    endpointInfo: IHistoryEndpointInfo[]
-  ) {
-    const endpointMap = new Map<
-      string,
-      IAggregateEndpointInfo & { latencyCV?: number[] }
-    >();
-    endpointInfo.forEach(
-      ({
-        requests,
-        requestErrors,
-        serverErrors,
-        latencyCV,
-        method,
-        uniqueServiceName,
-        uniqueEndpointName,
-      }) => {
-        if (!endpointMap.has(uniqueEndpointName)) {
-          endpointMap.set(uniqueEndpointName, {
-            method,
-            totalRequests: requests,
-            totalRequestErrors: requestErrors,
-            totalServerErrors: serverErrors,
-            avgLatencyCV: 0,
-            latencyCV: [latencyCV],
-            uniqueServiceName,
-            uniqueEndpointName,
-          });
-        } else {
-          const prev = endpointMap.get(uniqueEndpointName)!;
-          endpointMap.set(uniqueEndpointName, {
-            ...prev,
-            totalRequests: prev.totalRequests + requests,
-            totalRequestErrors: prev.totalRequestErrors + requestErrors,
-            totalServerErrors: prev.totalServerErrors + serverErrors,
-            latencyCV: [...prev.latencyCV!, latencyCV],
-          });
-        }
-      }
-    );
-    endpointMap.forEach((val) => {
-      const sum = val.latencyCV!.reduce((prev, curr) => prev + curr, 0);
-      val.avgLatencyCV = sum / val.latencyCV!.length;
-      delete val.latencyCV;
-    });
-    return endpointMap;
-  }
-
-  getContainingNamespaces() {
-    return new Set(this._realtimeData.map((r) => r.namespace));
   }
 }
