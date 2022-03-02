@@ -119,7 +119,11 @@ export class Trace {
       let parentId = span.parentId;
       let depth = 1;
       while (parentId) {
-        const parentNode = spanDependencyMap.get(parentId);
+        const clientParent = spanDependencyMap.get(parentId);
+        if (!clientParent) break;
+        const parentNode = spanDependencyMap.get(
+          clientParent.span.parentId || ""
+        );
         if (!parentNode) break;
         upper.set(parentId, depth);
         parentNode.lower.set(spanId, depth);
