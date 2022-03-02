@@ -36,40 +36,16 @@ export default class DataCache {
       .then((res) => (this._replicasView = res));
   }
 
-  replaceCurrentView(
-    dataType: EndpointDataType[],
-    data?: CombinedRealtimeData,
-    endpointDependencies?: EndpointDependencies
-  ) {
-    this._endpointDataType = dataType;
-    if (data) this._combinedRealtimeDataView = data;
-    if (endpointDependencies)
-      this.setEndpointDependencies(endpointDependencies);
-  }
-
   private setCombinedRealtimeData(data: CombinedRealtimeData) {
     if (!this._combinedRealtimeDataView) this._combinedRealtimeDataView = data;
-    else
+    else {
       this._combinedRealtimeDataView =
         this._combinedRealtimeDataView.combineWith(data);
+    }
 
-    const dataTypeMap = new Map<string, EndpointDataType>();
-    this._endpointDataType.forEach((d) => {
-      dataTypeMap.set(d.endpointDataType.uniqueEndpointName, d);
-    });
+    this._endpointDataType =
+      this._combinedRealtimeDataView.extractEndpointDataType();
 
-    const dataTypes = data.extractEndpointDataType();
-    const modifiedTypes = dataTypes.map((d) => {
-      const id = d.endpointDataType.uniqueEndpointName;
-      const existing = dataTypeMap.get(id);
-      if (existing) {
-        dataTypeMap.delete(id);
-        return existing.mergeSchemaWith(d);
-      }
-      return d;
-    });
-
-    this._endpointDataType = [...dataTypeMap.values()].concat(modifiedTypes);
     this._labelMapping = EndpointUtils.CreateEndpointLabelMapping(
       this._endpointDataType
     );
