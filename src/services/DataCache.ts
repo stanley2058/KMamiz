@@ -43,7 +43,6 @@ export default class DataCache {
       )
     );
 
-    let time = Date.now();
     const dataTypeMap = new Map<string, EndpointDataType>();
     this._currentEndpointDataType.forEach((d) => {
       dataTypeMap.set(d.endpointDataType.uniqueEndpointName, d);
@@ -63,8 +62,6 @@ export default class DataCache {
     this._currentEndpointDataType = [...dataTypeMap.values()].concat(
       modifiedTypes
     );
-
-    time = Date.now();
     this._currentLabelMapping = EndpointUtils.CreateEndpointLabelMapping(
       this._currentEndpointDataType
     );

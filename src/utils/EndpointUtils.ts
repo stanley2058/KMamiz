@@ -62,10 +62,11 @@ export default class EndpointUtils {
     for (let i = 0; i < masked.length; i++) {
       if (masked[i] !== "{}") continue;
       if (maskedPosition[i].size > 5) continue;
-      masked[i] = `{${[...maskedPosition[i]]
+      const partialMask = `{${[...maskedPosition[i]]
         .map((m) => (m || "").trim())
         .filter((m) => !!m)
         .join(",")}}`;
+      if (partialMask.length <= 20) masked[i] = partialMask;
     }
 
     return masked.join("/");
