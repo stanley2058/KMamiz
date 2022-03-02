@@ -18,6 +18,29 @@ export class EndpointDependencies {
     return this._dependencies;
   }
 
+  trim() {
+    return new EndpointDependencies(
+      this._dependencies.map((d): IEndpointDependency => {
+        const dOnMap = new Map<string, any>();
+        d.dependsOn.forEach((dOn) => {
+          const id = `${dOn.distance}\t${dOn.endpoint.uniqueEndpointName}`;
+          dOnMap.set(id, dOn);
+        });
+        const dByMap = new Map<string, any>();
+        d.dependBy.forEach((dBy) => {
+          const id = `${dBy.distance}\t${dBy.endpoint.uniqueEndpointName}`;
+          dByMap.set(id, dBy);
+        });
+
+        return {
+          ...d,
+          dependBy: [...dByMap.values()],
+          dependsOn: [...dOnMap.values()],
+        };
+      })
+    );
+  }
+
   label() {
     return this._dependencies.map((d): IEndpointDependency => {
       const labelName = DataCache.getInstance().getLabelFromUniqueEndpointName(

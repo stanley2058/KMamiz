@@ -70,6 +70,7 @@ export default class DataCache {
     );
   }
   private setEndpointDependencies(endpointDependencies: EndpointDependencies) {
+    endpointDependencies = endpointDependencies.trim();
     this._currentEndpointDependenciesView = endpointDependencies;
     this._currentLabeledEndpointDependenciesView = new EndpointDependencies(
       endpointDependencies.label()

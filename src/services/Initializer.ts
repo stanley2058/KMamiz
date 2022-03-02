@@ -28,7 +28,7 @@ export default class Initializer {
     );
 
     // try to create aggregateData and historyData
-    const endpointDependencies = traces.toEndpointDependencies();
+    const endpointDependencies = traces.toEndpointDependencies().trim();
     const replicas: IReplicaCount[] = [];
     for (const ns of await KubernetesService.getInstance().getNamespaces()) {
       replicas.push(
