@@ -77,11 +77,11 @@ export default class EndpointDataType {
         nSchema.requestParams || []
       );
 
-      const requestSample = this.merge(
+      const requestSample = Utils.Merge(
         eSchema.requestSample,
         nSchema.requestSample
       );
-      const responseSample = this.merge(
+      const responseSample = Utils.Merge(
         eSchema.responseSample,
         nSchema.responseSample
       );
@@ -108,19 +108,5 @@ export default class EndpointDataType {
       ...this._endpointDataType,
       schemas: this._endpointDataType.schemas.concat([...combinedMap.values()]),
     });
-  }
-
-  private merge(a: any, b: any) {
-    if (Array.isArray(a) && Array.isArray(b)) return this.mergeArray(a, b);
-    if (!Array.isArray(a) && !Array.isArray(b)) return this.mergeObject(a, b);
-    return a || b;
-  }
-
-  private mergeObject(a: any, b: any) {
-    return { ...a, ...b };
-  }
-
-  private mergeArray(a: any[], b: any[]) {
-    return [...a, ...b];
   }
 }

@@ -238,4 +238,18 @@ export default class Utils {
   static Inspect(obj: any) {
     return inspect(obj, false, null, true);
   }
+
+  static Merge(a: any, b: any) {
+    if (Array.isArray(a) && Array.isArray(b)) return Utils.MergeArray(a, b);
+    if (!Array.isArray(a) && !Array.isArray(b)) return Utils.MergeObject(a, b);
+    return a || b;
+  }
+
+  static MergeObject(a: any, b: any) {
+    return { ...a, ...b };
+  }
+
+  static MergeArray(a: any[], b: any[], limit = 10) {
+    return [...a.slice(0, limit), ...b.slice(0, limit)];
+  }
 }
