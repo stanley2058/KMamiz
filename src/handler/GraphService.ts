@@ -1,16 +1,32 @@
 import { EndpointDependencies } from "../classes/EndpointDependency";
 import IAreaLineChartData from "../entities/IAreaLineChartData";
+import IGraphData from "../entities/IGraphData";
 import IRequestHandler from "../entities/IRequestHandler";
 import DataCache from "../services/DataCache";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
     super("graph");
-    this.addRoute("get", "/dependency/:namespace?", async (req, res) => {
-      const graph = await this.getDependencyGraph(req.params["namespace"]);
-      if (graph) res.json(graph);
-      else res.sendStatus(404);
-    });
+    this.addRoute(
+      "get",
+      "/dependency/endpoint/:namespace?",
+      async (req, res) => {
+        const graph = await this.getDependencyGraph(req.params["namespace"]);
+        if (graph) res.json(graph);
+        else res.sendStatus(404);
+      }
+    );
+    this.addRoute(
+      "get",
+      "/dependency/service/:namespace?",
+      async (req, res) => {
+        const graph = await this.getServiceDependencyGraph(
+          req.params["namespace"]
+        );
+        if (graph) res.json(graph);
+        else res.sendStatus(404);
+      }
+    );
     this.addRoute("get", "/chord/direct/:namespace?", async (req, res) => {
       res.json(await this.getDirectServiceChord(req.params["namespace"]));
     });
@@ -26,6 +42,34 @@ export default class GraphService extends IRequestHandler {
     return DataCache.getInstance()
       .getEndpointDependenciesSnap(namespace)
       ?.toGraphData();
+  }
+
+  async getServiceDependencyGraph(namespace?: string) {
+    const endpointGraph = await this.getDependencyGraph(namespace);
+    if (!endpointGraph) return endpointGraph;
+
+    const linkSet = new Set<string>();
+    endpointGraph.links.forEach((l) => {
+      const source = l.source.split("\t").slice(0, 2).join("\t");
+      const target = l.target.split("\t").slice(0, 2).join("\t");
+      linkSet.add(`${source}\n${target}`);
+    });
+
+    const links = [...linkSet]
+      .map((l) => l.split("\n"))
+      .map(([source, target]) => ({ source, target }));
+
+    const nodes = endpointGraph.nodes.filter((n) => n.id === n.group);
+    nodes.forEach((n) => {
+      n.linkInBetween = links.filter((l) => l.source === n.id);
+      n.dependencies = n.linkInBetween.map((l) => l.target);
+    });
+
+    const graph: IGraphData = {
+      nodes,
+      links,
+    };
+    return graph;
   }
 
   async getDirectServiceChord(namespace?: string) {
