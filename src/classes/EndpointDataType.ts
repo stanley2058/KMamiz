@@ -37,7 +37,7 @@ export default class EndpointDataType {
     for (const k of commonKeys) {
       const tSchema = thisSchemas.get(k)!;
       const cSchema = cmpSchemas.get(k)!;
-      if (!this.isMatched(tSchema, cSchema)) {
+      if (!this.isSchemaMatched(tSchema, cSchema)) {
         return false;
       }
       if (tSchema.requestContentType || tSchema.responseContentType) {
@@ -46,16 +46,40 @@ export default class EndpointDataType {
     }
     return result;
   }
-  private isMatched(
+  private isSchemaMatched(
     schemaA: IEndpointDataSchema,
     schemaB: IEndpointDataSchema
   ) {
     return (
       schemaA.requestContentType === schemaB.requestContentType &&
-      schemaA.requestSchema === schemaB.requestSchema &&
       schemaA.responseContentType === schemaB.responseContentType &&
-      schemaA.responseSchema === schemaB.responseSchema
+      this.isInterfaceMatched(schemaA.requestSchema, schemaB.requestSchema) &&
+      this.isInterfaceMatched(schemaA.responseSchema, schemaB.responseSchema)
     );
+  }
+  private isInterfaceMatched(interfaceA?: string, interfaceB?: string) {
+    if (interfaceA && interfaceB) {
+      const breakA = this.breakdownInterface(interfaceA);
+      const breakB = this.breakdownInterface(interfaceB);
+      const aMap = new Map<string, string>();
+      breakA.forEach(([field, t]) => aMap.set(field, t));
+
+      for (const [f, t] of breakB) {
+        const exist = aMap.get(f);
+        if (!exist || (exist !== t && exist !== "any" && t !== "any"))
+          return false;
+      }
+      return true;
+    }
+    return interfaceA === interfaceB;
+  }
+  private breakdownInterface(interfaceStr: string) {
+    const matched = interfaceStr
+      .split("\n")
+      .map((s) => s.match(/  ([^?:]*)[^ ]* ([^;]*)/))
+      .map((m) => (m || []).slice(1))
+      .filter((m) => m.length > 0);
+    return matched;
   }
 
   mergeSchemaWith(endpointData: EndpointDataType) {
