@@ -136,7 +136,14 @@ export default class MongoOperator {
       if (d._id) model.isNew = false;
       return model;
     });
-    await EndpointDependencyModel.bulkSave(models);
+    for (const model of models) {
+      try {
+        await model.save();
+      } catch (ex) {
+        Logger.error("Error saving EndpointDependencies, skipping.");
+        Logger.verbose("", ex);
+      }
+    }
   }
 
   async saveEndpointDataType(endpointDataType: EndpointDataType) {
@@ -152,7 +159,14 @@ export default class MongoOperator {
       if (endpointDataType._id) model.isNew = false;
       return model;
     });
-    await EndpointDataTypeModel.bulkSave(models);
+    for (const model of models) {
+      try {
+        await model.save();
+      } catch (ex) {
+        Logger.error("Error saving EndpointDataType, skipping.");
+        Logger.verbose("", ex);
+      }
+    }
   }
 
   async deleteAllRealtimeData() {
