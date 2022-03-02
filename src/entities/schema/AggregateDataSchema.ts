@@ -18,6 +18,7 @@ export const AggregateDataSchema = new Schema<IAggregateData>({
       endpoints: [
         {
           uniqueServiceName: { type: String, required: true },
+          uniqueEndpointName: { type: String, required: true },
           method: { type: String, required: true },
           totalRequests: { type: Number, required: true },
           totalServerErrors: { type: Number, required: true },
