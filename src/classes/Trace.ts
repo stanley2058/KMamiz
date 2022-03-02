@@ -11,7 +11,6 @@ import {
   IStructuredEnvoyLogTrace,
 } from "../entities/IEnvoyLog";
 import { IRealtimeData } from "../entities/IRealtimeData";
-import Logger from "../utils/Logger";
 import { IRequestTypeUpper } from "../entities/IRequestType";
 import IReplicaCount from "../entities/IReplicaCount";
 
@@ -29,10 +28,7 @@ export class Trace {
       .flat()
       .filter((t) => t.kind === "SERVER")
       .map((t): IRealtimeData => {
-        const [host, port, path, serviceName, namespace] = Utils.ExplodeUrl(
-          t.name,
-          true
-        );
+        const [, , , serviceName, namespace] = Utils.ExplodeUrl(t.name, true);
         const version = t.tags["istio.canonical_revision"];
         const method = t.tags["http.method"] as IRequestTypeUpper;
         const uniqueServiceName = `${serviceName}\t${namespace}\t${version}`;
