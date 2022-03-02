@@ -111,25 +111,29 @@ export class Trace {
       });
     });
 
-    for (const [spanId, { span, upper }] of [...spanDependencyMap.entries()]) {
+    const filtered = [...spanDependencyMap.entries()].filter(
+      ([, s]) => s.span.kind === "SERVER"
+    );
+    for (const [spanId, { span, upper }] of filtered) {
       let parentId = span.parentId;
       let depth = 1;
       while (parentId) {
-        const clientParent = spanDependencyMap.get(parentId);
-        if (!clientParent) break;
-        const parentNode = spanDependencyMap.get(
-          clientParent.span.parentId || ""
-        );
+        const parentNode = spanDependencyMap.get(parentId);
         if (!parentNode) break;
-        upper.set(parentId, depth);
+        if (parentNode.span.kind === "CLIENT") {
+          parentId = parentNode.span.parentId;
+          continue;
+        }
+        upper.set(parentNode.span.id, depth);
         parentNode.lower.set(spanId, depth);
         parentId = parentNode.span.parentId;
         depth++;
       }
     }
 
-    const dependencies = [...spanDependencyMap.values()].map(
-      ({ span, upper, lower }): IEndpointDependency => {
+    const dependencies = filtered
+      .map(([, val]) => val)
+      .map(({ span, upper, lower }): IEndpointDependency => {
         const upperMap = new Map<string, IEndpointInfo>();
         [...upper.entries()].map(([s, distance]) => {
           const endpoint = Trace.ToEndpointInfo(spanDependencyMap.get(s)!.span);
@@ -166,8 +170,7 @@ export class Trace {
           dependBy,
           dependsOn,
         };
-      }
-    );
+      });
     return new EndpointDependencies(dependencies);
   }
 
