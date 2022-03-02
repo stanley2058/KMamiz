@@ -76,6 +76,8 @@ export class RealtimeData {
                 : undefined,
               latestTimestamp: combined.timestamp,
               latencies: subGroup.map((r) => r.latency),
+              requestContentType: combined.requestContentType,
+              responseContentType: combined.responseContentType,
             };
           }
         );
