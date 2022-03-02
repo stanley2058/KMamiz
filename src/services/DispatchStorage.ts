@@ -12,7 +12,7 @@ export default class DispatchStorage {
     let dependencies = DataCache.getInstance().getEndpointDependenciesSnap();
 
     await MongoOperator.getInstance().deleteAllEndpointDataType();
-    await MongoOperator.getInstance().saveEndpointDataTypes(dataTypes);
+    await MongoOperator.getInstance().insertEndpointDataTypes(dataTypes);
     if (rlData) {
       await MongoOperator.getInstance().deleteAllCombinedRealtimeData();
       await MongoOperator.getInstance().insertCombinedRealtimeData(rlData);

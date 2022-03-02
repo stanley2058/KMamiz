@@ -160,6 +160,14 @@ export default class MongoOperator {
     return results;
   }
 
+  async insertEndpointDataTypes(endpointDataType: EndpointDataType[]) {
+    const res = await EndpointDataTypeModel.insertMany(
+      endpointDataType.map((e) => e.endpointDataType)
+    );
+
+    return res.map((r) => r.toObject());
+  }
+
   async getAllCombinedRealtimeData() {
     return new CombinedRealtimeData(
       (await CombinedRealtimeDataModel.find({}).exec()).map((r) => r.toObject())
@@ -171,6 +179,7 @@ export default class MongoOperator {
       await CombinedRealtimeDataModel.insertMany(cRlData.combinedRealtimeData)
     );
   }
+
   async saveCombinedRealtimeData(cRlData: CombinedRealtimeData) {
     const results: ICombinedRealtimeData[] = [];
     for (const rlData of cRlData.combinedRealtimeData) {
@@ -191,7 +200,7 @@ export default class MongoOperator {
     return await CombinedRealtimeDataModel.deleteMany({});
   }
   async deleteAllEndpointDependencies() {
-    return await EndpointDataTypeModel.deleteMany({});
+    return await EndpointDependencyModel.deleteMany({});
   }
   async deleteAllEndpointDataType() {
     return await EndpointDataTypeModel.deleteMany({});
