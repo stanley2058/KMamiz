@@ -48,13 +48,26 @@ export default class EndpointUtils {
   private static combineAndMaskUrls(urls: string[]) {
     const urlTable = urls.map((u) => u.split("/"));
     let masked = urlTable[0];
+    let maskedPosition: Set<string>[] = [];
     for (let i = 1; i < urlTable.length; i++) {
       for (let j = 0; j < masked.length; j++) {
-        if (masked[j] !== "{}" && masked[j] !== urlTable[i][j]) {
+        if (masked[j] !== urlTable[i][j]) {
+          if (!maskedPosition[j]) maskedPosition[j] = new Set([masked[j]]);
+          maskedPosition[j].add(urlTable[i][j]);
           masked[j] = "{}";
         }
       }
     }
+
+    for (let i = 0; i < masked.length; i++) {
+      if (masked[i] !== "{}") continue;
+      if (maskedPosition[i].size > 5) continue;
+      masked[i] = `{${[...maskedPosition[i]]
+        .map((m) => (m || "").trim())
+        .filter((m) => !!m)
+        .join(",")}}`;
+    }
+
     return masked.join("/");
   }
 }
