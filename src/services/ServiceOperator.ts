@@ -9,7 +9,6 @@ import MongoOperator from "./MongoOperator";
 import DataCache from "./DataCache";
 import Scheduler from "./Scheduler";
 import ZipkinService from "./ZipkinService";
-import EndpointDataType from "../classes/EndpointDataType";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -82,30 +81,16 @@ export default class ServiceOperator {
       EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs),
       replicas
     );
-    await MongoOperator.getInstance().saveRealtimeData(data);
 
     // dispatch data aggregation asynchronously
     ServiceOperator.getInstance().doBackgroundDataAggregation(traces, data);
   }
 
   private async doBackgroundDataAggregation(traces: Trace, data: RealtimeData) {
-    // merge endpoint dependency and save to database
-    const endpointDependencies = (
-      await MongoOperator.getInstance().getEndpointDependencies()
-    ).combineWith(traces.toEndpointDependencies());
-    MongoOperator.getInstance().saveEndpointDependencies(endpointDependencies);
+    const existingDep = DataCache.getInstance().getEndpointDependenciesSnap();
+    const newDep = traces.toEndpointDependencies();
+    const dep = existingDep ? existingDep.combineWith(newDep) : newDep;
 
-    // merge endpoint datatype and save to database
-    const dataTypes: EndpointDataType[] = [];
-    for (let e of data.extractEndpointDataType()) {
-      const existing = await MongoOperator.getInstance().getEndpointDataType(
-        e.endpointDataType.uniqueEndpointName
-      );
-      if (existing) e = existing.mergeSchemaWith(e);
-      dataTypes.push(e);
-    }
-    MongoOperator.getInstance().saveEndpointDataTypes(dataTypes);
-
-    DataCache.getInstance().updateCurrentView(data, endpointDependencies);
+    DataCache.getInstance().updateCurrentView(data, dep);
   }
 }

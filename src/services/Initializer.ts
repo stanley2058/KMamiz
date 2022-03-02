@@ -4,6 +4,7 @@ import IReplicaCount from "../entities/IReplicaCount";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
 import DataCache from "./DataCache";
+import DispatchStorage from "./DispatchStorage";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 import Scheduler from "./Scheduler";
@@ -77,6 +78,11 @@ export default class Initializer {
       "realtime",
       GlobalSettings.RealtimeInterval,
       ServiceOperator.getInstance().retrieveRealtimeData
+    );
+    Scheduler.getInstance().register(
+      "dispatch",
+      GlobalSettings.DispatchInterval,
+      DispatchStorage.getInstance().sync
     );
     Scheduler.getInstance().start();
   }
