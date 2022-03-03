@@ -41,7 +41,7 @@ export default class ServiceOperator {
 
     await MongoOperator.getInstance().saveAggregateData(newAggData);
     await MongoOperator.getInstance().saveHistoryData(historyData);
-    await MongoOperator.getInstance().deleteAllCombinedRealtimeData();
+    DataCache.getInstance().resetCombinedRealtimeData();
   }
 
   async retrieveRealtimeData() {

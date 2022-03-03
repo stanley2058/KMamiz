@@ -36,6 +36,64 @@ export default class DataCache {
       .then((res) => (this._replicasView = res));
   }
 
+  resetCombinedRealtimeData() {
+    this._combinedRealtimeDataView = undefined;
+  }
+
+  async getRealtimeHistoryData(namespace?: string) {
+    const historyData = this.labelHistoryData(
+      await MongoOperator.getInstance().getHistoryData(namespace)
+    );
+
+    if (!this._combinedRealtimeDataView || !this._endpointDependenciesView) {
+      return historyData;
+    }
+
+    const rlHistory = this._combinedRealtimeDataView.toHistoryData(
+      this._endpointDependenciesView.toServiceDependencies(),
+      this._replicasView,
+      this._labelMapping
+    );
+    return historyData.concat(rlHistory);
+  }
+
+  async getRealtimeAggregateData(namespace?: string) {
+    const aggregateData = await MongoOperator.getInstance().getAggregateData(
+      namespace
+    );
+    if (!this._combinedRealtimeDataView || !this._endpointDependenciesView) {
+      return aggregateData && this.labelAggregateData(aggregateData);
+    }
+    const { aggregateData: rlAggregateData } = this.filterCombinedRealtimeData(
+      this._combinedRealtimeDataView,
+      namespace
+    ).toAggregatedDataAndHistoryData(
+      this._endpointDependenciesView.toServiceDependencies(),
+      this._replicasView,
+      this._labelMapping
+    );
+    if (!aggregateData) return rlAggregateData;
+
+    return new AggregateData(this.labelAggregateData(aggregateData)).combine(
+      rlAggregateData
+    ).aggregateData;
+  }
+
+  async loadBaseData() {
+    Logger.verbose("Loading CombinedRealtimeData into cache.");
+    this.setCombinedRealtimeData(
+      await MongoOperator.getInstance().getAllCombinedRealtimeData()
+    );
+    Logger.verbose("Loading EndpointDependencies into cache.");
+    this.setEndpointDependencies(
+      await MongoOperator.getInstance().getEndpointDependencies()
+    );
+    Logger.verbose("Loading current ReplicaCounts into cache.");
+    this._replicasView = await KubernetesService.getInstance().getReplicas(
+      this._combinedRealtimeDataView?.getContainingNamespaces()
+    );
+  }
+
   private setCombinedRealtimeData(data: CombinedRealtimeData) {
     if (!this._combinedRealtimeDataView) this._combinedRealtimeDataView = data;
     else {
@@ -50,51 +108,13 @@ export default class DataCache {
       this._endpointDataType
     );
   }
+
   private setEndpointDependencies(endpointDependencies: EndpointDependencies) {
     endpointDependencies = endpointDependencies.trim();
     this._endpointDependenciesView = endpointDependencies;
     this._labeledEndpointDependenciesView = new EndpointDependencies(
       endpointDependencies.label()
     );
-  }
-
-  async getRealtimeHistoryData(namespace?: string) {
-    const historyData = await MongoOperator.getInstance().getHistoryData(
-      namespace
-    );
-
-    if (!this._combinedRealtimeDataView || !this._endpointDependenciesView) {
-      return historyData;
-    }
-
-    const rlHistory = this._combinedRealtimeDataView.toHistoryData(
-      this._endpointDependenciesView.toServiceDependencies(),
-      this._replicasView,
-      this._labelMapping
-    );
-    return this.labelHistoryData(historyData).concat(rlHistory);
-  }
-
-  async getRealtimeAggregateData(namespace?: string) {
-    const aggregateData = await MongoOperator.getInstance().getAggregateData(
-      namespace
-    );
-    if (!this._combinedRealtimeDataView || !this._endpointDependenciesView) {
-      return aggregateData;
-    }
-    const { aggregateData: rlAggregateData } = this.filterCombinedRealtimeData(
-      this._combinedRealtimeDataView,
-      namespace
-    ).toAggregatedDataAndHistoryData(
-      this._endpointDependenciesView.toServiceDependencies(),
-      this._replicasView,
-      this._labelMapping
-    );
-    if (!aggregateData) return this.labelAggregateData(rlAggregateData);
-
-    return new AggregateData(this.labelAggregateData(aggregateData)).combine(
-      rlAggregateData
-    ).aggregateData;
   }
 
   private filterCombinedRealtimeData(
@@ -158,21 +178,6 @@ export default class DataCache {
     return labelMap.get(label) || [label];
   }
 
-  async loadBaseData() {
-    Logger.verbose("Loading CombinedRealtimeData into cache.");
-    this.setCombinedRealtimeData(
-      await MongoOperator.getInstance().getAllCombinedRealtimeData()
-    );
-    Logger.verbose("Loading EndpointDependencies into cache.");
-    this.setEndpointDependencies(
-      await MongoOperator.getInstance().getEndpointDependencies()
-    );
-    Logger.verbose("Loading current ReplicaCounts into cache.");
-    this._replicasView = await KubernetesService.getInstance().getReplicas(
-      this._combinedRealtimeDataView?.getContainingNamespaces()
-    );
-  }
-
   labelHistoryData(historyData: IHistoryData[]) {
     historyData.forEach((h) => {
       h.services.forEach((s) => {
@@ -185,6 +190,7 @@ export default class DataCache {
     });
     return historyData;
   }
+
   labelAggregateData(aggregateData: IAggregateData) {
     aggregateData.services.forEach((s) => {
       s.endpoints.forEach((e) => {
