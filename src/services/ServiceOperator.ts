@@ -15,6 +15,8 @@ export default class ServiceOperator {
   static getInstance = () => this.instance || (this.instance = new this());
   private constructor() {}
 
+  private previousRealtimeTime = Date.now();
+
   async aggregateDailyData() {
     const combinedRealtimeData =
       await MongoOperator.getInstance().getAllCombinedRealtimeData();
@@ -53,13 +55,14 @@ export default class ServiceOperator {
     }
 
     // query traces from last job time to now
-    const lookBack = job.nextDate().toDate().getTime() - Date.now();
-    let rawTrace = (
+    const lookBack =
+      Date.now() - ServiceOperator.getInstance().previousRealtimeTime;
+    ServiceOperator.getInstance().previousRealtimeTime = Date.now();
+    let rawTrace =
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         lookBack
-      )
-    ).slice(0, 25000);
-    const traces = new Trace(rawTrace);
+      );
+    const traces = new Trace(rawTrace.slice(0, 25000));
 
     // get namespaces from traces for querying envoy logs
     const namespaces = traces.toRealTimeData().getContainingNamespaces();
