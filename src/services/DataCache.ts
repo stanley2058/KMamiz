@@ -80,6 +80,10 @@ export default class DataCache {
   }
 
   async loadBaseData() {
+    Logger.verbose("Loading EndpointDataType into cache.");
+    this.setEndpointDataType(
+      await MongoOperator.getInstance().getAllEndpointDataTypes()
+    );
     Logger.verbose("Loading CombinedRealtimeData into cache.");
     this.setCombinedRealtimeData(
       await MongoOperator.getInstance().getAllCombinedRealtimeData()
@@ -101,9 +105,15 @@ export default class DataCache {
         this._combinedRealtimeDataView.combineWith(data);
     }
 
-    this._endpointDataType =
-      this._combinedRealtimeDataView.extractEndpointDataType();
+    if (this._combinedRealtimeDataView) {
+      this.setEndpointDataType(
+        this._combinedRealtimeDataView.extractEndpointDataType()
+      );
+    }
+  }
 
+  private setEndpointDataType(dataType: EndpointDataType[]) {
+    this._endpointDataType = dataType;
     this._labelMapping = EndpointUtils.CreateEndpointLabelMapping(
       this._endpointDataType
     );

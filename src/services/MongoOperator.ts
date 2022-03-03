@@ -93,10 +93,16 @@ export default class MongoOperator {
     if (!res) return null;
     return new EndpointDataType(res.toObject());
   }
+
   async getEndpointDataTypes(uniqueEndpointNames: string[]) {
     const res = await EndpointDataTypeModel.find({
       uniqueEndpointName: { $in: uniqueEndpointNames },
     }).exec();
+    return res.map((r) => new EndpointDataType(r.toObject()));
+  }
+
+  async getAllEndpointDataTypes() {
+    const res = await EndpointDataTypeModel.find({}).exec();
     return res.map((r) => new EndpointDataType(r.toObject()));
   }
 
