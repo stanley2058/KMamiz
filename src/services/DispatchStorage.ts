@@ -8,8 +8,9 @@ export default class DispatchStorage {
   private _lock: boolean = false;
 
   async sync() {
-    if (this._lock) return await this.waitUntilUnlock();
-    this._lock = true;
+    if (DispatchStorage.getInstance()._lock)
+      return await DispatchStorage.getInstance().waitUntilUnlock();
+    DispatchStorage.getInstance()._lock = true;
 
     let rlData = DataCache.getInstance().combinedRealtimeDataSnap;
     let dataTypes = DataCache.getInstance().endpointDataTypeSnap;
@@ -26,13 +27,13 @@ export default class DispatchStorage {
       await MongoOperator.getInstance().saveEndpointDependencies(dependencies);
     }
 
-    this._lock = false;
+    DispatchStorage.getInstance()._lock = false;
   }
 
   waitUntilUnlock() {
     return new Promise<void>((res) => {
       const timer = setInterval(() => {
-        if (!this._lock) {
+        if (!DispatchStorage.getInstance()._lock) {
           clearInterval(timer);
           res();
         }
