@@ -129,7 +129,7 @@ export default class RiskAnalyzer {
     const factorMap = new Map<string, number>();
     dependencies.forEach(({ uniqueServiceName, links, dependency }) => {
       const factor = links.reduce(
-        (prev, curr) => prev + curr.dependsOn / curr.distance,
+        (prev, curr) => prev + curr.dependBy / curr.distance,
         0
       );
       const isGateway = dependency.find((d) => d.dependBy.length === 0);
