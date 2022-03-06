@@ -15,8 +15,21 @@ export default class EndpointUtils {
       endpoints.forEach((e) => {
         if (grouped.has(e.endpointDataType.uniqueEndpointName)) return;
         const group: EndpointDataType[] = endpoints.filter((ep) => {
-          if (e.endpointDataType.method !== ep.endpointDataType.method)
+          if (e.endpointDataType.method !== ep.endpointDataType.method) {
             return false;
+          }
+
+          const [, , , , baseUrl] =
+            e.endpointDataType.uniqueEndpointName.split("\t");
+          const [, , , , cmpUrl] =
+            ep.endpointDataType.uniqueEndpointName.split("\t");
+          const [, , basePath] = Utils.ExplodeUrl(baseUrl);
+          const [, , cmpPath] = Utils.ExplodeUrl(cmpUrl);
+
+          if (!EndpointUtils.hasExactAmountOfToken(basePath, cmpPath)) {
+            return false;
+          }
+
           return e.hasMatchedSchema(ep);
         });
         if (group.length > 0) groups.push(group);
@@ -70,5 +83,9 @@ export default class EndpointUtils {
     }
 
     return masked.join("/");
+  }
+
+  private static hasExactAmountOfToken(pathA: string, pathB: string) {
+    return pathA.split("/").length === pathB.split("/").length;
   }
 }
