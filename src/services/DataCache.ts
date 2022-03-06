@@ -105,15 +105,28 @@ export default class DataCache {
         this._combinedRealtimeDataView.combineWith(data);
     }
 
-    if (this._combinedRealtimeDataView) {
-      this.setEndpointDataType(
-        this._combinedRealtimeDataView.extractEndpointDataType()
-      );
-    }
+    this.setEndpointDataType(
+      this._combinedRealtimeDataView.extractEndpointDataType()
+    );
   }
 
-  private setEndpointDataType(dataType: EndpointDataType[]) {
-    this._endpointDataType = dataType;
+  private setEndpointDataType(newDataType: EndpointDataType[]) {
+    if (this._endpointDataType) {
+      const dataTypeMap = new Map<string, EndpointDataType>();
+      this._endpointDataType.forEach((d) => {
+        dataTypeMap.set(d.endpointDataType.uniqueEndpointName, d);
+      });
+
+      newDataType.forEach((d) => {
+        const id = d.endpointDataType.uniqueEndpointName;
+        const existing = dataTypeMap.get(id);
+        dataTypeMap.set(id, existing ? existing.mergeSchemaWith(d) : d);
+      });
+
+      newDataType = [...dataTypeMap.values()];
+    }
+
+    this._endpointDataType = newDataType;
     this._labelMapping = EndpointUtils.CreateEndpointLabelMapping(
       this._endpointDataType
     );
