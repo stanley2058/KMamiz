@@ -110,14 +110,14 @@ export default class Utils {
    * @see https://en.wikipedia.org/wiki/Cosine_similarity
    */
   static InterfaceCosineSimilarity(interfaceA: string, interfaceB: string) {
-    const setA = this.matchInterfaceFieldAndTrim(interfaceA);
-    const setB = this.matchInterfaceFieldAndTrim(interfaceB);
+    const setA = this.MatchInterfaceFieldAndTrim(interfaceA);
+    const setB = this.MatchInterfaceFieldAndTrim(interfaceB);
     const baseSet = [...new Set<string>([...setA, ...setB])].sort();
-    const vectorA = this.createStandardVector(baseSet, setA);
-    const vectorB = this.createStandardVector(baseSet, setB);
-    return this.cosSim(vectorA, vectorB);
+    const vectorA = this.CreateStandardVector(baseSet, setA);
+    const vectorB = this.CreateStandardVector(baseSet, setB);
+    return this.CosSim(vectorA, vectorB);
   }
-  private static matchInterfaceFieldAndTrim(interfaceStr: string) {
+  static MatchInterfaceFieldAndTrim(interfaceStr: string) {
     const fields = new Set(
       [
         ...(interfaceStr.match(/^[ ]+([^{}\n])*/gm) || []),
@@ -126,15 +126,15 @@ export default class Utils {
     );
     return fields;
   }
-  private static vectorMagnitude(vector: number[]) {
-    return Math.sqrt(vector.reduce((acc, cur) => acc + Math.pow(cur, 2), 0));
-  }
-  private static createStandardVector(base: string[], vector: Set<string>) {
+  static CreateStandardVector(base: string[], vector: Set<string>) {
     const v: number[] = base.map((l) => (vector.has(l) ? 1 : 0));
     const m = this.vectorMagnitude(v);
     return v.map((val) => (m ? val / m : 0));
   }
-  private static cosSim(vectorA: number[], vectorB: number[]) {
+  private static vectorMagnitude(vector: number[]) {
+    return Math.sqrt(vector.reduce((acc, cur) => acc + Math.pow(cur, 2), 0));
+  }
+  static CosSim(vectorA: number[], vectorB: number[]) {
     return vectorA.reduce((score, curr, i) => score + curr * vectorB[i], 0);
   }
 

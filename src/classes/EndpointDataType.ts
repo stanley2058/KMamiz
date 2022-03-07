@@ -1,6 +1,10 @@
 import IEndpointDataType, {
   IEndpointDataSchema,
 } from "../entities/IEndpointDataType";
+import {
+  IEndpointCohesion,
+  IServiceCohesion,
+} from "../entities/IServiceCohesion";
 import Utils from "../utils/Utils";
 
 export default class EndpointDataType {
@@ -132,5 +136,136 @@ export default class EndpointDataType {
       ...this._endpointDataType,
       schemas: this._endpointDataType.schemas.concat([...combinedMap.values()]),
     });
+  }
+
+  static GetServiceCohesion(dataTypes: EndpointDataType[]) {
+    const dataTypeMapping = EndpointDataType.createDataTypeMapping(dataTypes);
+
+    return [...dataTypeMapping.entries()].map(
+      ([uniqueServiceName, endpoints]): IServiceCohesion => {
+        const preprocessed = EndpointDataType.preprocessEndpoints(endpoints);
+        const endpointCohesion: IEndpointCohesion[] =
+          EndpointDataType.createEndpointCohesion(preprocessed);
+        const sum = endpointCohesion.reduce((acc, ec) => acc + ec.score, 0);
+        const cohesiveness =
+          endpointCohesion.length > 0 ? sum / endpointCohesion.length : 0;
+
+        return {
+          uniqueServiceName,
+          cohesiveness,
+          endpointCohesion,
+        };
+      }
+    );
+  }
+
+  private static createDataTypeMapping(dataTypes: EndpointDataType[]) {
+    const dataTypeMapping = new Map<string, Map<string, EndpointDataType>>();
+    dataTypes.forEach((d) => {
+      const dType = d._endpointDataType;
+      if (!dataTypeMapping.has(dType.uniqueServiceName)) {
+        dataTypeMapping.set(
+          dType.uniqueServiceName,
+          new Map<string, EndpointDataType>()
+        );
+      }
+      const serviceMap = dataTypeMapping.get(dType.uniqueServiceName)!;
+      if (!serviceMap.has(dType.labelName!)) {
+        serviceMap.set(dType.labelName!, d);
+      } else {
+        serviceMap.set(
+          dType.labelName!,
+          serviceMap.get(dType.labelName!)!.mergeSchemaWith(d)
+        );
+      }
+    });
+    return dataTypeMapping;
+  }
+
+  private static preprocessEndpoints(endpoints: Map<string, EndpointDataType>) {
+    const preprocessed = [...endpoints.entries()].map(([endpointName, e]) => {
+      const contentTypes = new Set<string>();
+      const combined = e._endpointDataType.schemas.reduce(
+        (prev, curr) => {
+          if (curr.requestContentType === "application/json") {
+            prev.request = { ...prev.request, ...curr.requestSample };
+          } else if (curr.requestContentType) {
+            contentTypes.add(curr.requestContentType);
+          }
+
+          if (curr.responseContentType === "application/json") {
+            prev.request = { ...prev.request, ...curr.responseSample };
+          } else if (curr.responseContentType) {
+            contentTypes.add(curr.responseContentType);
+          }
+          return prev;
+        },
+        { request: {}, response: {} } as { request: any; response: any }
+      );
+
+      return {
+        endpointName,
+        contentTypes,
+        requestSchema: Utils.MatchInterfaceFieldAndTrim(
+          Utils.ObjectToInterfaceString(combined.request)
+        ),
+        responseSchema: Utils.MatchInterfaceFieldAndTrim(
+          Utils.ObjectToInterfaceString(combined.response)
+        ),
+      };
+    });
+    return preprocessed;
+  }
+
+  private static createEndpointCohesion(
+    preprocessed: {
+      endpointName: string;
+      contentTypes: Set<string>;
+      requestSchema: Set<string>;
+      responseSchema: Set<string>;
+    }[]
+  ) {
+    const endpointCohesion: IEndpointCohesion[] = [];
+    for (let i = 0; i < preprocessed.length - 1; i++) {
+      const a = preprocessed[i];
+      for (let j = i + 1; j < preprocessed.length; j++) {
+        const b = preprocessed[j];
+        const scores: number[] = [];
+
+        const requestSim = EndpointDataType.cosineSim(
+          a.requestSchema,
+          b.requestSchema
+        );
+        const responseSim = EndpointDataType.cosineSim(
+          a.responseSchema,
+          b.responseSchema
+        );
+        const typeSim = EndpointDataType.cosineSim(
+          a.contentTypes,
+          b.contentTypes
+        );
+
+        if (requestSim) scores.push(requestSim);
+        if (responseSim) scores.push(responseSim);
+        if (typeSim) scores.push(typeSim);
+        endpointCohesion.push({
+          aName: a.endpointName,
+          bName: b.endpointName,
+          score:
+            scores.length > 0
+              ? scores.reduce((a, b) => a + b) / scores.length
+              : 0,
+        });
+      }
+    }
+    return endpointCohesion;
+  }
+  private static cosineSim(setA: Set<string>, setB: Set<string>) {
+    if (setA.size === 0 && setB.size === 0) return null;
+    const based = [...new Set([...setA, ...setB])];
+    return Utils.CosSim(
+      Utils.CreateStandardVector(based, setA),
+      Utils.CreateStandardVector(based, setB)
+    );
   }
 }
