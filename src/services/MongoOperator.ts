@@ -1,6 +1,6 @@
 import { connect, Model, Types } from "mongoose";
 import { AggregateData } from "../classes/AggregateData";
-import { EndpointDependencies } from "../classes/EndpointDependency";
+import { EndpointDependencies } from "../classes/EndpointDependencies";
 import IAggregateData from "../entities/IAggregateData";
 import IHistoryData from "../entities/IHistoryData";
 import GlobalSettings from "../GlobalSettings";

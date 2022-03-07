@@ -1,7 +1,7 @@
 import { AggregateData } from "../classes/AggregateData";
 import CombinedRealtimeData from "../classes/CombinedRealtimeData";
 import EndpointDataType from "../classes/EndpointDataType";
-import { EndpointDependencies } from "../classes/EndpointDependency";
+import { EndpointDependencies } from "../classes/EndpointDependencies";
 import IAggregateData from "../entities/IAggregateData";
 import IHistoryData from "../entities/IHistoryData";
 import IReplicaCount from "../entities/IReplicaCount";

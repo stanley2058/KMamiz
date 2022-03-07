@@ -4,7 +4,7 @@ import { RealtimeData } from "../src/classes/RealtimeData";
 import IServiceDependency from "../src/entities/IServiceDependency";
 
 import { MockEndpointDependencies, MockLogs, MockTrace } from "./MockData";
-import { EndpointDependencies } from "../src/classes/EndpointDependency";
+import { EndpointDependencies } from "../src/classes/EndpointDependencies";
 import Utils from "../src/utils/Utils";
 
 describe("DataTransformer", () => {

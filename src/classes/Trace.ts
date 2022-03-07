@@ -1,5 +1,5 @@
 import Utils from "../utils/Utils";
-import { EndpointDependencies } from "./EndpointDependency";
+import { EndpointDependencies } from "./EndpointDependencies";
 import { ITrace } from "../entities/external/ITrace";
 import { RealtimeData } from "./RealtimeData";
 import {

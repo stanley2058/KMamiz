@@ -1,4 +1,4 @@
-import { EndpointDependencies } from "../classes/EndpointDependency";
+import { EndpointDependencies } from "../classes/EndpointDependencies";
 import IAreaLineChartData from "../entities/IAreaLineChartData";
 import IGraphData from "../entities/IGraphData";
 import IRequestHandler from "../entities/IRequestHandler";
