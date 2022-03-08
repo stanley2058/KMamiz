@@ -1,7 +1,10 @@
+import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import IAreaLineChartData from "../entities/IAreaLineChartData";
 import IGraphData from "../entities/IGraphData";
 import IRequestHandler from "../entities/IRequestHandler";
+import { IServiceCohesion } from "../entities/IServiceCohesion";
+import { ITotalServiceInterfaceCohesion } from "../entities/ITotalServiceInterfaceCohesion";
 import DataCache from "../services/DataCache";
 
 export default class GraphService extends IRequestHandler {
@@ -111,5 +114,43 @@ export default class GraphService extends IRequestHandler {
         });
       })
       .flat();
+  }
+
+  getServiceCohesion(namespace?: string) {
+    const dependencies =
+      DataCache.getInstance().getEndpointDependenciesSnap(namespace);
+    if (!dependencies) return [];
+
+    const dataCohesion = EndpointDataType.GetServiceCohesion(
+      DataCache.getInstance().endpointDataTypeSnap
+    ).reduce(
+      (map, d) => map.set(d.uniqueServiceName, d),
+      new Map<string, IServiceCohesion>()
+    );
+
+    const usageCohesions = dependencies.toServiceEndpointCohesion();
+
+    return usageCohesions.map((u): ITotalServiceInterfaceCohesion => {
+      const uniqueServiceName = u.uniqueServiceName;
+      const [service, namespace, version] = uniqueServiceName.split("\t");
+      const dCohesion = dataCohesion.get(uniqueServiceName)!;
+      return {
+        uniqueServiceName,
+        name: `${service}.${namespace} (${version})`,
+        dataCohesion: dCohesion.cohesiveness,
+        usageCohesion: u.endpointUsageCohesion,
+        totalInterfaceCohesion:
+          (dCohesion.cohesiveness + u.endpointUsageCohesion) / 2,
+        endpointCohesion: dCohesion.endpointCohesion,
+        totalEndpoints: u.totalEndpoints,
+        consumers: u.consumers,
+      };
+    });
+  }
+
+  getServiceInstability(namespace?: string) {
+    const dependencies =
+      DataCache.getInstance().getEndpointDependenciesSnap(namespace);
+    if (!dependencies) return [];
   }
 }

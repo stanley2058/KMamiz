@@ -486,4 +486,27 @@ export class EndpointDependencies {
       }
     );
   }
+
+  toServiceInstability() {
+    const serviceDependencies = this.toServiceDependencies();
+
+    return serviceDependencies.map((s) => {
+      const { dependBy, dependsOn } = s.links.reduce(
+        (acc, cur) => {
+          if (cur.dependBy > 0) acc.dependBy++;
+          if (cur.dependsOn > 0) acc.dependsOn++;
+          return acc;
+        },
+        { dependBy: 0, dependsOn: 0 }
+      );
+
+      return {
+        uniqueServiceName: s.uniqueServiceName,
+        name: `${s.service}.${s.namespace} (${s.version})`,
+        dependBy,
+        dependsOn,
+        instability: dependsOn / (dependsOn + dependBy),
+      };
+    });
+  }
 }
