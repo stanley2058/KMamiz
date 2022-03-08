@@ -6,6 +6,7 @@ import IGraphData, { ILink, INode } from "../entities/IGraphData";
 import IServiceDependency, {
   IServiceLinkInfo,
 } from "../entities/IServiceDependency";
+import { IServiceEndpointCohesion } from "../entities/IServiceEndpointCohesion";
 import DataCache from "../services/DataCache";
 
 export class EndpointDependencies {
@@ -442,5 +443,47 @@ export class EndpointDependencies {
         )
       ),
     };
+  }
+
+  toServiceEndpointCohesion() {
+    const serviceEndpointMap = new Map<string, IEndpointDependency[]>();
+    this._dependencies.forEach((d) => {
+      const id = d.endpoint.uniqueServiceName;
+      serviceEndpointMap.set(
+        id,
+        (serviceEndpointMap.get(id) || []).concat([d])
+      );
+    });
+
+    return [...serviceEndpointMap.entries()].map(
+      ([uniqueServiceName, endpoints]): IServiceEndpointCohesion => {
+        const serviceUtilizedMap = endpoints
+          .flatMap((e) => e.dependBy.filter((d) => d.distance === 1))
+          .reduce(
+            (map, { endpoint: { uniqueServiceName: id } }) =>
+              map.set(id, (map.get(id) || 0) + 1),
+            new Map<string, number>()
+          );
+
+        const consumers = [...serviceUtilizedMap.entries()].map(
+          ([uniqueServiceName, consumes]) => ({ uniqueServiceName, consumes })
+        );
+
+        let endpointUsageCohesion = 0;
+        if (endpoints.length > 0 && consumers.length > 0) {
+          endpointUsageCohesion = consumers.reduce((acc, cur) => {
+            return acc + cur.consumes / endpoints.length;
+          }, 0);
+          endpointUsageCohesion /= consumers.length;
+        }
+
+        return {
+          uniqueServiceName,
+          totalEndpoints: endpoints.length,
+          consumers,
+          endpointUsageCohesion,
+        };
+      }
+    );
   }
 }
