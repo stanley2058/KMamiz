@@ -70,19 +70,21 @@ export default class DataCache {
     ) {
       return aggregateData && this.labelAggregateData(aggregateData);
     }
-    const { aggregateData: rlAggregateData } = this.filterCombinedRealtimeData(
+    const rlAggregateData = this.filterCombinedRealtimeData(
       this._combinedRealtimeDataView,
       namespace
     ).toAggregatedDataAndHistoryData(
       this._labeledEndpointDependenciesView.toServiceDependencies(),
       this._replicasView,
       this._labelMapping
-    );
+    ).aggregateData;
     if (!aggregateData) return rlAggregateData;
 
-    return new AggregateData(this.labelAggregateData(aggregateData)).combine(
-      rlAggregateData
-    ).aggregateData;
+    return this.labelAggregateData(
+      new AggregateData(this.labelAggregateData(aggregateData)).combine(
+        rlAggregateData
+      ).aggregateData
+    );
   }
 
   async loadBaseData() {
@@ -234,6 +236,17 @@ export default class DataCache {
   }
 
   labelHistoryData(historyData: IHistoryData[]) {
+    const uniqueNames = new Set(
+      historyData
+        .flatMap((h) => h.services)
+        .flatMap((s) => s.endpoints)
+        .flatMap((e) => e.uniqueEndpointName)
+    );
+    this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
+      [...uniqueNames],
+      this._labelMapping
+    );
+
     historyData.forEach((h) => {
       h.services.forEach((s) => {
         s.endpoints.forEach((e) => {
@@ -247,6 +260,16 @@ export default class DataCache {
   }
 
   labelAggregateData(aggregateData: IAggregateData) {
+    const uniqueNames = new Set(
+      aggregateData.services
+        .flatMap((s) => s.endpoints)
+        .flatMap((e) => e.uniqueEndpointName)
+    );
+    this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
+      [...uniqueNames],
+      this._labelMapping
+    );
+
     aggregateData.services.forEach((s) => {
       s.endpoints.forEach((e) => {
         e.labelName = this.getLabelFromUniqueEndpointName(e.uniqueEndpointName);
