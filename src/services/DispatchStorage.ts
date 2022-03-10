@@ -1,3 +1,4 @@
+import Logger from "../utils/Logger";
 import DataCache from "./DataCache";
 import MongoOperator from "./MongoOperator";
 
@@ -12,19 +13,52 @@ export default class DispatchStorage {
       return await DispatchStorage.getInstance().waitUntilUnlock();
     DispatchStorage.getInstance()._lock = true;
 
-    let rlData = DataCache.getInstance().combinedRealtimeDataSnap;
-    let dataTypes = DataCache.getInstance().endpointDataTypeSnap;
-    let dependencies = DataCache.getInstance().getEndpointDependenciesSnap();
+    const rlData = DataCache.getInstance().combinedRealtimeDataSnap;
+    const dataTypes = DataCache.getInstance().endpointDataTypeSnap;
+    const dependencies =
+      DataCache.getInstance().getRawEndpointDependenciesSnap();
 
-    await MongoOperator.getInstance().deleteAllEndpointDataType();
-    await MongoOperator.getInstance().insertEndpointDataTypes(dataTypes);
-    await MongoOperator.getInstance().deleteAllCombinedRealtimeData();
-    if (rlData) {
-      await MongoOperator.getInstance().insertCombinedRealtimeData(rlData);
+    const dataTypesToDelete =
+      await MongoOperator.getInstance().getAllEndpointDataTypes();
+    const { combinedRealtimeData: rlDataToDelete } =
+      await MongoOperator.getInstance().getAllCombinedRealtimeData();
+    const { dependencies: dependenciesToDelete } =
+      await MongoOperator.getInstance().getEndpointDependencies();
+
+    try {
+      await MongoOperator.getInstance().insertEndpointDataTypes(dataTypes);
+      await MongoOperator.getInstance().deleteEndpointDataType(
+        dataTypesToDelete.map((d) => d.endpointDataType._id!)
+      );
+    } catch (ex) {
+      Logger.error("Error saving EndpointDataType, skipping.");
+      Logger.verbose("", ex);
     }
-    await MongoOperator.getInstance().deleteAllEndpointDependencies();
+
+    if (rlData) {
+      try {
+        await MongoOperator.getInstance().insertCombinedRealtimeData(rlData);
+        await MongoOperator.getInstance().deleteCombinedRealtimeData(
+          rlDataToDelete.map((d) => d._id!)
+        );
+      } catch (ex) {
+        Logger.error("Error saving CombinedRealtimeData, skipping.");
+        Logger.verbose("", ex);
+      }
+    }
+
     if (dependencies) {
-      await MongoOperator.getInstance().saveEndpointDependencies(dependencies);
+      try {
+        await MongoOperator.getInstance().insertEndpointDependencies(
+          dependencies
+        );
+        await MongoOperator.getInstance().deleteEndpointDependencies(
+          dependenciesToDelete.map((d) => d._id!)
+        );
+      } catch (ex) {
+        Logger.error("Error saving EndpointDependencies, skipping.");
+        Logger.verbose("", ex);
+      }
     }
 
     DispatchStorage.getInstance()._lock = false;

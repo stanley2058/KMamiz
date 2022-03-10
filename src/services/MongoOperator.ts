@@ -131,15 +131,17 @@ export default class MongoOperator {
     for (const dep of endpointDependencies.dependencies) {
       const model = new EndpointDependencyModel(dep);
       if (dep._id) model.isNew = false;
-      try {
-        const result = (await model.save()).toObject();
-        results.push(result);
-      } catch (ex) {
-        Logger.error("Error saving EndpointDependencies, skipping.");
-        Logger.verbose("", ex);
-      }
+      const result = (await model.save()).toObject();
+      results.push(result);
     }
     return new EndpointDependencies(results);
+  }
+
+  async insertEndpointDependencies(endpointDependencies: EndpointDependencies) {
+    const { dependencies } = endpointDependencies;
+    dependencies.forEach((d) => (d._id = undefined));
+    const res = await EndpointDependencyModel.insertMany(dependencies);
+    return new EndpointDependencies(res.map((r) => r.toObject()));
   }
 
   async saveEndpointDataType(endpointDataType: EndpointDataType) {
@@ -167,6 +169,7 @@ export default class MongoOperator {
   }
 
   async insertEndpointDataTypes(endpointDataType: EndpointDataType[]) {
+    endpointDataType.forEach((e) => (e.endpointDataType._id = undefined));
     const res = await EndpointDataTypeModel.insertMany(
       endpointDataType.map((e) => e.endpointDataType)
     );
@@ -181,8 +184,10 @@ export default class MongoOperator {
   }
 
   async insertCombinedRealtimeData(cRlData: CombinedRealtimeData) {
+    const { combinedRealtimeData } = cRlData;
+    combinedRealtimeData.forEach((c) => (c._id = undefined));
     return new CombinedRealtimeData(
-      await CombinedRealtimeDataModel.insertMany(cRlData.combinedRealtimeData)
+      await CombinedRealtimeDataModel.insertMany(combinedRealtimeData)
     );
   }
 
@@ -195,7 +200,7 @@ export default class MongoOperator {
         const result = (await model.save()).toObject();
         results.push(result);
       } catch (ex) {
-        Logger.error("Error saving EndpointDataType, skipping.");
+        Logger.error("Error saving CombinedRealtimeData, skipping.");
         Logger.verbose("", ex);
       }
     }
@@ -210,6 +215,22 @@ export default class MongoOperator {
   }
   async deleteAllEndpointDataType() {
     return await EndpointDataTypeModel.deleteMany({});
+  }
+
+  async deleteCombinedRealtimeData(ids: Types.ObjectId[]) {
+    return await CombinedRealtimeDataModel.deleteMany({
+      _id: { $in: ids },
+    });
+  }
+  async deleteEndpointDependencies(ids: Types.ObjectId[]) {
+    return await EndpointDependencyModel.deleteMany({
+      _id: { $in: ids },
+    });
+  }
+  async deleteEndpointDataType(ids: Types.ObjectId[]) {
+    return await EndpointDataTypeModel.deleteMany({
+      _id: { $in: ids },
+    });
   }
 
   private async smartSave<T extends { _id?: Types.ObjectId }>(
