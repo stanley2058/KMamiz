@@ -14,6 +14,7 @@ type Settings = {
   RealtimeInterval: string; // cron expression
   DispatchInterval: string; // cron expression
   EnvoyLogLevel: "info" | "warning" | "error";
+  ResetEndpointDependencies: boolean;
 };
 
 const {
@@ -31,6 +32,7 @@ const {
   IS_RUNNING_IN_K8S,
   KUBERNETES_SERVICE_HOST,
   KUBERNETES_SERVICE_PORT,
+  RESET_ENDPOINT_DEPENDENCIES,
 } = process.env;
 
 const GlobalSettings: Settings = {
@@ -51,6 +53,7 @@ const GlobalSettings: Settings = {
   DispatchInterval: DISPATCH_INTERVAL || "0/30 * * * *",
   EnvoyLogLevel:
     (ENVOY_LOG_LEVEL as "info" | "warning" | "error" | undefined) || "info",
+  ResetEndpointDependencies: RESET_ENDPOINT_DEPENDENCIES === "true",
 };
 
 if (

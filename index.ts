@@ -25,6 +25,11 @@ app.use(Routes.getInstance().getRoutes());
 (async () => {
   const aggregateData = await MongoOperator.getInstance().getAggregateData();
 
+  if (GlobalSettings.ResetEndpointDependencies) {
+    Logger.info("Resetting EndpointDependencies.");
+    await Initializer.getInstance().forceRecreateEndpointDependencies();
+  }
+
   Logger.info("Running startup tasks.");
   await Initializer.getInstance().serverStartUp();
 

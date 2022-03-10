@@ -67,6 +67,18 @@ export default class Initializer {
     );
   }
 
+  async forceRecreateEndpointDependencies() {
+    const traces = new Trace(
+      await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
+        86400000 * 30
+      )
+    );
+
+    const dependencies = traces.toEndpointDependencies().trim();
+    await MongoOperator.getInstance().deleteAllEndpointDependencies();
+    await MongoOperator.getInstance().saveEndpointDependencies(dependencies);
+  }
+
   async serverStartUp() {
     Logger.info("Loading data into cache.");
     await DataCache.getInstance().loadBaseData();
