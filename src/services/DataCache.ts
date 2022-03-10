@@ -134,7 +134,7 @@ export default class DataCache {
       newDataType = [...dataTypeMap.values()];
     }
 
-    this._endpointDataType = newDataType;
+    this._endpointDataType = newDataType.map((t) => t.trim());
     this._labelMapping = EndpointUtils.CreateEndpointLabelMapping(
       this._endpointDataType
     );

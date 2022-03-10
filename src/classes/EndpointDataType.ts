@@ -16,6 +16,36 @@ export default class EndpointDataType {
     return this._endpointDataType;
   }
 
+  trim() {
+    const dataType = this.removeDuplicateSchemas();
+    const schemaMap = new Map<string, IEndpointDataSchema>();
+    dataType._endpointDataType.schemas.forEach((s) => {
+      const existing = schemaMap.get(s.status);
+      if (existing) {
+        s.requestContentType =
+          existing.requestContentType || s.requestContentType;
+        s.requestParams = (existing.requestParams || []).concat(
+          s.requestParams || []
+        );
+
+        s.requestSample = Utils.Merge(existing.requestSample, s.requestSample);
+        s.requestSchema = Utils.ObjectToInterfaceString(s.requestSample);
+
+        s.responseContentType =
+          existing.responseContentType || s.responseContentType;
+        s.responseSample = Utils.Merge(
+          existing.responseSample,
+          s.responseSample
+        );
+        s.responseSchema = Utils.ObjectToInterfaceString(s.responseSample);
+      }
+      schemaMap.set(s.status, s);
+    });
+
+    dataType._endpointDataType.schemas = [...schemaMap.values()];
+    return dataType;
+  }
+
   removeDuplicateSchemas() {
     const schemaMap = new Map<string, IEndpointDataSchema>();
     this._endpointDataType.schemas.forEach((s) => {
