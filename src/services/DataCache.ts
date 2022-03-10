@@ -156,13 +156,6 @@ export default class DataCache {
       this._labelMapping
     );
 
-    // console.log(uniqueNames);
-    console.log(
-      uniqueNames.filter(
-        (u) => u === this._labelMapping.get(u) || !this._labelMapping.has(u)
-      )
-    );
-
     this._labeledEndpointDependenciesView = new EndpointDependencies(
       endpointDependencies.label()
     );
