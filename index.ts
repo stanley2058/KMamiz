@@ -48,7 +48,7 @@ app.use(Routes.getInstance().getRoutes());
     exitHook(async (callback) => {
       Logger.info("Received termination signal, execute teardown procedures.");
       Logger.info("Syncing to database.");
-      await DispatchStorage.getInstance().sync();
+      await DispatchStorage.getInstance().syncAll();
       Logger.info("Done, stopping the server.");
       callback();
     });
