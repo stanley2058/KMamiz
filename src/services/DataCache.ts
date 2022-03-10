@@ -45,12 +45,15 @@ export default class DataCache {
       await MongoOperator.getInstance().getHistoryData(namespace)
     );
 
-    if (!this._combinedRealtimeDataView || !this._endpointDependenciesView) {
+    if (
+      !this._combinedRealtimeDataView ||
+      !this._labeledEndpointDependenciesView
+    ) {
       return historyData;
     }
 
     const rlHistory = this._combinedRealtimeDataView.toHistoryData(
-      this._endpointDependenciesView.toServiceDependencies(),
+      this._labeledEndpointDependenciesView.toServiceDependencies(),
       this._replicasView,
       this._labelMapping
     );
@@ -61,14 +64,17 @@ export default class DataCache {
     const aggregateData = await MongoOperator.getInstance().getAggregateData(
       namespace
     );
-    if (!this._combinedRealtimeDataView || !this._endpointDependenciesView) {
+    if (
+      !this._combinedRealtimeDataView ||
+      !this._labeledEndpointDependenciesView
+    ) {
       return aggregateData && this.labelAggregateData(aggregateData);
     }
     const { aggregateData: rlAggregateData } = this.filterCombinedRealtimeData(
       this._combinedRealtimeDataView,
       namespace
     ).toAggregatedDataAndHistoryData(
-      this._endpointDependenciesView.toServiceDependencies(),
+      this._labeledEndpointDependenciesView.toServiceDependencies(),
       this._replicasView,
       this._labelMapping
     );
@@ -135,6 +141,28 @@ export default class DataCache {
   private setEndpointDependencies(endpointDependencies: EndpointDependencies) {
     endpointDependencies = endpointDependencies.trim();
     this._endpointDependenciesView = endpointDependencies;
+
+    const uniqueNames = [
+      ...new Set(
+        this._endpointDependenciesView.dependencies.flatMap((d) =>
+          [...d.dependBy, ...d.dependsOn, d].map(
+            (dep) => dep.endpoint.uniqueEndpointName
+          )
+        )
+      ),
+    ];
+    this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
+      uniqueNames,
+      this._labelMapping
+    );
+
+    // console.log(uniqueNames);
+    console.log(
+      uniqueNames.filter(
+        (u) => u === this._labelMapping.get(u) || !this._labelMapping.has(u)
+      )
+    );
+
     this._labeledEndpointDependenciesView = new EndpointDependencies(
       endpointDependencies.label()
     );
@@ -165,6 +193,17 @@ export default class DataCache {
 
   get labelMapping() {
     return this._labelMapping;
+  }
+
+  getRawEndpointDependenciesSnap(namespace?: string) {
+    if (namespace && this._endpointDependenciesView) {
+      return new EndpointDependencies(
+        this._endpointDependenciesView.dependencies.filter(
+          (d) => d.endpoint.namespace === namespace
+        )
+      );
+    }
+    return this._endpointDependenciesView;
   }
 
   getEndpointDependenciesSnap(namespace?: string) {

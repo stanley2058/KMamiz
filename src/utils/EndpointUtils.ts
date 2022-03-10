@@ -58,6 +58,56 @@ export default class EndpointUtils {
     return labelMapping;
   }
 
+  static GuessAndMergeEndpoints(
+    uniqueNames: string[],
+    labelMap: Map<string, string>
+  ) {
+    const labelToSampleMap = new Map<string, string>();
+    [...labelMap.entries()].forEach(([key, val]) =>
+      labelToSampleMap.set(val.replace(/\{[^\}]*\}/, "{}"), key)
+    );
+    const labelTree: any = {};
+    [...labelMap.values()].forEach((l) => {
+      const tokens = l
+        .replace(/\{[^\}]*\}/, "{}")
+        .split("/")
+        .slice(1);
+      let root = labelTree;
+      tokens.forEach((tok) => {
+        root[tok] = {
+          ...root[tok],
+        };
+        root = root[tok];
+      });
+    });
+
+    uniqueNames
+      .filter((u) => !labelMap.has(u))
+      .forEach((u) => {
+        const [service, namespace, version, method, url] = u.split("\t");
+        const uniqueServiceName = `${service}\t${namespace}\t${version}`;
+
+        const [, , path] = Utils.ExplodeUrl(url);
+        const tokens = path.split("/").slice(1);
+        const visited: string[] = [];
+        let root = labelTree;
+
+        for (let tok of tokens) {
+          if (!root[tok]) tok = "{}";
+          if (!root[tok]) return;
+          visited.push(tok);
+          root = root[tok];
+        }
+
+        const label = `/${visited.join("/")}`;
+        const sample = labelToSampleMap.get(label);
+        if (sample && sample.startsWith(`${uniqueServiceName}\t${method}`)) {
+          labelMap.set(u, labelMap.get(sample)!);
+        }
+      });
+    return labelMap;
+  }
+
   private static combineAndMaskUrls(urls: string[]) {
     const urlTable = urls.map((u) => u.split("/"));
     let masked = urlTable[0];
