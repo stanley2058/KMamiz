@@ -1,8 +1,8 @@
 import { connect, Model, Types } from "mongoose";
 import { AggregateData } from "../classes/AggregateData";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
-import IAggregateData from "../entities/IAggregateData";
-import IHistoryData from "../entities/IHistoryData";
+import { TAggregateData } from "../entities/TAggregateData";
+import { THistoryData } from "../entities/THistoryData";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
 import EndpointDataType from "../classes/EndpointDataType";
@@ -12,8 +12,8 @@ import { EndpointDataTypeModel } from "../entities/schema/EndpointDataTypeSchema
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
 import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
 import CombinedRealtimeData from "../classes/CombinedRealtimeData";
-import { IEndpointDependency } from "../entities/IEndpointDependency";
-import { ICombinedRealtimeData } from "../entities/ICombinedRealtimeData";
+import { TEndpointDependency } from "../entities/TEndpointDependency";
+import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
@@ -45,7 +45,7 @@ export default class MongoOperator {
         },
       },
     ]).exec();
-    return (filtered[0].toObject() as IAggregateData) || null;
+    return (filtered[0].toObject() as TAggregateData) || null;
   }
 
   async getHistoryData(namespace?: string, time = 86400000 * 30) {
@@ -73,7 +73,7 @@ export default class MongoOperator {
         },
       },
     ]).exec();
-    return res.map((r) => r.toObject()) as IHistoryData[];
+    return res.map((r) => r.toObject()) as THistoryData[];
   }
 
   async getEndpointDependencies(namespace?: string) {
@@ -120,14 +120,14 @@ export default class MongoOperator {
     );
   }
 
-  async saveHistoryData(historyData: IHistoryData[]): Promise<IHistoryData[]> {
+  async saveHistoryData(historyData: THistoryData[]): Promise<THistoryData[]> {
     return (await HistoryDataModel.insertMany(historyData)).map((h) =>
       h.toObject()
     );
   }
 
   async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {
-    const results: IEndpointDependency[] = [];
+    const results: TEndpointDependency[] = [];
     for (const dep of endpointDependencies.dependencies) {
       const model = new EndpointDependencyModel(dep);
       if (dep._id) model.isNew = false;
@@ -192,7 +192,7 @@ export default class MongoOperator {
   }
 
   async saveCombinedRealtimeData(cRlData: CombinedRealtimeData) {
-    const results: ICombinedRealtimeData[] = [];
+    const results: TCombinedRealtimeData[] = [];
     for (const rlData of cRlData.combinedRealtimeData) {
       const model = new CombinedRealtimeDataModel(rlData);
       if (rlData._id) model.isNew = false;

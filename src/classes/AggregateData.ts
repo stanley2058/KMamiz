@@ -1,23 +1,24 @@
-import IAggregateData, {
-  IAggregateEndpointInfo,
-  IAggregateServiceInfo,
-} from "../entities/IAggregateData";
+import {
+  TAggregateData,
+  TAggregateEndpointInfo,
+  TAggregateServiceInfo,
+} from "../entities/TAggregateData";
 import Logger from "../utils/Logger";
 
 export class AggregateData {
-  private readonly _aggregateData: IAggregateData;
-  constructor(aggregateData: IAggregateData) {
+  private readonly _aggregateData: TAggregateData;
+  constructor(aggregateData: TAggregateData) {
     this._aggregateData = aggregateData;
   }
   get aggregateData() {
     return this._aggregateData;
   }
 
-  combine({ fromDate: fDate, toDate: tDate, services }: IAggregateData) {
+  combine({ fromDate: fDate, toDate: tDate, services }: TAggregateData) {
     const fromDate = this.decideFromDate(fDate);
     const toDate = this.decideToDate(tDate);
 
-    const serviceMap = new Map<string, IAggregateServiceInfo>();
+    const serviceMap = new Map<string, TAggregateServiceInfo>();
     [...this._aggregateData.services, ...services].forEach((s) => {
       if (!serviceMap.has(s.uniqueServiceName))
         serviceMap.set(s.uniqueServiceName, s);
@@ -39,8 +40,8 @@ export class AggregateData {
   }
 
   mergeAggregateServiceInfo(
-    a: IAggregateServiceInfo,
-    b: IAggregateServiceInfo
+    a: TAggregateServiceInfo,
+    b: TAggregateServiceInfo
   ) {
     if (a.uniqueServiceName !== b.uniqueServiceName) {
       Logger.error("Trying to merge mismatched service info, skipping.");
@@ -57,10 +58,10 @@ export class AggregateData {
     return { ...a, totalRequests };
   }
   mergeAggregateEndpointInfo(
-    a: IAggregateEndpointInfo[],
-    b: IAggregateEndpointInfo[]
+    a: TAggregateEndpointInfo[],
+    b: TAggregateEndpointInfo[]
   ) {
-    const endpointMap = new Map<string, IAggregateEndpointInfo>();
+    const endpointMap = new Map<string, TAggregateEndpointInfo>();
     [...a, ...b].forEach((e) => {
       if (!endpointMap.has(e.uniqueEndpointName)) {
         endpointMap.set(e.uniqueEndpointName, e);

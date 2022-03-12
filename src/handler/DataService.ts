@@ -1,6 +1,6 @@
-import IRequestHandler from "../entities/IRequestHandler";
+import IRequestHandler from "../entities/TRequestHandler";
 import DataCache from "../services/DataCache";
-import IEndpointDataType from "../entities/IEndpointDataType";
+import { TEndpointDataType } from "../entities/TEndpointDataType";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -32,7 +32,7 @@ export default class DataService extends IRequestHandler {
 
   async getEndpointDataType(
     uniqueLabelName: string
-  ): Promise<IEndpointDataType | null> {
+  ): Promise<TEndpointDataType | null> {
     const [, , , method, label] = uniqueLabelName.split("\t");
     if (!method || !label) return null;
 

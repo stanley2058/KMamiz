@@ -1,11 +1,11 @@
-export interface IServiceEndpointCohesion {
+export type TServiceEndpointCohesion = {
   uniqueServiceName: string;
   totalEndpoints: number;
-  consumers: IServiceEndpointsConsumer[];
+  consumers: TServiceEndpointsConsumer[];
   endpointUsageCohesion: number;
-}
+};
 
-export interface IServiceEndpointsConsumer {
+export type TServiceEndpointsConsumer = {
   uniqueServiceName: string;
   consumes: number;
-}
+};

@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
-import { IRequestTypeUpper } from "./IRequestType";
+import { TRequestTypeUpper } from "./TRequestType";
 
-export default interface IEndpointDataType {
+export type TEndpointDataType = {
   _id?: Types.ObjectId;
   uniqueServiceName: string;
   uniqueEndpointName: string;
@@ -9,11 +9,11 @@ export default interface IEndpointDataType {
   namespace: string;
   version: string;
   labelName?: string;
-  method: IRequestTypeUpper;
-  schemas: IEndpointDataSchema[];
-}
+  method: TRequestTypeUpper;
+  schemas: TEndpointDataSchema[];
+};
 
-export interface IEndpointDataSchema {
+export type TEndpointDataSchema = {
   time: Date;
   status: string;
   responseSample?: any;
@@ -22,10 +22,10 @@ export interface IEndpointDataSchema {
   requestSample?: any;
   requestSchema?: string;
   requestContentType?: string;
-  requestParams?: IEndpointRequestParam[];
-}
+  requestParams?: TEndpointRequestParam[];
+};
 
-export interface IEndpointRequestParam {
+export type TEndpointRequestParam = {
   param: string;
   type: string;
-}
+};

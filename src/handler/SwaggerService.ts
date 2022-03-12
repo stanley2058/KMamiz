@@ -1,4 +1,4 @@
-import IRequestHandler from "../entities/IRequestHandler";
+import IRequestHandler from "../entities/TRequestHandler";
 import SwaggerUtils from "../utils/SwaggerUtils";
 import YAML from "yamljs";
 import DataCache from "../services/DataCache";

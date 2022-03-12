@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import IHistoryData from "../IHistoryData";
+import { THistoryData } from "../THistoryData";
 
-export const HistoryDataSchema = new Schema<IHistoryData>({
+export const HistoryDataSchema = new Schema<THistoryData>({
   date: { type: Date, required: true },
   services: [
     {
@@ -30,7 +30,7 @@ export const HistoryDataSchema = new Schema<IHistoryData>({
   ],
 });
 
-export const HistoryDataModel = model<IHistoryData>(
+export const HistoryDataModel = model<THistoryData>(
   "HistoryData",
   HistoryDataSchema
 );

@@ -1,7 +1,8 @@
 import { OpenAPIV3_1 } from "openapi-types";
-import IEndpointDataType, {
-  IEndpointRequestParam,
-} from "../entities/IEndpointDataType";
+import {
+  TEndpointDataType,
+  TEndpointRequestParam,
+} from "../entities/TEndpointDataType";
 import DataCache from "../services/DataCache";
 import Utils from "./Utils";
 
@@ -9,12 +10,12 @@ export default class SwaggerUtils {
   static FromEndpoints(
     title: string,
     version: string,
-    endpoints: IEndpointDataType[]
+    endpoints: TEndpointDataType[]
   ) {
     const endpointMapping = endpoints.reduce((prev, curr) => {
       prev.set(curr.labelName!, [...(prev.get(curr.labelName!) || []), curr]);
       return prev;
-    }, new Map<string, IEndpointDataType[]>());
+    }, new Map<string, TEndpointDataType[]>());
 
     const paths = [...endpointMapping.entries()].reduce(
       (acc, [label, endpoints]): OpenAPIV3_1.PathsObject => {
@@ -46,7 +47,7 @@ export default class SwaggerUtils {
   }
 
   static EndpointDataTypeToPathItem(
-    endpoint: IEndpointDataType
+    endpoint: TEndpointDataType
   ): OpenAPIV3_1.PathItemObject {
     const responses = endpoint.schemas.reduce((acc, s) => {
       const base: any = { [s.status]: { description: s.status } };
@@ -77,7 +78,7 @@ export default class SwaggerUtils {
     const parameters = endpoint.schemas
       .reduce(
         (prev, curr) => prev.concat(curr.requestParams || []),
-        [] as IEndpointRequestParam[]
+        [] as TEndpointRequestParam[]
       )
       .map((p) => {
         return {

@@ -1,9 +1,9 @@
-export default interface IGraphData {
-  nodes: INode[];
-  links: ILink[];
-}
+export type TGraphData = {
+  nodes: TNode[];
+  links: TLink[];
+};
 
-export interface INode {
+export type TNode = {
   // unique id, for linking
   id: string;
   // display name
@@ -12,11 +12,11 @@ export interface INode {
   group: string;
   // id list for all dependencies
   dependencies: string[];
-  linkInBetween: ILink[];
-}
-export interface ILink {
+  linkInBetween: TLink[];
+};
+export type TLink = {
   // link from id
   source: string;
   // link to id
   target: string;
-}
+};

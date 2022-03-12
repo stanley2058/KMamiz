@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import { ICombinedRealtimeData } from "../ICombinedRealtimeData";
+import { TCombinedRealtimeData } from "../TCombinedRealtimeData";
 
-export const CombinedRealtimeDataSchema = new Schema<ICombinedRealtimeData>({
+export const CombinedRealtimeDataSchema = new Schema<TCombinedRealtimeData>({
   uniqueServiceName: { type: String, required: true },
   uniqueEndpointName: { type: String, required: true },
   latestTimestamp: { type: Number, required: true },
@@ -22,7 +22,7 @@ export const CombinedRealtimeDataSchema = new Schema<ICombinedRealtimeData>({
   avgReplica: { type: Number },
 });
 
-export const CombinedRealtimeDataModel = model<ICombinedRealtimeData>(
+export const CombinedRealtimeDataModel = model<TCombinedRealtimeData>(
   "CombinedRealtimeData",
   CombinedRealtimeDataSchema
 );

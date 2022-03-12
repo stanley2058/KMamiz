@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import IAggregateData from "../IAggregateData";
+import { TAggregateData } from "../TAggregateData";
 
-export const AggregateDataSchema = new Schema<IAggregateData>({
+export const AggregateDataSchema = new Schema<TAggregateData>({
   fromDate: { type: Date, required: true },
   toDate: { type: Date, required: true },
   services: [
@@ -30,7 +30,7 @@ export const AggregateDataSchema = new Schema<IAggregateData>({
   ],
 });
 
-export const AggregateDataModel = model<IAggregateData>(
+export const AggregateDataModel = model<TAggregateData>(
   "AggregateData",
   AggregateDataSchema
 );

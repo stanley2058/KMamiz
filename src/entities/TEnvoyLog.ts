@@ -1,6 +1,6 @@
-import { IRequestTypeUpper } from "./IRequestType";
+import { TRequestTypeUpper } from "./TRequestType";
 
-export interface IEnvoyLog {
+export type TEnvoyLog = {
   namespace: string;
   podName: string;
   timestamp: Date;
@@ -10,21 +10,21 @@ export interface IEnvoyLog {
   spanId: string;
   parentSpanId: string;
   path?: string;
-  method?: IRequestTypeUpper;
+  method?: TRequestTypeUpper;
   status?: string;
   body?: string;
   contentType?: string;
-}
+};
 
-export interface IStructuredEnvoyLog {
+export type TStructuredEnvoyLog = {
   requestId: string;
-  traces: IStructuredEnvoyLogTrace[];
-}
+  traces: TStructuredEnvoyLogTrace[];
+};
 
-export interface IStructuredEnvoyLogTrace {
+export type TStructuredEnvoyLogTrace = {
   traceId: string;
   spanId: string;
   parentSpanId: string;
-  request: IEnvoyLog;
-  response: IEnvoyLog;
-}
+  request: TEnvoyLog;
+  response: TEnvoyLog;
+};

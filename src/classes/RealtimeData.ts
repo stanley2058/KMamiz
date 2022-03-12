@@ -1,12 +1,12 @@
 import Utils from "../utils/Utils";
-import { IRealtimeData } from "../entities/IRealtimeData";
-import { ICombinedRealtimeData } from "../entities/ICombinedRealtimeData";
+import { TRealtimeData } from "../entities/TRealtimeData";
+import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 import Logger from "../utils/Logger";
 import CombinedRealtimeData from "./CombinedRealtimeData";
 
 export class RealtimeData {
-  private readonly _realtimeData: IRealtimeData[];
-  constructor(realtimeData: IRealtimeData[]) {
+  private readonly _realtimeData: TRealtimeData[];
+  constructor(realtimeData: TRealtimeData[]) {
     this._realtimeData = realtimeData;
   }
   get realtimeData() {
@@ -18,15 +18,15 @@ export class RealtimeData {
   }
 
   toCombinedRealtimeData() {
-    const uniqueNameMapping = new Map<string, IRealtimeData[]>();
+    const uniqueNameMapping = new Map<string, TRealtimeData[]>();
     this._realtimeData.forEach((r) => {
       const id = r.uniqueEndpointName;
       uniqueNameMapping.set(id, (uniqueNameMapping.get(id) || []).concat([r]));
     });
 
     const combined = [...uniqueNameMapping.values()]
-      .map((group): ICombinedRealtimeData[] => {
-        const statusMap = new Map<string, IRealtimeData[]>();
+      .map((group): TCombinedRealtimeData[] => {
+        const statusMap = new Map<string, TRealtimeData[]>();
         group.forEach((r) => {
           statusMap.set(r.status, (statusMap.get(r.status) || []).concat([r]));
         });
@@ -41,7 +41,7 @@ export class RealtimeData {
         };
 
         const combinedSubGroup = [...statusMap.entries()].map(
-          ([status, subGroup]): ICombinedRealtimeData => {
+          ([status, subGroup]): TCombinedRealtimeData => {
             const combined = subGroup.reduce((prev, curr) => {
               prev.latency += curr.latency;
               prev.requestBody = Utils.MergeStringBody(
@@ -88,7 +88,7 @@ export class RealtimeData {
     return new CombinedRealtimeData(combined);
   }
 
-  private parseRequestResponseBody(data: IRealtimeData) {
+  private parseRequestResponseBody(data: TRealtimeData) {
     let requestBody: any | undefined;
     let requestSchema: string | undefined;
     let responseBody: any | undefined;

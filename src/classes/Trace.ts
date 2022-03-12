@@ -3,16 +3,16 @@ import { EndpointDependencies } from "./EndpointDependencies";
 import { ITrace } from "../entities/external/ITrace";
 import { RealtimeData } from "./RealtimeData";
 import {
-  IEndpointDependency,
-  IEndpointInfo,
-} from "../entities/IEndpointDependency";
+  TEndpointDependency,
+  TEndpointInfo,
+} from "../entities/TEndpointDependency";
 import {
-  IStructuredEnvoyLog,
-  IStructuredEnvoyLogTrace,
-} from "../entities/IEnvoyLog";
-import { IRealtimeData } from "../entities/IRealtimeData";
-import { IRequestTypeUpper } from "../entities/IRequestType";
-import IReplicaCount from "../entities/IReplicaCount";
+  TStructuredEnvoyLog,
+  TStructuredEnvoyLogTrace,
+} from "../entities/TEnvoyLog";
+import { TRealtimeData } from "../entities/TRealtimeData";
+import { TRequestTypeUpper } from "../entities/TRequestType";
+import { TReplicaCount } from "../entities/TReplicaCount";
 
 export class Trace {
   private readonly _traces: ITrace[][];
@@ -23,14 +23,14 @@ export class Trace {
     return this._traces;
   }
 
-  toRealTimeData(replicas?: IReplicaCount[]) {
+  toRealTimeData(replicas?: TReplicaCount[]) {
     const realtimeData = this._traces
       .flat()
       .filter((t) => t.kind === "SERVER")
-      .map((t): IRealtimeData => {
+      .map((t): TRealtimeData => {
         const [, , , serviceName, namespace] = Utils.ExplodeUrl(t.name, true);
         const version = t.tags["istio.canonical_revision"];
-        const method = t.tags["http.method"] as IRequestTypeUpper;
+        const method = t.tags["http.method"] as TRequestTypeUpper;
         const uniqueServiceName = `${serviceName}\t${namespace}\t${version}`;
         return {
           timestamp: t.timestamp,
@@ -51,10 +51,10 @@ export class Trace {
   }
 
   combineLogsToRealtimeData(
-    structuredLogs: IStructuredEnvoyLog[],
-    replicas?: IReplicaCount[]
+    structuredLogs: TStructuredEnvoyLog[],
+    replicas?: TReplicaCount[]
   ) {
-    const logMap = new Map<string, Map<string, IStructuredEnvoyLogTrace>>();
+    const logMap = new Map<string, Map<string, TStructuredEnvoyLogTrace>>();
     structuredLogs.forEach((l) => {
       if (l.traces.length === 0) return;
       const { traceId } = l.traces[0];
@@ -67,11 +67,11 @@ export class Trace {
     const raw = this.traces
       .flat()
       .filter((t) => t.kind === "SERVER")
-      .map((trace): IRealtimeData => {
+      .map((trace): TRealtimeData => {
         const service = trace.tags["istio.canonical_service"];
         const namespace = trace.tags["istio.namespace"];
         const version = trace.tags["istio.canonical_revision"];
-        const method = trace.tags["http.method"] as IRequestTypeUpper;
+        const method = trace.tags["http.method"] as TRequestTypeUpper;
         const status = trace.tags["http.status_code"];
         const uniqueServiceName = `${service}\t${namespace}\t${version}`;
 
@@ -133,13 +133,13 @@ export class Trace {
 
     const dependencies = filtered
       .map(([, val]) => val)
-      .map(({ span, upper, lower }): IEndpointDependency => {
-        const upperMap = new Map<string, IEndpointInfo>();
+      .map(({ span, upper, lower }): TEndpointDependency => {
+        const upperMap = new Map<string, TEndpointInfo>();
         [...upper.entries()].map(([s, distance]) => {
           const endpoint = Trace.ToEndpointInfo(spanDependencyMap.get(s)!.span);
           upperMap.set(`${endpoint.uniqueEndpointName}\t${distance}`, endpoint);
         });
-        const lowerMap = new Map<string, IEndpointInfo>();
+        const lowerMap = new Map<string, TEndpointInfo>();
         [...lower.entries()].map(([s, distance]) => {
           const endpoint = Trace.ToEndpointInfo(spanDependencyMap.get(s)!.span);
           lowerMap.set(`${endpoint.uniqueEndpointName}\t${distance}`, endpoint);
@@ -174,7 +174,7 @@ export class Trace {
     return new EndpointDependencies(dependencies);
   }
 
-  static ToEndpointInfo(trace: ITrace): IEndpointInfo {
+  static ToEndpointInfo(trace: ITrace): TEndpointInfo {
     const [host, port, path] = Utils.ExplodeUrl(trace.tags["http.url"]);
     let [, , , serviceName, namespace, clusterName] = Utils.ExplodeUrl(
       trace.name,
@@ -197,7 +197,7 @@ export class Trace {
       path,
       port: port || "80",
       clusterName,
-      method: trace.tags["http.method"] as IRequestTypeUpper,
+      method: trace.tags["http.method"] as TRequestTypeUpper,
       uniqueServiceName,
       uniqueEndpointName: `${uniqueServiceName}\t${trace.tags["http.method"]}\t${trace.tags["http.url"]}`,
     };

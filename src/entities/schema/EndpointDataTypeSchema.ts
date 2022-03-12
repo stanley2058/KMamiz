@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import IEndpointDataType from "../IEndpointDataType";
+import { TEndpointDataType } from "../TEndpointDataType";
 
-export const EndpointDataTypeSchema = new Schema<IEndpointDataType>({
+export const EndpointDataTypeSchema = new Schema<TEndpointDataType>({
   uniqueServiceName: { type: String, required: true },
   uniqueEndpointName: { type: String, required: true },
   service: { type: String, required: true },
@@ -28,7 +28,7 @@ export const EndpointDataTypeSchema = new Schema<IEndpointDataType>({
   ],
 });
 
-export const EndpointDataTypeModel = model<IEndpointDataType>(
+export const EndpointDataTypeModel = model<TEndpointDataType>(
   "EndpointDataType",
   EndpointDataTypeSchema
 );

@@ -1,7 +1,7 @@
 import { Schema, SchemaDefinitionProperty, model } from "mongoose";
-import { IEndpointDependency, IEndpointInfo } from "../IEndpointDependency";
+import { TEndpointDependency, TEndpointInfo } from "../TEndpointDependency";
 
-export const EndpointInfoSchema: SchemaDefinitionProperty<IEndpointInfo> = {
+export const EndpointInfoSchema: SchemaDefinitionProperty<TEndpointInfo> = {
   uniqueServiceName: { type: String, required: true },
   uniqueEndpointName: { type: String, required: true },
   service: { type: String, required: true },
@@ -15,7 +15,7 @@ export const EndpointInfoSchema: SchemaDefinitionProperty<IEndpointInfo> = {
   clusterName: { type: String, required: true },
 };
 
-export const EndpointDependencySchema = new Schema<IEndpointDependency>({
+export const EndpointDependencySchema = new Schema<TEndpointDependency>({
   endpoint: EndpointInfoSchema,
   dependsOn: [
     {
@@ -33,7 +33,7 @@ export const EndpointDependencySchema = new Schema<IEndpointDependency>({
   ],
 });
 
-export const EndpointDependencyModel = model<IEndpointDependency>(
+export const EndpointDependencyModel = model<TEndpointDependency>(
   "EndpointDependency",
   EndpointDependencySchema
 );

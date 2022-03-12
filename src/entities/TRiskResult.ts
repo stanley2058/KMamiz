@@ -1,4 +1,4 @@
-export default interface IRiskResult {
+export type TRiskResult = {
   uniqueServiceName: string;
   norm: number;
   service: string;
@@ -7,4 +7,4 @@ export default interface IRiskResult {
   risk: number;
   impact: number;
   probability: number;
-}
+};

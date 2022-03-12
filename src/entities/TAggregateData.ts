@@ -1,14 +1,14 @@
 import { Types } from "mongoose";
-import { IRequestTypeUpper } from "./IRequestType";
+import { TRequestTypeUpper } from "./TRequestType";
 
-export default interface IAggregateData {
+export type TAggregateData = {
   _id?: Types.ObjectId;
   fromDate: Date;
   toDate: Date;
-  services: IAggregateServiceInfo[];
-}
+  services: TAggregateServiceInfo[];
+};
 
-export interface IAggregateServiceInfo {
+export type TAggregateServiceInfo = {
   uniqueServiceName: string;
   service: string;
   namespace: string;
@@ -18,15 +18,15 @@ export interface IAggregateServiceInfo {
   totalRequestErrors: number;
   avgRisk: number;
   avgLatencyCV: number;
-  endpoints: IAggregateEndpointInfo[];
-}
-export interface IAggregateEndpointInfo {
+  endpoints: TAggregateEndpointInfo[];
+};
+export type TAggregateEndpointInfo = {
   uniqueServiceName: string;
   uniqueEndpointName: string;
   labelName?: string;
-  method: IRequestTypeUpper;
+  method: TRequestTypeUpper;
   totalRequests: number;
   totalServerErrors: number;
   totalRequestErrors: number;
   avgLatencyCV: number;
-}
+};

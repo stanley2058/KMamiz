@@ -1,13 +1,13 @@
 import { Types } from "mongoose";
-import { IRequestTypeUpper } from "./IRequestType";
+import { TRequestTypeUpper } from "./TRequestType";
 
-export default interface IHistoryData {
+export type THistoryData = {
   _id?: Types.ObjectId;
   date: Date;
-  services: IHistoryServiceInfo[];
-}
+  services: THistoryServiceInfo[];
+};
 
-export interface IHistoryServiceInfo {
+export type THistoryServiceInfo = {
   uniqueServiceName: string;
   date: Date;
   service: string;
@@ -18,16 +18,16 @@ export interface IHistoryServiceInfo {
   requestErrors: number;
   risk?: number;
   latencyCV: number;
-  endpoints: IHistoryEndpointInfo[];
-}
+  endpoints: THistoryEndpointInfo[];
+};
 
-export interface IHistoryEndpointInfo {
+export type THistoryEndpointInfo = {
   uniqueServiceName: string;
   uniqueEndpointName: string;
   labelName?: string;
-  method: IRequestTypeUpper;
+  method: TRequestTypeUpper;
   requests: number;
   serverErrors: number;
   requestErrors: number;
   latencyCV: number;
-}
+};

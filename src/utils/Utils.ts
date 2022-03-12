@@ -1,7 +1,7 @@
 import { Axios, AxiosRequestConfig, AxiosResponse } from "axios";
 import JsonToTS from "json-to-ts";
 import { inspect } from "util";
-import { IEndpointRequestParam } from "../entities/IEndpointDataType";
+import { TEndpointRequestParam } from "../entities/TEndpointDataType";
 import Logger from "./Logger";
 
 export default class Utils {
@@ -222,7 +222,7 @@ export default class Utils {
    * @param parameters GET parameters
    * @returns Unique GET parameters
    */
-  static UniqueParams(parameters: IEndpointRequestParam[]) {
+  static UniqueParams(parameters: TEndpointRequestParam[]) {
     return Object.values(
       parameters.reduce((prev, { param, type }) => {
         if (prev[param] && type !== prev[param].type) type = "string";
@@ -231,7 +231,7 @@ export default class Utils {
           type,
         };
         return prev;
-      }, {} as { [param: string]: IEndpointRequestParam })
+      }, {} as { [param: string]: TEndpointRequestParam })
     );
   }
 

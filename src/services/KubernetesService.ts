@@ -2,12 +2,12 @@ import { Axios, AxiosRequestConfig } from "axios";
 import GlobalSettings from "../GlobalSettings";
 import { EnvoyLogs } from "../classes/EnvoyLog";
 import { IPodList } from "../entities/external/IPodList";
-import IReplicaCount from "../entities/IReplicaCount";
+import { TReplicaCount } from "../entities/TReplicaCount";
 import { IServiceList } from "../entities/external/IServiceList";
-import { IEnvoyLog } from "../entities/IEnvoyLog";
+import { TEnvoyLog } from "../entities/TEnvoyLog";
 import Utils from "../utils/Utils";
 import Logger from "../utils/Logger";
-import { IRequestTypeUpper } from "../entities/IRequestType";
+import { TRequestTypeUpper } from "../entities/TRequestType";
 import { readFileSync } from "fs";
 
 export default class KubernetesService {
@@ -100,13 +100,13 @@ export default class KubernetesService {
           ...curr,
           replicas: (existing?.replicas || 0) + 1,
         });
-      }, new Map<string, IReplicaCount>());
+      }, new Map<string, TReplicaCount>());
     return [...replicaMap.values()];
   }
 
   async getReplicas(namespaces?: Set<string>) {
     if (!namespaces) namespaces = new Set(await this.getNamespaces());
-    let replicas: IReplicaCount[] = [];
+    let replicas: TReplicaCount[] = [];
     for (const ns of namespaces) {
       replicas = replicas.concat(await this.getReplicasFromPodList(ns));
     }
@@ -153,7 +153,7 @@ export default class KubernetesService {
 
   static ParseEnvoyLogs(logs: string[], namespace: string, podName: string) {
     const envoyLogs = logs
-      .map((l): IEnvoyLog | null => {
+      .map((l): TEnvoyLog | null => {
         const [time, log] = l.split("\t");
         const [, type, requestId, traceId, spanId, parentSpanId] =
           log.match(
@@ -172,7 +172,7 @@ export default class KubernetesService {
           traceId,
           spanId,
           parentSpanId,
-          method: method as IRequestTypeUpper,
+          method: method as TRequestTypeUpper,
           path,
           status,
           body,
@@ -181,7 +181,7 @@ export default class KubernetesService {
           podName,
         };
       })
-      .filter((l) => !!l) as IEnvoyLog[];
+      .filter((l) => !!l) as TEnvoyLog[];
     return new EnvoyLogs(envoyLogs);
   }
 }

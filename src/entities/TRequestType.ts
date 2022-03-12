@@ -1,4 +1,4 @@
-export type IRequestTypeLower =
+export type TRequestTypeLower =
   | "get"
   | "post"
   | "put"
@@ -9,7 +9,7 @@ export type IRequestTypeLower =
   | "connect"
   | "trace";
 
-export type IRequestTypeUpper =
+export type TRequestTypeUpper =
   | "GET"
   | "POST"
   | "PUT"

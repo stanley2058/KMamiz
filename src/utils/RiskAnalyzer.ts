@@ -1,18 +1,17 @@
-import IAggregateData from "../entities/IAggregateData";
-import { IRealtimeData } from "../entities/IRealtimeData";
-import IReplicaCount from "../entities/IReplicaCount";
-import IRiskResult from "../entities/IRiskResult";
-import IServiceDependency from "../entities/IServiceDependency";
+import { TRealtimeData } from "../entities/TRealtimeData";
+import { TReplicaCount } from "../entities/TReplicaCount";
+import { TRiskResult } from "../entities/TRiskResult";
+import { TServiceDependency } from "../entities/TServiceDependency";
 import Normalizer from "./Normalizer";
 
 export default class RiskAnalyzer {
   private static readonly MINIMUM_PROB = 0.01;
 
   static RealtimeRisk(
-    data: IRealtimeData[],
-    dependencies: IServiceDependency[],
-    replicas: IReplicaCount[]
-  ): IRiskResult[] {
+    data: TRealtimeData[],
+    dependencies: TServiceDependency[],
+    replicas: TReplicaCount[]
+  ): TRiskResult[] {
     const impacts = this.Impact(dependencies, replicas);
     const probabilities = this.Probability(data);
 
@@ -49,7 +48,7 @@ export default class RiskAnalyzer {
     return risks.map((r, i) => ({ ...r, norm: normRisk[i] }));
   }
 
-  static Impact(dependencies: IServiceDependency[], replicas: IReplicaCount[]) {
+  static Impact(dependencies: TServiceDependency[], replicas: TReplicaCount[]) {
     const relyingFactor = this.RelyingFactor(dependencies);
     const acs = this.AbsoluteCriticalityOfServices(dependencies);
 
@@ -85,7 +84,7 @@ export default class RiskAnalyzer {
     return rawImpact.map((i, iIndex) => ({ ...i, impact: normImpact[iIndex] }));
   }
 
-  static Probability(data: IRealtimeData[]) {
+  static Probability(data: TRealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
     const rawInvokeProbabilityAndErrorRate =
       this.InvokeProbabilityAndErrorRate(data);
@@ -125,7 +124,7 @@ export default class RiskAnalyzer {
     return rawProb.map((p, i) => ({ ...p, probability: normProb[i] }));
   }
 
-  static RelyingFactor(dependencies: IServiceDependency[]) {
+  static RelyingFactor(dependencies: TServiceDependency[]) {
     const factorMap = new Map<string, number>();
     dependencies.forEach(({ uniqueServiceName, links, dependency }) => {
       const factor = links.reduce(
@@ -147,7 +146,7 @@ export default class RiskAnalyzer {
    * @param dependencies
    * @returns ACS score
    */
-  static AbsoluteCriticalityOfServices(dependencies: IServiceDependency[]) {
+  static AbsoluteCriticalityOfServices(dependencies: TServiceDependency[]) {
     /**
      * ACS: Absolute Criticality of the Service
      * AIS: Absolute Importance of the Service
@@ -173,7 +172,7 @@ export default class RiskAnalyzer {
   }
 
   static InvokeProbabilityAndErrorRate(
-    data: IRealtimeData[],
+    data: TRealtimeData[],
     includeRequestError: boolean = false
   ) {
     const invokedCounts = data
@@ -213,7 +212,7 @@ export default class RiskAnalyzer {
     return invokeProbability;
   }
 
-  static ReliabilityMetric(data: IRealtimeData[]) {
+  static ReliabilityMetric(data: TRealtimeData[]) {
     const reliabilityMetric = this.GetWorseLatencyCVOfServices(data);
 
     const normalizedMetrics = Normalizer.Numbers(
@@ -227,7 +226,7 @@ export default class RiskAnalyzer {
     }));
   }
 
-  static GetWorseLatencyCVOfServices(serviceData: IRealtimeData[]) {
+  static GetWorseLatencyCVOfServices(serviceData: TRealtimeData[]) {
     const latencyMap = serviceData.reduce((acc, cur) => {
       const uniqueName = cur.uniqueEndpointName;
       acc.set(uniqueName, (acc.get(uniqueName) || []).concat(cur.latency));

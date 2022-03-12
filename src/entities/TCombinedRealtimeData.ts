@@ -1,12 +1,12 @@
 import { Types } from "mongoose";
-import { IRequestTypeUpper } from "./IRequestType";
+import { TRequestTypeUpper } from "./TRequestType";
 
-export interface ICombinedRealtimeData {
+export type TCombinedRealtimeData = {
   _id?: Types.ObjectId;
   uniqueServiceName: string;
   uniqueEndpointName: string;
   latestTimestamp: number;
-  method: IRequestTypeUpper;
+  method: TRequestTypeUpper;
   service: string;
   namespace: string;
   version: string;
@@ -21,4 +21,4 @@ export interface ICombinedRealtimeData {
   requestSchema?: string;
   requestContentType?: string;
   avgReplica?: number;
-}
+};

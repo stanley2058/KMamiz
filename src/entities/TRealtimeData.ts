@@ -1,10 +1,10 @@
-import { IRequestTypeUpper } from "./IRequestType";
+import { TRequestTypeUpper } from "./TRequestType";
 
-export interface IRealtimeData {
+export type TRealtimeData = {
   uniqueServiceName: string;
   uniqueEndpointName: string;
   timestamp: number; // zipkin timestamp in microseconds
-  method: IRequestTypeUpper;
+  method: TRequestTypeUpper;
   service: string;
   namespace: string;
   version: string;
@@ -15,4 +15,4 @@ export interface IRealtimeData {
   requestBody?: string;
   requestContentType?: string;
   replica?: number;
-}
+};

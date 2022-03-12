@@ -1,17 +1,18 @@
 import {
-  IEndpointDependency,
   TEndpointDependency,
-} from "../entities/IEndpointDependency";
-import IGraphData, { ILink, INode } from "../entities/IGraphData";
-import IServiceDependency, {
-  IServiceLinkInfo,
-} from "../entities/IServiceDependency";
-import { IServiceEndpointCohesion } from "../entities/IServiceEndpointCohesion";
+  TEndpointDependencyCombined,
+} from "../entities/TEndpointDependency";
+import { TGraphData, TLink, TNode } from "../entities/TGraphData";
+import {
+  TServiceDependency,
+  TServiceLinkInfo,
+} from "../entities/TServiceDependency";
+import { TServiceEndpointCohesion } from "../entities/TServiceEndpointCohesion";
 import DataCache from "../services/DataCache";
 
 export class EndpointDependencies {
-  private readonly _dependencies: IEndpointDependency[];
-  constructor(dependencies: IEndpointDependency[]) {
+  private readonly _dependencies: TEndpointDependency[];
+  constructor(dependencies: TEndpointDependency[]) {
     this._dependencies = dependencies;
   }
 
@@ -21,7 +22,7 @@ export class EndpointDependencies {
 
   trim() {
     return new EndpointDependencies(
-      this._dependencies.map((d): IEndpointDependency => {
+      this._dependencies.map((d): TEndpointDependency => {
         const dOnMap = new Map<string, any>();
         d.dependsOn.forEach((dOn) => {
           const id = `${dOn.distance}\t${dOn.endpoint.uniqueEndpointName}`;
@@ -43,7 +44,7 @@ export class EndpointDependencies {
   }
 
   label() {
-    return this._dependencies.map((d): IEndpointDependency => {
+    return this._dependencies.map((d): TEndpointDependency => {
       const labelName = DataCache.getInstance().getLabelFromUniqueEndpointName(
         d.endpoint.uniqueEndpointName
       );
@@ -83,7 +84,7 @@ export class EndpointDependencies {
   }
 
   toGraphData() {
-    const serviceEndpointMap = new Map<string, IEndpointDependency[]>();
+    const serviceEndpointMap = new Map<string, TEndpointDependency[]>();
     const dependencies = this._dependencies;
     dependencies.forEach((dep) => {
       const uniqueName = `${dep.endpoint.service}\t${dep.endpoint.namespace}`;
@@ -99,15 +100,15 @@ export class EndpointDependencies {
       dependencies,
       bNodes,
       bLinks
-    ) as IGraphData;
+    ) as TGraphData;
   }
 
   private createBaseNodesAndLinks(
-    serviceEndpointMap: Map<string, IEndpointDependency[]>
+    serviceEndpointMap: Map<string, TEndpointDependency[]>
   ) {
     const existLabels = new Set<string>();
     const existLinks = new Set<string>();
-    const nodes: INode[] = [
+    const nodes: TNode[] = [
       // root node (external)
       {
         id: "null",
@@ -117,7 +118,7 @@ export class EndpointDependencies {
         linkInBetween: [],
       },
     ];
-    const links: ILink[] = [];
+    const links: TLink[] = [];
     [...serviceEndpointMap.entries()].forEach(([service, endpoint]) => {
       // service node
       nodes.push({
@@ -179,9 +180,9 @@ export class EndpointDependencies {
     return { nodes, links };
   }
   private createHighlightNodesAndLinks(
-    dependencies: IEndpointDependency[],
-    nodes: INode[],
-    links: ILink[]
+    dependencies: TEndpointDependency[],
+    nodes: TNode[],
+    links: TLink[]
   ) {
     const dependencyWithId = dependencies.map((dep) => ({
       ...dep,
@@ -224,7 +225,7 @@ export class EndpointDependencies {
           n.linkInBetween = [
             ...this.mapToLinks(dependsOnSorted, n, links),
             ...this.mapToLinks(dependBySorted, n, links),
-          ].filter((l) => !!l) as ILink[];
+          ].filter((l) => !!l) as TLink[];
           // fill in nodes to highlight
           n.dependencies = [
             ...new Set([
@@ -237,16 +238,20 @@ export class EndpointDependencies {
     });
     return { nodes, links };
   }
-  private remapToId(list: TEndpointDependency[]) {
+  private remapToId(list: TEndpointDependencyCombined[]) {
     return list.map(
       ({ endpoint: { uniqueServiceName, method, labelName } }) =>
         `${uniqueServiceName}\t${method}\t${labelName}`
     );
   }
-  private sortEndpointInfoByDistanceDesc(list: TEndpointDependency[]) {
+  private sortEndpointInfoByDistanceDesc(list: TEndpointDependencyCombined[]) {
     return [...list].sort((a, b) => b.distance - a.distance);
   }
-  private mapToLinks(list: TEndpointDependency[], node: INode, links: ILink[]) {
+  private mapToLinks(
+    list: TEndpointDependencyCombined[],
+    node: TNode,
+    links: TLink[]
+  ) {
     return list
       .map(
         ({ endpoint: { uniqueServiceName, method, labelName }, type }, i) => {
@@ -274,7 +279,7 @@ export class EndpointDependencies {
     ];
 
     // create service dependencies
-    return serviceTemplates.map((uniqueServiceName): IServiceDependency => {
+    return serviceTemplates.map((uniqueServiceName): TServiceDependency => {
       // find dependencies for the current service
       const dependency = dependencies.filter(
         ({ endpoint }) => endpoint.uniqueServiceName === uniqueServiceName
@@ -307,7 +312,7 @@ export class EndpointDependencies {
   }
 
   private static createServiceToLinksMapping(
-    dependency: IEndpointDependency[]
+    dependency: TEndpointDependency[]
   ) {
     // create links info from endpointDependencies
     const linkMap = dependency
@@ -334,13 +339,13 @@ export class EndpointDependencies {
           else prev[uniqueName].dependsOn++;
         }
         return prev;
-      }, {} as { [uniqueName: string]: IServiceLinkInfo });
+      }, {} as { [uniqueName: string]: TServiceLinkInfo });
     return linkMap;
   }
 
   toChordData() {
     const dependencies = this._dependencies;
-    const dependencyMap = new Map<string, IEndpointDependency>();
+    const dependencyMap = new Map<string, TEndpointDependency>();
     dependencies.forEach((d) => {
       dependencyMap.set(d.endpoint.labelName!, d);
     });
@@ -386,7 +391,7 @@ export class EndpointDependencies {
     const dependencyMap = new Map<
       string,
       {
-        endpoint: IEndpointDependency;
+        endpoint: TEndpointDependency;
         dependBySet: Set<string>;
         dependsOnSet: Set<string>;
       }
@@ -425,8 +430,8 @@ export class EndpointDependencies {
       [...dependencyMap.values()].map(({ endpoint }) => endpoint)
     );
   }
-  private createDependencyMapObject(endpoint: IEndpointDependency): {
-    endpoint: IEndpointDependency;
+  private createDependencyMapObject(endpoint: TEndpointDependency): {
+    endpoint: TEndpointDependency;
     dependBySet: Set<string>;
     dependsOnSet: Set<string>;
   } {
@@ -446,7 +451,7 @@ export class EndpointDependencies {
   }
 
   toServiceEndpointCohesion() {
-    const serviceEndpointMap = new Map<string, IEndpointDependency[]>();
+    const serviceEndpointMap = new Map<string, TEndpointDependency[]>();
     this._dependencies.forEach((d) => {
       const id = d.endpoint.uniqueServiceName;
       serviceEndpointMap.set(
@@ -456,7 +461,7 @@ export class EndpointDependencies {
     });
 
     return [...serviceEndpointMap.entries()].map(
-      ([uniqueServiceName, endpoints]): IServiceEndpointCohesion => {
+      ([uniqueServiceName, endpoints]): TServiceEndpointCohesion => {
         const serviceUtilizedMap = endpoints
           .flatMap((e) => e.dependBy.filter((d) => d.distance === 1))
           .reduce(

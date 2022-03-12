@@ -2,9 +2,9 @@ import { AggregateData } from "../classes/AggregateData";
 import CombinedRealtimeData from "../classes/CombinedRealtimeData";
 import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
-import IAggregateData from "../entities/IAggregateData";
-import IHistoryData from "../entities/IHistoryData";
-import IReplicaCount from "../entities/IReplicaCount";
+import { TAggregateData } from "../entities/TAggregateData";
+import { THistoryData } from "../entities/THistoryData";
+import { TReplicaCount } from "../entities/TReplicaCount";
 import EndpointUtils from "../utils/EndpointUtils";
 import Logger from "../utils/Logger";
 import Utils from "../utils/Utils";
@@ -21,7 +21,7 @@ export default class DataCache {
   private _endpointDependenciesView?: EndpointDependencies;
   private _labeledEndpointDependenciesView?: EndpointDependencies;
   private _endpointDataType: EndpointDataType[] = [];
-  private _replicasView?: IReplicaCount[];
+  private _replicasView?: TReplicaCount[];
   private _labelMapping = new Map<string, string>();
 
   updateCurrentView(
@@ -235,7 +235,7 @@ export default class DataCache {
     return labelMap.get(label) || [label];
   }
 
-  labelHistoryData(historyData: IHistoryData[]) {
+  labelHistoryData(historyData: THistoryData[]) {
     const uniqueNames = new Set(
       historyData
         .flatMap((h) => h.services)
@@ -259,7 +259,7 @@ export default class DataCache {
     return historyData;
   }
 
-  labelAggregateData(aggregateData: IAggregateData) {
+  labelAggregateData(aggregateData: TAggregateData) {
     const uniqueNames = new Set(
       aggregateData.services
         .flatMap((s) => s.endpoints)

@@ -1,23 +1,23 @@
 import { Types } from "mongoose";
-import { IEndpointDependency } from "./IEndpointDependency";
+import { TEndpointDependency } from "./TEndpointDependency";
 
-export default interface IServiceDependency {
+export type TServiceDependency = {
   _id?: Types.ObjectId;
   uniqueServiceName: string;
   service: string;
   namespace: string;
   version: string;
-  dependency: IEndpointDependency[];
-  links: IServiceLink[];
-}
+  dependency: TEndpointDependency[];
+  links: TServiceLink[];
+};
 
-export type IServiceLink = IServiceLinkInfo & {
+export type TServiceLink = TServiceLinkInfo & {
   uniqueServiceName: string;
   service: string;
   namespace: string;
   version: string;
 };
-export type IServiceLinkInfo = {
+export type TServiceLinkInfo = {
   distance: number;
   count: number;
   dependBy: number;

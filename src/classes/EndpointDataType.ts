@@ -1,15 +1,16 @@
-import IEndpointDataType, {
-  IEndpointDataSchema,
-} from "../entities/IEndpointDataType";
 import {
-  IEndpointCohesion,
-  IServiceCohesion,
-} from "../entities/IServiceCohesion";
+  TEndpointDataType,
+  TEndpointDataSchema,
+} from "../entities/TEndpointDataType";
+import {
+  TEndpointCohesion,
+  TServiceCohesion,
+} from "../entities/TServiceCohesion";
 import Utils from "../utils/Utils";
 
 export default class EndpointDataType {
-  private readonly _endpointDataType: IEndpointDataType;
-  constructor(endpointDataType: IEndpointDataType) {
+  private readonly _endpointDataType: TEndpointDataType;
+  constructor(endpointDataType: TEndpointDataType) {
     this._endpointDataType = endpointDataType;
   }
   get endpointDataType() {
@@ -18,7 +19,7 @@ export default class EndpointDataType {
 
   trim() {
     const dataType = this.removeDuplicateSchemas();
-    const schemaMap = new Map<string, IEndpointDataSchema>();
+    const schemaMap = new Map<string, TEndpointDataSchema>();
     dataType._endpointDataType.schemas.forEach((s) => {
       const existing = schemaMap.get(s.status);
       if (existing) {
@@ -47,7 +48,7 @@ export default class EndpointDataType {
   }
 
   removeDuplicateSchemas() {
-    const schemaMap = new Map<string, IEndpointDataSchema>();
+    const schemaMap = new Map<string, TEndpointDataSchema>();
     this._endpointDataType.schemas.forEach((s) => {
       const id = `${s.responseSchema || ""}\t${s.requestSchema || ""}`;
       schemaMap.set(id, s);
@@ -59,9 +60,9 @@ export default class EndpointDataType {
   }
 
   hasMatchedSchema(endpointData: EndpointDataType) {
-    const thisSchemas = new Map<string, IEndpointDataSchema>();
+    const thisSchemas = new Map<string, TEndpointDataSchema>();
     this._endpointDataType.schemas.forEach((s) => thisSchemas.set(s.status, s));
-    const cmpSchemas = new Map<string, IEndpointDataSchema>();
+    const cmpSchemas = new Map<string, TEndpointDataSchema>();
     endpointData._endpointDataType.schemas.forEach((s) =>
       cmpSchemas.set(s.status, s)
     );
@@ -81,8 +82,8 @@ export default class EndpointDataType {
     return result;
   }
   private isSchemaMatched(
-    schemaA: IEndpointDataSchema,
-    schemaB: IEndpointDataSchema
+    schemaA: TEndpointDataSchema,
+    schemaB: TEndpointDataSchema
   ) {
     return (
       schemaA.requestContentType === schemaB.requestContentType &&
@@ -117,17 +118,17 @@ export default class EndpointDataType {
   }
 
   mergeSchemaWith(endpointData: EndpointDataType) {
-    const mapToMap = (schemas: IEndpointDataSchema[]) =>
+    const mapToMap = (schemas: TEndpointDataSchema[]) =>
       schemas
         .sort((a, b) => b.time.getTime() - a.time.getTime())
         .reduce((prev, curr) => {
           if (prev.has(curr.status)) return prev;
           return prev.set(curr.status, curr);
-        }, new Map<string, IEndpointDataSchema>());
+        }, new Map<string, TEndpointDataSchema>());
     const existingMap = mapToMap(this._endpointDataType.schemas);
     const newMap = mapToMap(endpointData._endpointDataType.schemas);
 
-    const combinedMap = new Map<string, IEndpointDataSchema>();
+    const combinedMap = new Map<string, TEndpointDataSchema>();
     [...existingMap.entries()].forEach(([status, eSchema]) => {
       const nSchema = newMap.get(status);
       if (!nSchema) return;
@@ -172,9 +173,9 @@ export default class EndpointDataType {
     const dataTypeMapping = EndpointDataType.createDataTypeMapping(dataTypes);
 
     return [...dataTypeMapping.entries()].map(
-      ([uniqueServiceName, endpoints]): IServiceCohesion => {
+      ([uniqueServiceName, endpoints]): TServiceCohesion => {
         const preprocessed = EndpointDataType.preprocessEndpoints(endpoints);
-        const endpointCohesion: IEndpointCohesion[] =
+        const endpointCohesion: TEndpointCohesion[] =
           EndpointDataType.createEndpointCohesion(preprocessed);
         const sum = endpointCohesion.reduce((acc, ec) => acc + ec.score, 0);
         const cohesiveness =
@@ -255,7 +256,7 @@ export default class EndpointDataType {
       responseSchema: Set<string>;
     }[]
   ) {
-    const endpointCohesion: IEndpointCohesion[] = [];
+    const endpointCohesion: TEndpointCohesion[] = [];
     for (let i = 0; i < preprocessed.length - 1; i++) {
       const a = preprocessed[i];
       for (let j = i + 1; j < preprocessed.length; j++) {

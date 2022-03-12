@@ -1,6 +1,6 @@
 import { AggregateData } from "../classes/AggregateData";
 import { Trace } from "../classes/Trace";
-import IReplicaCount from "../entities/IReplicaCount";
+import { TReplicaCount } from "../entities/TReplicaCount";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
 import DataCache from "./DataCache";
@@ -29,7 +29,7 @@ export default class Initializer {
 
     // try to create aggregateData and historyData
     const endpointDependencies = traces.toEndpointDependencies().trim();
-    const replicas: IReplicaCount[] = [];
+    const replicas: TReplicaCount[] = [];
     for (const ns of await KubernetesService.getInstance().getNamespaces()) {
       replicas.push(
         ...(await KubernetesService.getInstance().getReplicasFromPodList(ns))

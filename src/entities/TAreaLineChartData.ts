@@ -1,11 +1,11 @@
-export type IAreaLineChartDataFields =
+export type TAreaLineChartDataFields =
   | "requests"
   | "serverErrors"
   | "requestErrors"
   | "risk"
   | "latencyCV";
 
-export default interface IAreaLineChartData {
+export type TAreaLineChartData = {
   name: string;
   x: Date;
   requests: number;
@@ -13,4 +13,4 @@ export default interface IAreaLineChartData {
   requestErrors: number;
   latencyCV: number;
   risk?: number;
-}
+};

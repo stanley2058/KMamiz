@@ -1,7 +1,7 @@
 import { AggregateData } from "../classes/AggregateData";
 import { EnvoyLogs } from "../classes/EnvoyLog";
 import { Trace } from "../classes/Trace";
-import IReplicaCount from "../entities/IReplicaCount";
+import { TReplicaCount } from "../entities/TReplicaCount";
 import Logger from "../utils/Logger";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
@@ -24,7 +24,7 @@ export default class ServiceOperator {
       await MongoOperator.getInstance().getEndpointDependencies();
     const namespaces = combinedRealtimeData.getContainingNamespaces();
 
-    const replicas: IReplicaCount[] =
+    const replicas: TReplicaCount[] =
       await KubernetesService.getInstance().getReplicas(namespaces);
     const { historyData, aggregateData } =
       combinedRealtimeData.toAggregatedDataAndHistoryData(
@@ -69,7 +69,7 @@ export default class ServiceOperator {
 
     // get all necessary envoy logs
     const envoyLogs: EnvoyLogs[] = [];
-    const replicas: IReplicaCount[] =
+    const replicas: TReplicaCount[] =
       await KubernetesService.getInstance().getReplicas(namespaces);
     for (const ns of namespaces) {
       for (const podName of await KubernetesService.getInstance().getPodNames(

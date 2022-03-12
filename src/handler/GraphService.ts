@@ -1,10 +1,10 @@
 import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
-import IAreaLineChartData from "../entities/IAreaLineChartData";
-import IGraphData from "../entities/IGraphData";
-import IRequestHandler from "../entities/IRequestHandler";
-import { IServiceCohesion } from "../entities/IServiceCohesion";
-import { ITotalServiceInterfaceCohesion } from "../entities/ITotalServiceInterfaceCohesion";
+import { TAreaLineChartData } from "../entities/TAreaLineChartData";
+import { TGraphData } from "../entities/TGraphData";
+import IRequestHandler from "../entities/TRequestHandler";
+import { TServiceCohesion } from "../entities/TServiceCohesion";
+import { TTotalServiceInterfaceCohesion } from "../entities/TTotalServiceInterfaceCohesion";
 import DataCache from "../services/DataCache";
 
 export default class GraphService extends IRequestHandler {
@@ -68,7 +68,7 @@ export default class GraphService extends IRequestHandler {
       n.dependencies = n.linkInBetween.map((l) => l.target);
     });
 
-    const graph: IGraphData = {
+    const graph: TGraphData = {
       nodes,
       links,
     };
@@ -94,7 +94,7 @@ export default class GraphService extends IRequestHandler {
     );
   }
 
-  async getAreaLineData(namespace?: string): Promise<IAreaLineChartData[]> {
+  async getAreaLineData(namespace?: string): Promise<TAreaLineChartData[]> {
     const historyData = await DataCache.getInstance().getRealtimeHistoryData(
       namespace
     );
@@ -125,12 +125,12 @@ export default class GraphService extends IRequestHandler {
       DataCache.getInstance().endpointDataTypeSnap
     ).reduce(
       (map, d) => map.set(d.uniqueServiceName, d),
-      new Map<string, IServiceCohesion>()
+      new Map<string, TServiceCohesion>()
     );
 
     const usageCohesions = dependencies.toServiceEndpointCohesion();
 
-    return usageCohesions.map((u): ITotalServiceInterfaceCohesion => {
+    return usageCohesions.map((u): TTotalServiceInterfaceCohesion => {
       const uniqueServiceName = u.uniqueServiceName;
       const [service, namespace, version] = uniqueServiceName.split("\t");
       const dCohesion = dataCohesion.get(uniqueServiceName)!;
