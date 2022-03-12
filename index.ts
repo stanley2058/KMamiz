@@ -35,8 +35,7 @@ app.use(Routes.getInstance().getRoutes());
 
   if (
     !aggregateData &&
-    DataCache.getInstance().combinedRealtimeDataSnap?.combinedRealtimeData
-      .length === 0
+    DataCache.getInstance().combinedRealtimeDataSnap?.toJSON().length === 0
   ) {
     Logger.info("Database is empty, running first time setup.");
     await Initializer.getInstance().firstTimeSetup();
