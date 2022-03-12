@@ -10,7 +10,8 @@ export class EnvoyLogs {
   constructor(envoyLogs: TEnvoyLog[]) {
     this._envoyLogs = envoyLogs;
   }
-  get envoyLogs() {
+
+  toJSON() {
     return this._envoyLogs;
   }
 

@@ -13,7 +13,8 @@ export default class EndpointDataType {
   constructor(endpointDataType: TEndpointDataType) {
     this._endpointDataType = endpointDataType;
   }
-  get endpointDataType() {
+
+  toJSON() {
     return this._endpointDataType;
   }
 

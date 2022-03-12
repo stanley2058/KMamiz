@@ -5,7 +5,7 @@ export default class EndpointUtils {
   static CreateEndpointLabelMapping(dataTypes: EndpointDataType[]) {
     const serviceMapping = new Map<string, EndpointDataType[]>();
     dataTypes.forEach((d) => {
-      const s = d.endpointDataType.uniqueServiceName;
+      const s = d.toJSON().uniqueServiceName;
       serviceMapping.set(s, (serviceMapping.get(s) || []).concat([d]));
     });
 
@@ -13,16 +13,14 @@ export default class EndpointUtils {
     [...serviceMapping.entries()].forEach(([_, endpoints]) => {
       const grouped = new Set<string>();
       endpoints.forEach((e) => {
-        if (grouped.has(e.endpointDataType.uniqueEndpointName)) return;
+        if (grouped.has(e.toJSON().uniqueEndpointName)) return;
         const group: EndpointDataType[] = endpoints.filter((ep) => {
-          if (e.endpointDataType.method !== ep.endpointDataType.method) {
+          if (e.toJSON().method !== ep.toJSON().method) {
             return false;
           }
 
-          const [, , , , baseUrl] =
-            e.endpointDataType.uniqueEndpointName.split("\t");
-          const [, , , , cmpUrl] =
-            ep.endpointDataType.uniqueEndpointName.split("\t");
+          const [, , , , baseUrl] = e.toJSON().uniqueEndpointName.split("\t");
+          const [, , , , cmpUrl] = ep.toJSON().uniqueEndpointName.split("\t");
           const [, , basePath] = Utils.ExplodeUrl(baseUrl);
           const [, , cmpPath] = Utils.ExplodeUrl(cmpUrl);
 
@@ -33,17 +31,13 @@ export default class EndpointUtils {
           return e.hasMatchedSchema(ep);
         });
         if (group.length > 0) groups.push(group);
-        group.forEach((ep) =>
-          grouped.add(ep.endpointDataType.uniqueEndpointName)
-        );
+        group.forEach((ep) => grouped.add(ep.toJSON().uniqueEndpointName));
       });
     });
 
     const labelMapping = new Map<string, string>();
     groups.forEach((group) => {
-      const uniqueNames = group.map(
-        (e) => e.endpointDataType.uniqueEndpointName
-      );
+      const uniqueNames = group.map((e) => e.toJSON().uniqueEndpointName);
       const label = EndpointUtils.combineAndMaskUrls(
         uniqueNames.map((n) => {
           const [, , , , url] = n.split("\t");

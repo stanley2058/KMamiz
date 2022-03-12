@@ -1,6 +1,6 @@
 import { AggregateData } from "../classes/AggregateData";
 import { EnvoyLogs } from "../classes/EnvoyLog";
-import { Trace } from "../classes/Trace";
+import { Traces } from "../classes/Traces";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import Logger from "../utils/Logger";
 import KubernetesService from "./KubernetesService";
@@ -8,7 +8,7 @@ import MongoOperator from "./MongoOperator";
 import DataCache from "./DataCache";
 import Scheduler from "./Scheduler";
 import ZipkinService from "./ZipkinService";
-import CombinedRealtimeData from "../classes/CombinedRealtimeData";
+import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -37,8 +37,8 @@ export default class ServiceOperator {
     if (prevAggRaw) {
       const prevAggData = new AggregateData(prevAggRaw);
       newAggData = prevAggData.combine(aggregateData);
-      if (prevAggData.aggregateData._id)
-        newAggData.aggregateData._id = prevAggData.aggregateData._id;
+      if (prevAggData.toJSON()._id)
+        newAggData.toJSON()._id = prevAggData.toJSON()._id;
     }
 
     await MongoOperator.getInstance().saveAggregateData(newAggData);
@@ -62,7 +62,7 @@ export default class ServiceOperator {
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         lookBack
       );
-    const traces = new Trace(rawTrace.slice(0, 25000));
+    const traces = new Traces(rawTrace.slice(0, 25000));
 
     // get namespaces from traces for querying envoy logs
     const namespaces = traces.toRealTimeData().getContainingNamespaces();
@@ -94,8 +94,8 @@ export default class ServiceOperator {
   }
 
   private async doBackgroundDataAggregation(
-    traces: Trace,
-    data: CombinedRealtimeData
+    traces: Traces,
+    data: CombinedRealtimeDataList
   ) {
     const existingDep = DataCache.getInstance().getEndpointDependenciesSnap();
     const newDep = traces.toEndpointDependencies();

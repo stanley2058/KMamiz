@@ -79,7 +79,7 @@ export default class GraphService extends IRequestHandler {
     const dependencies =
       DataCache.getInstance().getEndpointDependenciesSnap(namespace);
     if (!dependencies) return [];
-    const dep = dependencies.dependencies;
+    const dep = dependencies.toJSON();
     dep.forEach((ep) => {
       ep.dependsOn = ep.dependsOn.filter((d) => d.distance === 1);
     });

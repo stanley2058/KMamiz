@@ -47,8 +47,9 @@ export default class DispatchStorage {
 
   private async syncCombinedRealtimeData() {
     const rlData = DataCache.getInstance().combinedRealtimeDataSnap;
-    const { combinedRealtimeData: rlDataToDelete } =
-      await MongoOperator.getInstance().getAllCombinedRealtimeData();
+    const rlDataToDelete = (
+      await MongoOperator.getInstance().getAllCombinedRealtimeData()
+    ).toJSON();
 
     if (rlData) {
       try {
@@ -71,7 +72,7 @@ export default class DispatchStorage {
     try {
       await MongoOperator.getInstance().insertEndpointDataTypes(dataTypes);
       await MongoOperator.getInstance().deleteEndpointDataType(
-        dataTypesToDelete.map((d) => d.endpointDataType._id!)
+        dataTypesToDelete.map((d) => d.toJSON()._id!)
       );
     } catch (ex) {
       Logger.error("Error saving EndpointDataType, skipping.");
@@ -82,8 +83,9 @@ export default class DispatchStorage {
   private async syncEndpointDependencies() {
     const dependencies =
       DataCache.getInstance().getRawEndpointDependenciesSnap();
-    const { dependencies: dependenciesToDelete } =
-      await MongoOperator.getInstance().getEndpointDependencies();
+    const dependenciesToDelete = (
+      await MongoOperator.getInstance().getEndpointDependencies()
+    ).toJSON();
 
     if (dependencies) {
       try {

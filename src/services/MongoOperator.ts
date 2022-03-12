@@ -11,7 +11,7 @@ import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
 import { EndpointDataTypeModel } from "../entities/schema/EndpointDataTypeSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
 import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
-import CombinedRealtimeData from "../classes/CombinedRealtimeData";
+import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
 import { TEndpointDependency } from "../entities/TEndpointDependency";
 import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 
@@ -114,10 +114,7 @@ export default class MongoOperator {
   }
 
   async saveAggregateData(aggregateData: AggregateData) {
-    return await this.smartSave(
-      aggregateData.aggregateData,
-      AggregateDataModel
-    );
+    return await this.smartSave(aggregateData.toJSON(), AggregateDataModel);
   }
 
   async saveHistoryData(historyData: THistoryData[]): Promise<THistoryData[]> {
@@ -128,7 +125,7 @@ export default class MongoOperator {
 
   async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {
     const results: TEndpointDependency[] = [];
-    for (const dep of endpointDependencies.dependencies) {
+    for (const dep of endpointDependencies.toJSON()) {
       const model = new EndpointDependencyModel(dep);
       if (dep._id) model.isNew = false;
       const result = (await model.save()).toObject();
@@ -138,7 +135,7 @@ export default class MongoOperator {
   }
 
   async insertEndpointDependencies(endpointDependencies: EndpointDependencies) {
-    const { dependencies } = endpointDependencies;
+    const dependencies = endpointDependencies.toJSON();
     dependencies.forEach((d) => (d._id = undefined));
     const res = await EndpointDependencyModel.insertMany(dependencies);
     return new EndpointDependencies(res.map((r) => r.toObject()));
@@ -146,7 +143,7 @@ export default class MongoOperator {
 
   async saveEndpointDataType(endpointDataType: EndpointDataType) {
     return await this.smartSave(
-      endpointDataType.endpointDataType,
+      endpointDataType.toJSON(),
       EndpointDataTypeModel
     );
   }
@@ -154,7 +151,7 @@ export default class MongoOperator {
   async saveEndpointDataTypes(endpointDataType: EndpointDataType[]) {
     const results: EndpointDataType[] = [];
     for (const dataType of endpointDataType) {
-      const { endpointDataType } = dataType;
+      const endpointDataType = dataType.toJSON();
       const model = new EndpointDataTypeModel(endpointDataType);
       if (endpointDataType._id) model.isNew = false;
       try {
@@ -169,31 +166,31 @@ export default class MongoOperator {
   }
 
   async insertEndpointDataTypes(endpointDataType: EndpointDataType[]) {
-    endpointDataType.forEach((e) => (e.endpointDataType._id = undefined));
+    endpointDataType.forEach((e) => (e.toJSON()._id = undefined));
     const res = await EndpointDataTypeModel.insertMany(
-      endpointDataType.map((e) => e.endpointDataType)
+      endpointDataType.map((e) => e.toJSON())
     );
 
     return res.map((r) => r.toObject());
   }
 
   async getAllCombinedRealtimeData() {
-    return new CombinedRealtimeData(
+    return new CombinedRealtimeDataList(
       (await CombinedRealtimeDataModel.find({}).exec()).map((r) => r.toObject())
     );
   }
 
-  async insertCombinedRealtimeData(cRlData: CombinedRealtimeData) {
-    const { combinedRealtimeData } = cRlData;
+  async insertCombinedRealtimeData(cRlData: CombinedRealtimeDataList) {
+    const combinedRealtimeData = cRlData.toJSON();
     combinedRealtimeData.forEach((c) => (c._id = undefined));
-    return new CombinedRealtimeData(
+    return new CombinedRealtimeDataList(
       await CombinedRealtimeDataModel.insertMany(combinedRealtimeData)
     );
   }
 
-  async saveCombinedRealtimeData(cRlData: CombinedRealtimeData) {
+  async saveCombinedRealtimeData(cRlData: CombinedRealtimeDataList) {
     const results: TCombinedRealtimeData[] = [];
-    for (const rlData of cRlData.combinedRealtimeData) {
+    for (const rlData of cRlData.toJSON()) {
       const model = new CombinedRealtimeDataModel(rlData);
       if (rlData._id) model.isNew = false;
       try {
@@ -204,7 +201,7 @@ export default class MongoOperator {
         Logger.verbose("", ex);
       }
     }
-    return new CombinedRealtimeData(results);
+    return new CombinedRealtimeDataList(results);
   }
 
   async deleteAllCombinedRealtimeData() {

@@ -15,12 +15,13 @@ import RiskAnalyzer from "../utils/RiskAnalyzer";
 import Utils from "../utils/Utils";
 import EndpointDataType from "./EndpointDataType";
 
-export default class CombinedRealtimeData {
+export default class CombinedRealtimeDataList {
   private readonly _combinedRealtimeData: TCombinedRealtimeData[];
   constructor(combinedRealtimeData: TCombinedRealtimeData[]) {
     this._combinedRealtimeData = combinedRealtimeData;
   }
-  get combinedRealtimeData() {
+
+  toJSON() {
     return this._combinedRealtimeData;
   }
 
@@ -37,7 +38,7 @@ export default class CombinedRealtimeData {
 
     return [...dateMapping.entries()].map(([time, dailyData]): THistoryData => {
       const risks = RiskAnalyzer.RealtimeRisk(
-        new CombinedRealtimeData(dailyData).toRealtimeDataForm(),
+        new CombinedRealtimeDataList(dailyData).toRealtimeDataForm(),
         serviceDependencies,
         replicas
       );
@@ -312,7 +313,7 @@ export default class CombinedRealtimeData {
     });
   }
 
-  combineWith(rlData: CombinedRealtimeData) {
+  combineWith(rlData: CombinedRealtimeDataList) {
     const uniqueNameMap = new Map<string, TCombinedRealtimeData[]>();
     this._combinedRealtimeData
       .concat(rlData._combinedRealtimeData)
@@ -370,7 +371,7 @@ export default class CombinedRealtimeData {
       }
     );
 
-    return new CombinedRealtimeData(combined);
+    return new CombinedRealtimeDataList(combined);
   }
 
   getContainingNamespaces() {

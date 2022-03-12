@@ -1,9 +1,9 @@
 import { Axios, AxiosRequestConfig } from "axios";
 import GlobalSettings from "../GlobalSettings";
 import { EnvoyLogs } from "../classes/EnvoyLog";
-import { IPodList } from "../entities/external/IPodList";
+import { PodList } from "../entities/external/PodList";
 import { TReplicaCount } from "../entities/TReplicaCount";
-import { IServiceList } from "../entities/external/IServiceList";
+import { ServiceList } from "../entities/external/ServiceList";
 import { TEnvoyLog } from "../entities/TEnvoyLog";
 import Utils from "../utils/Utils";
 import Logger from "../utils/Logger";
@@ -62,7 +62,7 @@ export default class KubernetesService {
   }
 
   async getPodList(namespace: string) {
-    return await this.mustSuccessRequest<IPodList>(
+    return await this.mustSuccessRequest<PodList>(
       "get",
       `/namespaces/${namespace}/pods`,
       {
@@ -73,7 +73,7 @@ export default class KubernetesService {
   }
 
   async getServiceList(namespace: string) {
-    return await this.mustSuccessRequest<IServiceList>(
+    return await this.mustSuccessRequest<ServiceList>(
       "get",
       `/namespaces/${namespace}/services`,
       {

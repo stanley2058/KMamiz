@@ -16,7 +16,7 @@ export class EndpointDependencies {
     this._dependencies = dependencies;
   }
 
-  get dependencies() {
+  toJSON() {
     return this._dependencies;
   }
 

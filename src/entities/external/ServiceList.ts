@@ -1,17 +1,17 @@
-export interface IServiceList {
+export type ServiceList = {
   kind: string;
   apiVersion: string;
   metadata: { resourceVersion: string };
   items: Item[];
-}
+};
 
-export interface Item {
+export type Item = {
   metadata: ItemMetadata;
   spec: Spec;
   status: { loadBalancer: any };
-}
+};
 
-export interface ItemMetadata {
+export type ItemMetadata = {
   name: string;
   namespace: string;
   uid: string;
@@ -20,14 +20,14 @@ export interface ItemMetadata {
   labels: Labels;
   annotations: any;
   managedFields: any[];
-}
+};
 
-export interface Labels {
+export type Labels = {
   app: string;
   service: string;
-}
+};
 
-export interface Spec {
+export type Spec = {
   ports: Port[];
   selector: { app: string };
   clusterIP: string;
@@ -37,11 +37,11 @@ export interface Spec {
   ipFamilies: string[];
   ipFamilyPolicy: string;
   internalTrafficPolicy: string;
-}
+};
 
-export interface Port {
+export type Port = {
   name: string;
   protocol: string;
   port: number;
   targetPort: number;
-}
+};

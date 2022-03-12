@@ -1,5 +1,5 @@
 import { AggregateData } from "../classes/AggregateData";
-import { Trace } from "../classes/Trace";
+import { Traces } from "../classes/Traces";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
@@ -20,7 +20,7 @@ export default class Initializer {
   async firstTimeSetup() {
     const todayTime = new Date(new Date().toLocaleDateString()).getTime();
     // get traces from yesterday to 30 days backward
-    const traces = new Trace(
+    const traces = new Traces(
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         86400000 * 30,
         todayTime
@@ -39,7 +39,7 @@ export default class Initializer {
     const realtimeData = traces
       .toRealTimeData(replicas)
       .toCombinedRealtimeData();
-    if (realtimeData.combinedRealtimeData.length !== 0) {
+    if (realtimeData.toJSON().length !== 0) {
       const { aggregateData, historyData } =
         realtimeData.toAggregatedDataAndHistoryData(
           endpointDependencies.toServiceDependencies(),
@@ -52,7 +52,7 @@ export default class Initializer {
     }
 
     // get traces from 00:00 today local time to now, and save it to database as realtime data
-    const todayTraces = new Trace(
+    const todayTraces = new Traces(
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         Date.now() - todayTime
       )
@@ -68,7 +68,7 @@ export default class Initializer {
   }
 
   async forceRecreateEndpointDependencies() {
-    const traces = new Trace(
+    const traces = new Traces(
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         86400000 * 30
       )

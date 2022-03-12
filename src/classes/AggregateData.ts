@@ -10,7 +10,8 @@ export class AggregateData {
   constructor(aggregateData: TAggregateData) {
     this._aggregateData = aggregateData;
   }
-  get aggregateData() {
+
+  toJSON() {
     return this._aggregateData;
   }
 

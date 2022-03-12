@@ -27,18 +27,18 @@ export default class SwaggerService extends IRequestHandler {
   async getSwagger(uniqueServiceName: string) {
     const [service, namespace, version] = uniqueServiceName.split("\t");
     const endpoints = DataCache.getInstance().endpointDataTypeSnap.filter(
-      (e) => e.endpointDataType.uniqueServiceName === uniqueServiceName
+      (e) => e.toJSON().uniqueServiceName === uniqueServiceName
     );
 
     return SwaggerUtils.FromEndpoints(
       `${service}.${namespace}`,
       version,
       endpoints.map((e) => {
-        e.endpointDataType.labelName =
+        e.toJSON().labelName =
           DataCache.getInstance().getLabelFromUniqueEndpointName(
-            e.endpointDataType.uniqueEndpointName
+            e.toJSON().uniqueEndpointName
           );
-        return e.endpointDataType;
+        return e.toJSON();
       })
     );
   }

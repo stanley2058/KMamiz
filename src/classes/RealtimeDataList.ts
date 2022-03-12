@@ -2,14 +2,15 @@ import Utils from "../utils/Utils";
 import { TRealtimeData } from "../entities/TRealtimeData";
 import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 import Logger from "../utils/Logger";
-import CombinedRealtimeData from "./CombinedRealtimeData";
+import CombinedRealtimeDataList from "./CombinedRealtimeDataList";
 
-export class RealtimeData {
+export class RealtimeDataList {
   private readonly _realtimeData: TRealtimeData[];
   constructor(realtimeData: TRealtimeData[]) {
     this._realtimeData = realtimeData;
   }
-  get realtimeData() {
+
+  toJSON() {
     return this._realtimeData;
   }
 
@@ -85,7 +86,7 @@ export class RealtimeData {
       })
       .flat();
 
-    return new CombinedRealtimeData(combined);
+    return new CombinedRealtimeDataList(combined);
   }
 
   private parseRequestResponseBody(data: TRealtimeData) {

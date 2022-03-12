@@ -1,17 +1,17 @@
-export interface IPodList {
+export type PodList = {
   kind: string;
   apiVersion: string;
   metadata: { resourceVersion: string };
   items: Item[];
-}
+};
 
-export interface Item {
+export type Item = {
   metadata: ItemMetadata;
   spec: any;
   status: Status;
-}
+};
 
-export interface ItemMetadata {
+export type ItemMetadata = {
   name: string;
   generateName: string;
   namespace: string;
@@ -22,36 +22,36 @@ export interface ItemMetadata {
   annotations: Annotations;
   ownerReferences: OwnerReference[];
   managedFields: any[];
-}
+};
 
-export interface Annotations {
+export type Annotations = {
   "kubectl.kubernetes.io/default-container": string;
   "kubectl.kubernetes.io/default-logs-container": string;
   "prometheus.io/path": string;
   "prometheus.io/port": string;
   "prometheus.io/scrape": string;
   "sidecar.istio.io/status": string;
-}
+};
 
-export interface Labels {
+export type Labels = {
   app: string;
   "pod-template-hash": string;
   "security.istio.io/tlsMode": string;
   "service.istio.io/canonical-name": string;
   "service.istio.io/canonical-revision": string;
   version: string;
-}
+};
 
-export interface OwnerReference {
+export type OwnerReference = {
   apiVersion: string;
   kind: string;
   name: string;
   uid: string;
   controller: boolean;
   blockOwnerDeletion: boolean;
-}
+};
 
-export interface Status {
+export type Status = {
   phase: string;
   conditions: Condition[];
   hostIP: string;
@@ -61,11 +61,11 @@ export interface Status {
   initContainerStatuses: any[];
   containerStatuses: any[];
   qosClass: string;
-}
+};
 
-export interface Condition {
+export type Condition = {
   type: string;
   status: string;
   lastProbeTime: null;
   lastTransitionTime: Date;
-}
+};

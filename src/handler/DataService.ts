@@ -40,6 +40,6 @@ export default class DataService extends IRequestHandler {
 
     if (datatype.length === 0) return null;
     const merged = datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr));
-    return { ...merged.endpointDataType, labelName: label };
+    return { ...merged.toJSON(), labelName: label };
   }
 }

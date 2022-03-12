@@ -1,7 +1,7 @@
 import Utils from "../utils/Utils";
 import { EndpointDependencies } from "./EndpointDependencies";
-import { ITrace } from "../entities/external/ITrace";
-import { RealtimeData } from "./RealtimeData";
+import { Trace } from "../entities/external/Trace";
+import { RealtimeDataList } from "./RealtimeDataList";
 import {
   TEndpointDependency,
   TEndpointInfo,
@@ -14,12 +14,13 @@ import { TRealtimeData } from "../entities/TRealtimeData";
 import { TRequestTypeUpper } from "../entities/TRequestType";
 import { TReplicaCount } from "../entities/TReplicaCount";
 
-export class Trace {
-  private readonly _traces: ITrace[][];
-  constructor(traces: ITrace[][]) {
+export class Traces {
+  private readonly _traces: Trace[][];
+  constructor(traces: Trace[][]) {
     this._traces = traces;
   }
-  get traces() {
+
+  toJSON() {
     return this._traces;
   }
 
@@ -47,7 +48,7 @@ export class Trace {
           )?.replicas,
         };
       });
-    return new RealtimeData(realtimeData);
+    return new RealtimeDataList(realtimeData);
   }
 
   combineLogsToRealtimeData(
@@ -64,7 +65,7 @@ export class Trace {
       });
     });
 
-    const raw = this.traces
+    const raw = this._traces
       .flat()
       .filter((t) => t.kind === "SERVER")
       .map((trace): TRealtimeData => {
@@ -95,13 +96,13 @@ export class Trace {
           )?.replicas,
         };
       });
-    return new RealtimeData(raw);
+    return new RealtimeDataList(raw);
   }
 
   toEndpointDependencies() {
     const spanDependencyMap = new Map<
       string,
-      { span: ITrace; upper: Map<string, number>; lower: Map<string, number> }
+      { span: Trace; upper: Map<string, number>; lower: Map<string, number> }
     >();
     this._traces.flat().forEach((span) => {
       spanDependencyMap.set(span.id, {
@@ -136,12 +137,16 @@ export class Trace {
       .map(({ span, upper, lower }): TEndpointDependency => {
         const upperMap = new Map<string, TEndpointInfo>();
         [...upper.entries()].map(([s, distance]) => {
-          const endpoint = Trace.ToEndpointInfo(spanDependencyMap.get(s)!.span);
+          const endpoint = Traces.ToEndpointInfo(
+            spanDependencyMap.get(s)!.span
+          );
           upperMap.set(`${endpoint.uniqueEndpointName}\t${distance}`, endpoint);
         });
         const lowerMap = new Map<string, TEndpointInfo>();
         [...lower.entries()].map(([s, distance]) => {
-          const endpoint = Trace.ToEndpointInfo(spanDependencyMap.get(s)!.span);
+          const endpoint = Traces.ToEndpointInfo(
+            spanDependencyMap.get(s)!.span
+          );
           lowerMap.set(`${endpoint.uniqueEndpointName}\t${distance}`, endpoint);
         });
 
@@ -166,7 +171,7 @@ export class Trace {
         });
 
         return {
-          endpoint: Trace.ToEndpointInfo(span),
+          endpoint: Traces.ToEndpointInfo(span),
           dependBy,
           dependsOn,
         };
@@ -174,7 +179,7 @@ export class Trace {
     return new EndpointDependencies(dependencies);
   }
 
-  static ToEndpointInfo(trace: ITrace): TEndpointInfo {
+  static ToEndpointInfo(trace: Trace): TEndpointInfo {
     const [host, port, path] = Utils.ExplodeUrl(trace.tags["http.url"]);
     let [, , , serviceName, namespace, clusterName] = Utils.ExplodeUrl(
       trace.name,

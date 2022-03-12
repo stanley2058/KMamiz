@@ -1,5 +1,5 @@
 import { AggregateData } from "../classes/AggregateData";
-import CombinedRealtimeData from "../classes/CombinedRealtimeData";
+import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
 import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { TAggregateData } from "../entities/TAggregateData";
@@ -17,7 +17,7 @@ export default class DataCache {
 
   private constructor() {}
 
-  private _combinedRealtimeDataView?: CombinedRealtimeData;
+  private _combinedRealtimeDataView?: CombinedRealtimeDataList;
   private _endpointDependenciesView?: EndpointDependencies;
   private _labeledEndpointDependenciesView?: EndpointDependencies;
   private _endpointDataType: EndpointDataType[] = [];
@@ -25,7 +25,7 @@ export default class DataCache {
   private _labelMapping = new Map<string, string>();
 
   updateCurrentView(
-    data: CombinedRealtimeData,
+    data: CombinedRealtimeDataList,
     endpointDependencies: EndpointDependencies
   ) {
     this.setCombinedRealtimeData(data);
@@ -81,9 +81,9 @@ export default class DataCache {
     if (!aggregateData) return rlAggregateData;
 
     return this.labelAggregateData(
-      new AggregateData(this.labelAggregateData(aggregateData)).combine(
-        rlAggregateData
-      ).aggregateData
+      new AggregateData(this.labelAggregateData(aggregateData))
+        .combine(rlAggregateData)
+        .toJSON()
     );
   }
 
@@ -106,7 +106,7 @@ export default class DataCache {
     );
   }
 
-  private setCombinedRealtimeData(data: CombinedRealtimeData) {
+  private setCombinedRealtimeData(data: CombinedRealtimeDataList) {
     if (!this._combinedRealtimeDataView) this._combinedRealtimeDataView = data;
     else {
       this._combinedRealtimeDataView =
@@ -122,11 +122,11 @@ export default class DataCache {
     if (this._endpointDataType) {
       const dataTypeMap = new Map<string, EndpointDataType>();
       this._endpointDataType.forEach((d) => {
-        dataTypeMap.set(d.endpointDataType.uniqueEndpointName, d);
+        dataTypeMap.set(d.toJSON().uniqueEndpointName, d);
       });
 
       newDataType.forEach((d) => {
-        const id = d.endpointDataType.uniqueEndpointName;
+        const id = d.toJSON().uniqueEndpointName;
         const existing = dataTypeMap.get(id);
         dataTypeMap.set(id, existing ? existing.mergeSchemaWith(d) : d);
       });
@@ -146,11 +146,13 @@ export default class DataCache {
 
     const uniqueNames = [
       ...new Set(
-        this._endpointDependenciesView.dependencies.flatMap((d) =>
-          [...d.dependBy, ...d.dependsOn, d].map(
-            (dep) => dep.endpoint.uniqueEndpointName
+        this._endpointDependenciesView
+          .toJSON()
+          .flatMap((d) =>
+            [...d.dependBy, ...d.dependsOn, d].map(
+              (dep) => dep.endpoint.uniqueEndpointName
+            )
           )
-        )
       ),
     ];
     this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
@@ -164,12 +166,12 @@ export default class DataCache {
   }
 
   private filterCombinedRealtimeData(
-    data: CombinedRealtimeData,
+    data: CombinedRealtimeDataList,
     namespace?: string
   ) {
     if (!namespace) return data;
-    const { combinedRealtimeData } = data;
-    return new CombinedRealtimeData(
+    const combinedRealtimeData = data.toJSON();
+    return new CombinedRealtimeDataList(
       combinedRealtimeData.filter((r) => r.namespace === namespace)
     );
   }
@@ -193,9 +195,9 @@ export default class DataCache {
   getRawEndpointDependenciesSnap(namespace?: string) {
     if (namespace && this._endpointDependenciesView) {
       return new EndpointDependencies(
-        this._endpointDependenciesView.dependencies.filter(
-          (d) => d.endpoint.namespace === namespace
-        )
+        this._endpointDependenciesView
+          .toJSON()
+          .filter((d) => d.endpoint.namespace === namespace)
       );
     }
     return this._endpointDependenciesView;
@@ -204,9 +206,9 @@ export default class DataCache {
   getEndpointDependenciesSnap(namespace?: string) {
     if (namespace && this._labeledEndpointDependenciesView) {
       return new EndpointDependencies(
-        this._labeledEndpointDependenciesView.dependencies.filter(
-          (d) => d.endpoint.namespace === namespace
-        )
+        this._labeledEndpointDependenciesView
+          .toJSON()
+          .filter((d) => d.endpoint.namespace === namespace)
       );
     }
     return this._labeledEndpointDependenciesView;
@@ -215,7 +217,7 @@ export default class DataCache {
   getEndpointDataTypesByLabel(label: string) {
     const names = new Set(this.getEndpointsFromLabel(label));
     return this._endpointDataType.filter((d) =>
-      names.has(d.endpointDataType.uniqueEndpointName)
+      names.has(d.toJSON().uniqueEndpointName)
     );
   }
 

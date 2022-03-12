@@ -1,4 +1,4 @@
-export interface ITrace {
+export type Trace = {
   traceId: string;
   parentId?: string;
   id: string;
@@ -35,4 +35,4 @@ export interface ITrace {
     "upstream_cluster.name": string;
     user_agent: string;
   };
-}
+};
