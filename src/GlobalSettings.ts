@@ -15,6 +15,7 @@ type Settings = {
   DispatchInterval: string; // cron expression
   EnvoyLogLevel: "info" | "warning" | "error";
   ResetEndpointDependencies: boolean;
+  ReadOnlyMode: boolean;
 };
 
 const {
@@ -33,6 +34,7 @@ const {
   KUBERNETES_SERVICE_HOST,
   KUBERNETES_SERVICE_PORT,
   RESET_ENDPOINT_DEPENDENCIES,
+  READ_ONLY_MODE,
 } = process.env;
 
 const GlobalSettings: Settings = {
@@ -54,6 +56,7 @@ const GlobalSettings: Settings = {
   EnvoyLogLevel:
     (ENVOY_LOG_LEVEL as "info" | "warning" | "error" | undefined) || "info",
   ResetEndpointDependencies: RESET_ENDPOINT_DEPENDENCIES === "true",
+  ReadOnlyMode: READ_ONLY_MODE === "true",
 };
 
 if (

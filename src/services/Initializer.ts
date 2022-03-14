@@ -82,22 +82,27 @@ export default class Initializer {
   async serverStartUp() {
     Logger.info("Loading data into cache.");
     await DataCache.getInstance().loadBaseData();
-    Logger.info("Setting up scheduled tasks.");
-    Scheduler.getInstance().register(
-      "aggregation",
-      GlobalSettings.AggregateInterval,
-      ServiceOperator.getInstance().aggregateDailyData
-    );
-    Scheduler.getInstance().register(
-      "realtime",
-      GlobalSettings.RealtimeInterval,
-      ServiceOperator.getInstance().retrieveRealtimeData
-    );
-    Scheduler.getInstance().register(
-      "dispatch",
-      GlobalSettings.DispatchInterval,
-      DispatchStorage.getInstance().sync
-    );
-    Scheduler.getInstance().start();
+
+    if (!GlobalSettings.ReadOnlyMode) {
+      Logger.info("Setting up scheduled tasks.");
+      Scheduler.getInstance().register(
+        "aggregation",
+        GlobalSettings.AggregateInterval,
+        ServiceOperator.getInstance().aggregateDailyData
+      );
+      Scheduler.getInstance().register(
+        "realtime",
+        GlobalSettings.RealtimeInterval,
+        ServiceOperator.getInstance().retrieveRealtimeData
+      );
+      Scheduler.getInstance().register(
+        "dispatch",
+        GlobalSettings.DispatchInterval,
+        DispatchStorage.getInstance().sync
+      );
+      Scheduler.getInstance().start();
+    } else {
+      Logger.info("Readonly mode enabled, skipping schedule registration.");
+    }
   }
 }

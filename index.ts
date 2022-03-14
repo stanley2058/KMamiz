@@ -46,8 +46,14 @@ app.use(Routes.getInstance().getRoutes());
     Logger.info(`Express server started on port: ${GlobalSettings.Port}`);
     exitHook(async (callback) => {
       Logger.info("Received termination signal, execute teardown procedures.");
-      Logger.info("Syncing to database.");
-      await DispatchStorage.getInstance().syncAll();
+
+      if (!GlobalSettings.ReadOnlyMode) {
+        Logger.info("Syncing to database.");
+        await DispatchStorage.getInstance().syncAll();
+      } else {
+        Logger.info("Readonly mode enabled, skipping teardown.");
+      }
+
       Logger.info("Done, stopping the server.");
       callback();
     });
