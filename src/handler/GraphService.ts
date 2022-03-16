@@ -39,6 +39,12 @@ export default class GraphService extends IRequestHandler {
     this.addRoute("get", "/line/:namespace?", async (req, res) => {
       res.json(await this.getAreaLineData(req.params["namespace"]));
     });
+    this.addRoute("get", "/cohesion/:namespace?", async (req, res) => {
+      res.json(this.getServiceCohesion(req.params["namespace"]));
+    });
+    this.addRoute("get", "/instability/:namespace?", async (req, res) => {
+      res.json(this.getServiceInstability(req.params["namespace"]));
+    });
   }
 
   async getDependencyGraph(namespace?: string) {
@@ -152,5 +158,6 @@ export default class GraphService extends IRequestHandler {
     const dependencies =
       DataCache.getInstance().getEndpointDependenciesSnap(namespace);
     if (!dependencies) return [];
+    return dependencies.toServiceInstability();
   }
 }
