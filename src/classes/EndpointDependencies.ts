@@ -463,15 +463,22 @@ export class EndpointDependencies {
     return [...serviceEndpointMap.entries()].map(
       ([uniqueServiceName, endpoints]): TServiceEndpointCohesion => {
         const serviceUtilizedMap = endpoints
-          .flatMap((e) => e.dependBy.filter((d) => d.distance === 1))
-          .reduce(
-            (map, { endpoint: { uniqueServiceName: id } }) =>
-              map.set(id, (map.get(id) || 0) + 1),
-            new Map<string, number>()
-          );
+          .flatMap((e) =>
+            e.dependBy
+              .filter((d) => d.distance === 1)
+              .map((dep) => ({ e, dep }))
+          )
+          .reduce((map, { e, dep }) => {
+            const id = dep.endpoint.uniqueServiceName;
+            const source = e.endpoint.uniqueEndpointName;
+            return map.set(id, (map.get(id) || new Set()).add(source));
+          }, new Map<string, Set<string>>());
 
         const consumers = [...serviceUtilizedMap.entries()].map(
-          ([uniqueServiceName, consumes]) => ({ uniqueServiceName, consumes })
+          ([uniqueServiceName, consumes]) => ({
+            uniqueServiceName,
+            consumes: consumes.size,
+          })
         );
 
         let endpointUsageCohesion = 0;

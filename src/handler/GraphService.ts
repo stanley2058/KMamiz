@@ -127,9 +127,15 @@ export default class GraphService extends IRequestHandler {
       DataCache.getInstance().getEndpointDependenciesSnap(namespace);
     if (!dependencies) return [];
 
-    const dataCohesion = EndpointDataType.GetServiceCohesion(
-      DataCache.getInstance().endpointDataTypeSnap
-    ).reduce(
+    const dataType = DataCache.getInstance().endpointDataTypeSnap.map((e) => {
+      const raw = e.toJSON();
+      raw.labelName =
+        DataCache.getInstance().labelMapping.get(raw.uniqueEndpointName) ||
+        raw.uniqueEndpointName;
+      return new EndpointDataType(raw);
+    });
+
+    const dataCohesion = EndpointDataType.GetServiceCohesion(dataType).reduce(
       (map, d) => map.set(d.uniqueServiceName, d),
       new Map<string, TServiceCohesion>()
     );
