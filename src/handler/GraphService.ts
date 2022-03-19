@@ -45,6 +45,9 @@ export default class GraphService extends IRequestHandler {
     this.addRoute("get", "/instability/:namespace?", async (req, res) => {
       res.json(this.getServiceInstability(req.params["namespace"]));
     });
+    this.addRoute("get", "/coupling/:namespace?", async (req, res) => {
+      res.json(this.getServiceCoupling(req.params["namespace"]));
+    });
   }
 
   async getDependencyGraph(namespace?: string) {
@@ -165,5 +168,12 @@ export default class GraphService extends IRequestHandler {
       DataCache.getInstance().getEndpointDependenciesSnap(namespace);
     if (!dependencies) return [];
     return dependencies.toServiceInstability();
+  }
+
+  getServiceCoupling(namespace?: string) {
+    const dependencies =
+      DataCache.getInstance().getEndpointDependenciesSnap(namespace);
+    if (!dependencies) return [];
+    return dependencies.toServiceCoupling();
   }
 }

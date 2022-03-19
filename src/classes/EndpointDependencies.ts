@@ -9,6 +9,7 @@ import {
 } from "../entities/TServiceDependency";
 import { TServiceEndpointCohesion } from "../entities/TServiceEndpointCohesion";
 import DataCache from "../services/DataCache";
+import RiskAnalyzer from "../utils/RiskAnalyzer";
 
 export class EndpointDependencies {
   private readonly _dependencies: TEndpointDependency[];
@@ -518,6 +519,22 @@ export class EndpointDependencies {
         dependBy,
         dependsOn,
         instability: dependsOn / (dependsOn + dependBy),
+      };
+    });
+  }
+
+  toServiceCoupling() {
+    const serviceDependencies = this.toServiceDependencies();
+    const couplingList =
+      RiskAnalyzer.AbsoluteCriticalityOfServices(serviceDependencies);
+    return couplingList.map((c) => {
+      const [service, namespace, version] = c.uniqueServiceName.split("\t");
+      return {
+        uniqueServiceName: c.uniqueServiceName,
+        name: `${service}.${namespace} (${version})`,
+        ais: c.ais,
+        ads: c.ads,
+        acs: c.factor,
       };
     });
   }

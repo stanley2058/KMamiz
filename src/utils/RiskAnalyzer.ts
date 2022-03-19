@@ -167,7 +167,7 @@ export default class RiskAnalyzer {
           { ais: isGateway ? 1 : 0, ads: 0 }
         );
       const factor = ais * ads;
-      return { uniqueServiceName, factor };
+      return { uniqueServiceName, factor, ais, ads };
     });
   }
 
