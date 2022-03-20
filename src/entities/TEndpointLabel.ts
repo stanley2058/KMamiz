@@ -3,6 +3,8 @@ export type TEndpointLabel = {
 };
 
 export type TEndpointLabelType = {
+  uniqueServiceName: string;
+  method: string;
   label: string;
   samples: string[];
   block?: boolean;

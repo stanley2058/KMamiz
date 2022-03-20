@@ -160,12 +160,15 @@ export default class DataCache {
       this._labelMapping.forEach((v, k) =>
         reversedMap.set(v, (reversedMap.get(v) || new Set()).add(k))
       );
-      const blocked = new Set(
-        this._userDefinedLabels?.labels
-          .filter((l) => l.block)
-          .flatMap((l) => [...(reversedMap.get(l.label) || new Set())])
-      );
-      blocked.forEach((l) => this._labelMapping.delete(l));
+      this._userDefinedLabels?.labels
+        .filter((l) => l.block)
+        .flatMap((l) => {
+          const endpoints = [...(reversedMap.get(l.label) || new Set())];
+          return endpoints.filter((e) =>
+            e.startsWith(`${l.uniqueServiceName}\t${l.method}`)
+          );
+        })
+        .forEach((l) => this._labelMapping.delete(l));
     }
   }
 
