@@ -8,29 +8,37 @@ export default class DispatchStorage {
   private constructor() {}
   private _lock: boolean = false;
   private syncType = 0;
+  private syncStrategies: { name: string; syncFunc: () => Promise<void> }[] = [
+    {
+      name: "CombinedRealtimeData",
+      syncFunc: DispatchStorage.getInstance().syncCombinedRealtimeData,
+    },
+    {
+      name: "EndpointDataType",
+      syncFunc: DispatchStorage.getInstance().syncEndpointDataType,
+    },
+    {
+      name: "EndpointDependencies",
+      syncFunc: DispatchStorage.getInstance().syncEndpointDependencies,
+    },
+    {
+      name: "EndpointLabelMap",
+      syncFunc: DispatchStorage.getInstance().syncEndpointLabelMap,
+    },
+  ];
 
   async sync() {
     if (DispatchStorage.getInstance()._lock)
       return await DispatchStorage.getInstance().waitUntilUnlock();
     DispatchStorage.getInstance()._lock = true;
 
-    switch (DispatchStorage.getInstance().syncType) {
-      case 0:
-        Logger.verbose("Dispatch syncing type: CombinedRealtimeData");
-        await DispatchStorage.getInstance().syncCombinedRealtimeData();
-        break;
-      case 1:
-        Logger.verbose("Dispatch syncing type: EndpointDataType");
-        await DispatchStorage.getInstance().syncEndpointDataType();
-        break;
-      case 2:
-        Logger.verbose("Dispatch syncing type: EndpointDependencies");
-        await DispatchStorage.getInstance().syncEndpointDependencies();
-        break;
-    }
+    const index = DispatchStorage.getInstance().syncType;
+    const sync = DispatchStorage.getInstance().syncStrategies[index];
 
-    DispatchStorage.getInstance().syncType =
-      (DispatchStorage.getInstance().syncType + 1) % 3;
+    Logger.verbose(`Dispatch syncing type: ${sync.name}`);
+    await sync.syncFunc();
+
+    DispatchStorage.getInstance().nextSyncType();
     DispatchStorage.getInstance()._lock = false;
   }
 
@@ -38,11 +46,17 @@ export default class DispatchStorage {
     await DispatchStorage.getInstance().waitUntilUnlock();
     DispatchStorage.getInstance()._lock = true;
 
-    await DispatchStorage.getInstance().syncCombinedRealtimeData();
-    await DispatchStorage.getInstance().syncEndpointDataType();
-    await DispatchStorage.getInstance().syncEndpointDependencies();
+    for (const sync of DispatchStorage.getInstance().syncStrategies) {
+      await sync.syncFunc();
+    }
 
     DispatchStorage.getInstance()._lock = false;
+  }
+
+  private nextSyncType() {
+    const current = DispatchStorage.getInstance().syncType;
+    const total = DispatchStorage.getInstance().syncStrategies.length;
+    DispatchStorage.getInstance().syncType = (current + 1) % total;
   }
 
   private async syncCombinedRealtimeData() {
@@ -99,6 +113,23 @@ export default class DispatchStorage {
         Logger.error("Error saving EndpointDependencies, skipping.");
         Logger.verbose("", ex);
       }
+    }
+  }
+
+  private async syncEndpointLabelMap() {
+    const toDelete = await MongoOperator.getInstance().getEndpointLabelMap();
+    const labelMap = DataCache.getInstance().userDefinedLabels;
+
+    try {
+      if (labelMap) {
+        await MongoOperator.getInstance().insertEndpointLabelMap(labelMap);
+        if (toDelete && toDelete._id) {
+          await MongoOperator.getInstance().deleteEndpointLabel([toDelete._id]);
+        }
+      }
+    } catch (ex) {
+      Logger.error("Error saving EndpointLabelMap, skipping.");
+      Logger.verbose("", ex);
     }
   }
 

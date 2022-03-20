@@ -3,6 +3,7 @@ import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
 import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { TAggregateData } from "../entities/TAggregateData";
+import { TEndpointLabel } from "../entities/TEndpointLabel";
 import { THistoryData } from "../entities/THistoryData";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import EndpointUtils from "../utils/EndpointUtils";
@@ -23,6 +24,7 @@ export default class DataCache {
   private _endpointDataType: EndpointDataType[] = [];
   private _replicasView?: TReplicaCount[];
   private _labelMapping = new Map<string, string>();
+  private _userDefinedLabels?: TEndpointLabel;
 
   updateCurrentView(
     data: CombinedRealtimeDataList,
@@ -88,6 +90,39 @@ export default class DataCache {
   }
 
   async loadBaseData() {
+    Logger.verbose("Loading EndpointLabelMap into cache.");
+    this.setEndpointLabel(
+      await MongoOperator.getInstance().getEndpointLabelMap()
+    );
+
+    this.setEndpointLabel({
+      labels: [
+        {
+          label: "/pdas/user/generalInfo",
+          samples: [
+            "user-service\tpdas\tlatest\tGET\thttp://10.104.207.91/pdas/user/generalInfo",
+          ],
+        },
+        {
+          label: "/pdas/user/contractInfo/canView/{}",
+          samples: [
+            "contract-service\tpdas\tlatest\tGET\thttp://10.104.207.91/pdas/user/contractInfo/canView/62298f20d54f9f7e08ecf5db",
+          ],
+        },
+        {
+          label: "/pdas/user/contractInfo/canSign/{}",
+          samples: [
+            "contract-service\tpdas\tlatest\tGET\thttp://10.104.207.91/pdas/user/contractInfo/canSign/62298f20d54f9f7e08ecf5db",
+          ],
+        },
+        {
+          label: "/pdas/user/contractInfo/{canView,canSign}/{}",
+          samples: [],
+          block: true,
+        },
+      ],
+    });
+
     Logger.verbose("Loading EndpointDataType into cache.");
     this.setEndpointDataType(
       await MongoOperator.getInstance().getAllEndpointDataTypes()
@@ -104,6 +139,10 @@ export default class DataCache {
     this._replicasView = await KubernetesService.getInstance().getReplicas(
       this._combinedRealtimeDataView?.getContainingNamespaces()
     );
+  }
+
+  private setEndpointLabel(endpointLabels?: TEndpointLabel) {
+    this._userDefinedLabels = endpointLabels;
   }
 
   private setCombinedRealtimeData(data: CombinedRealtimeDataList) {
@@ -135,9 +174,28 @@ export default class DataCache {
     }
 
     this._endpointDataType = newDataType.map((t) => t.trim());
+
     this._labelMapping = EndpointUtils.CreateEndpointLabelMapping(
       this._endpointDataType
     );
+    if (this._userDefinedLabels) {
+      this._userDefinedLabels.labels.forEach((l) => {
+        l.samples.forEach((s) => {
+          this._labelMapping.set(s, l.label);
+        });
+      });
+
+      const reversedMap = new Map<string, Set<string>>();
+      this._labelMapping.forEach((v, k) =>
+        reversedMap.set(v, (reversedMap.get(v) || new Set()).add(k))
+      );
+      const blocked = new Set(
+        this._userDefinedLabels?.labels
+          .filter((l) => l.block)
+          .flatMap((l) => [...(reversedMap.get(l.label) || new Set())])
+      );
+      blocked.forEach((l) => this._labelMapping.delete(l));
+    }
   }
 
   private setEndpointDependencies(endpointDependencies: EndpointDependencies) {
@@ -190,6 +248,10 @@ export default class DataCache {
 
   get labelMapping() {
     return this._labelMapping;
+  }
+
+  get userDefinedLabels() {
+    return this._userDefinedLabels;
   }
 
   getRawEndpointDependenciesSnap(namespace?: string) {

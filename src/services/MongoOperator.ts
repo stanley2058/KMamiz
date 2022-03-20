@@ -14,6 +14,8 @@ import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDa
 import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
 import { TEndpointDependency } from "../entities/TEndpointDependency";
 import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
+import { EndpointLabelModel } from "../entities/schema/EndpointLabel";
+import { TEndpointLabel } from "../entities/TEndpointLabel";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
@@ -204,6 +206,15 @@ export default class MongoOperator {
     return new CombinedRealtimeDataList(results);
   }
 
+  async getEndpointLabelMap() {
+    return (await EndpointLabelModel.findOne({}).exec())?.toJSON();
+  }
+
+  async insertEndpointLabelMap(labelMap: TEndpointLabel) {
+    const model = new EndpointLabelModel(labelMap);
+    return await model.save();
+  }
+
   async deleteAllCombinedRealtimeData() {
     return await CombinedRealtimeDataModel.deleteMany({});
   }
@@ -212,6 +223,9 @@ export default class MongoOperator {
   }
   async deleteAllEndpointDataType() {
     return await EndpointDataTypeModel.deleteMany({});
+  }
+  async deleteAllEndpointLabelMap() {
+    return await EndpointLabelModel.deleteMany({});
   }
 
   async deleteCombinedRealtimeData(ids: Types.ObjectId[]) {
@@ -226,6 +240,11 @@ export default class MongoOperator {
   }
   async deleteEndpointDataType(ids: Types.ObjectId[]) {
     return await EndpointDataTypeModel.deleteMany({
+      _id: { $in: ids },
+    });
+  }
+  async deleteEndpointLabel(ids: Types.ObjectId[]) {
+    return await EndpointLabelModel.deleteMany({
       _id: { $in: ids },
     });
   }
