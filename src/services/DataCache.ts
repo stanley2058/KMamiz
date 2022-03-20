@@ -94,35 +94,6 @@ export default class DataCache {
     this.setEndpointLabel(
       await MongoOperator.getInstance().getEndpointLabelMap()
     );
-
-    this.setEndpointLabel({
-      labels: [
-        {
-          label: "/pdas/user/generalInfo",
-          samples: [
-            "user-service\tpdas\tlatest\tGET\thttp://10.104.207.91/pdas/user/generalInfo",
-          ],
-        },
-        {
-          label: "/pdas/user/contractInfo/canView/{}",
-          samples: [
-            "contract-service\tpdas\tlatest\tGET\thttp://10.104.207.91/pdas/user/contractInfo/canView/62298f20d54f9f7e08ecf5db",
-          ],
-        },
-        {
-          label: "/pdas/user/contractInfo/canSign/{}",
-          samples: [
-            "contract-service\tpdas\tlatest\tGET\thttp://10.104.207.91/pdas/user/contractInfo/canSign/62298f20d54f9f7e08ecf5db",
-          ],
-        },
-        {
-          label: "/pdas/user/contractInfo/{canView,canSign}/{}",
-          samples: [],
-          block: true,
-        },
-      ],
-    });
-
     Logger.verbose("Loading EndpointDataType into cache.");
     this.setEndpointDataType(
       await MongoOperator.getInstance().getAllEndpointDataTypes()
