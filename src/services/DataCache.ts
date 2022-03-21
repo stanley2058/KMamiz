@@ -338,7 +338,6 @@ export default class DataCache {
       )
     );
     DataCache.getInstance().addUserDefinedLabel(label);
-    console.log(this._userDefinedLabels);
   }
   addUserDefinedLabel(label: TEndpointLabel) {
     this._userDefinedLabels = {
