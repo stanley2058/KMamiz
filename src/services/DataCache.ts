@@ -110,6 +110,10 @@ export default class DataCache {
     this._replicasView = await KubernetesService.getInstance().getReplicas(
       this._combinedRealtimeDataView?.getContainingNamespaces()
     );
+
+    Logger.verbose("Creating label mapping.");
+    this.updateLabelMap();
+    this.relabel();
   }
 
   private setEndpointLabel(endpointLabels?: TEndpointLabel) {
@@ -145,12 +149,20 @@ export default class DataCache {
     }
 
     this._endpointDataType = newDataType.map((t) => t.trim());
+  }
 
+  private setEndpointDependencies(endpointDependencies: EndpointDependencies) {
+    this._endpointDependenciesView = endpointDependencies.trim();
+  }
+
+  private updateLabelMap() {
     this._labelMapping = EndpointUtils.CreateEndpointLabelMapping(
       this._endpointDataType
     );
+
     if (this._userDefinedLabels) {
       this._userDefinedLabels.labels.forEach((l) => {
+        if (l.block) return;
         l.samples.forEach((s) => {
           this._labelMapping.set(s, l.label);
         });
@@ -170,31 +182,32 @@ export default class DataCache {
         })
         .forEach((l) => this._labelMapping.delete(l));
     }
+
+    if (this._endpointDependenciesView) {
+      const uniqueNames = [
+        ...new Set(
+          this._endpointDependenciesView
+            .toJSON()
+            .flatMap((d) =>
+              [...d.dependBy, ...d.dependsOn, d].map(
+                (dep) => dep.endpoint.uniqueEndpointName
+              )
+            )
+        ),
+      ];
+      this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
+        uniqueNames,
+        this._labelMapping
+      );
+    }
   }
 
-  private setEndpointDependencies(endpointDependencies: EndpointDependencies) {
-    endpointDependencies = endpointDependencies.trim();
-    this._endpointDependenciesView = endpointDependencies;
-
-    const uniqueNames = [
-      ...new Set(
-        this._endpointDependenciesView
-          .toJSON()
-          .flatMap((d) =>
-            [...d.dependBy, ...d.dependsOn, d].map(
-              (dep) => dep.endpoint.uniqueEndpointName
-            )
-          )
-      ),
-    ];
-    this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
-      uniqueNames,
-      this._labelMapping
-    );
-
-    this._labeledEndpointDependenciesView = new EndpointDependencies(
-      endpointDependencies.label()
-    );
+  private relabel() {
+    if (this._endpointDependenciesView) {
+      this._labeledEndpointDependenciesView = new EndpointDependencies(
+        this._endpointDependenciesView.label()
+      );
+    }
   }
 
   private filterCombinedRealtimeData(
@@ -314,5 +327,40 @@ export default class DataCache {
       });
     });
     return aggregateData;
+  }
+
+  updateUserDefinedLabel(label: TEndpointLabel) {
+    label.labels.forEach((l) =>
+      DataCache.getInstance().deleteUserDefinedLabel(
+        l.label,
+        l.uniqueServiceName,
+        l.method
+      )
+    );
+    DataCache.getInstance().addUserDefinedLabel(label);
+  }
+  addUserDefinedLabel(label: TEndpointLabel) {
+    if (this._userDefinedLabels) {
+      this._userDefinedLabels.labels.concat(label.labels);
+    } else {
+      this._userDefinedLabels = label;
+    }
+  }
+  deleteUserDefinedLabel(
+    labelName: string,
+    uniqueServiceName: string,
+    method: string
+  ) {
+    if (!this._userDefinedLabels) return;
+    this._userDefinedLabels.labels = this._userDefinedLabels.labels.filter(
+      (l) =>
+        l.label !== labelName ||
+        l.uniqueServiceName !== uniqueServiceName ||
+        l.method !== method
+    );
+  }
+  updateLabel() {
+    this.updateLabelMap();
+    this.relabel();
   }
 }
