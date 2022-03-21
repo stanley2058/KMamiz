@@ -31,7 +31,7 @@ export default class DataService extends IRequestHandler {
     });
     this.addRoute("post", "/label/user", async (req, res) => {
       const labels = req.body as TEndpointLabel;
-      if (!labels) return res.sendStatus(400);
+      if (!labels?.labels) return res.sendStatus(400);
       this.updateUserDefinedLabel(labels);
       res.sendStatus(201);
     });

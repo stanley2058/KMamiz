@@ -338,13 +338,12 @@ export default class DataCache {
       )
     );
     DataCache.getInstance().addUserDefinedLabel(label);
+    console.log(this._userDefinedLabels);
   }
   addUserDefinedLabel(label: TEndpointLabel) {
-    if (this._userDefinedLabels) {
-      this._userDefinedLabels.labels.concat(label.labels);
-    } else {
-      this._userDefinedLabels = label;
-    }
+    this._userDefinedLabels = {
+      labels: (this._userDefinedLabels?.labels || []).concat(label.labels),
+    };
   }
   deleteUserDefinedLabel(
     labelName: string,
