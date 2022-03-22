@@ -219,12 +219,10 @@ export default class MongoOperator {
   }
 
   async getTaggedInterface(
-    labelName: string,
-    method: TRequestTypeUpper
+    uniqueLabelName: string
   ): Promise<TTaggedInterface[]> {
     const results = await TaggedInterfaceModel.find({
-      labelName,
-      method,
+      uniqueLabelName,
     }).exec();
     return results.map((r) => r.toJSON());
   }
