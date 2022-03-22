@@ -16,6 +16,9 @@ import { TEndpointDependency } from "../entities/TEndpointDependency";
 import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 import { EndpointLabelModel } from "../entities/schema/EndpointLabel";
 import { TEndpointLabel } from "../entities/TEndpointLabel";
+import { TaggedInterfaceModel } from "../entities/schema/TaggedInterface";
+import { TTaggedInterface } from "../entities/TTaggedInterface";
+import { TRequestTypeUpper } from "../entities/TRequestType";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
@@ -215,38 +218,59 @@ export default class MongoOperator {
     return await model.save();
   }
 
+  async getTaggedInterface(
+    labelName: string,
+    method: TRequestTypeUpper
+  ): Promise<TTaggedInterface[]> {
+    const results = await TaggedInterfaceModel.find({
+      labelName,
+      method,
+    }).exec();
+    return results.map((r) => r.toJSON());
+  }
+
+  async insertTaggedInterface(tagged: TTaggedInterface) {
+    return await MongoOperator.getInstance().smartSave(
+      tagged,
+      TaggedInterfaceModel
+    );
+  }
+
   async deleteAllCombinedRealtimeData() {
-    return await CombinedRealtimeDataModel.deleteMany({});
+    return await CombinedRealtimeDataModel.deleteMany({}).exec();
   }
   async deleteAllEndpointDependencies() {
-    return await EndpointDependencyModel.deleteMany({});
+    return await EndpointDependencyModel.deleteMany({}).exec();
   }
   async deleteAllEndpointDataType() {
-    return await EndpointDataTypeModel.deleteMany({});
+    return await EndpointDataTypeModel.deleteMany({}).exec();
   }
   async deleteAllEndpointLabelMap() {
-    return await EndpointLabelModel.deleteMany({});
+    return await EndpointLabelModel.deleteMany({}).exec();
   }
 
   async deleteCombinedRealtimeData(ids: Types.ObjectId[]) {
     return await CombinedRealtimeDataModel.deleteMany({
       _id: { $in: ids },
-    });
+    }).exec();
   }
   async deleteEndpointDependencies(ids: Types.ObjectId[]) {
     return await EndpointDependencyModel.deleteMany({
       _id: { $in: ids },
-    });
+    }).exec();
   }
   async deleteEndpointDataType(ids: Types.ObjectId[]) {
     return await EndpointDataTypeModel.deleteMany({
       _id: { $in: ids },
-    });
+    }).exec();
   }
   async deleteEndpointLabel(ids: Types.ObjectId[]) {
     return await EndpointLabelModel.deleteMany({
       _id: { $in: ids },
-    });
+    }).exec();
+  }
+  async deleteTaggedInterface(id: Types.ObjectId) {
+    return await TaggedInterfaceModel.deleteOne({ _id: id }).exec();
   }
 
   private async smartSave<T extends { _id?: Types.ObjectId }>(

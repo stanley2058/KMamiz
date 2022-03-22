@@ -2,6 +2,9 @@ import IRequestHandler from "../entities/TRequestHandler";
 import DataCache from "../services/DataCache";
 import { TEndpointDataType } from "../entities/TEndpointDataType";
 import { TEndpointLabel } from "../entities/TEndpointLabel";
+import { TTaggedInterface } from "../entities/TTaggedInterface";
+import MongoOperator from "../services/MongoOperator";
+import { TRequestTypeUpper } from "../entities/TRequestType";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -48,6 +51,27 @@ export default class DataService extends IRequestHandler {
         label.label
       );
       res.sendStatus(204);
+    });
+    this.addRoute("get", "/interface", async (req, res) => {
+      const { labelName, method } = req.query as {
+        labelName: string;
+        method: TRequestTypeUpper;
+      };
+      if (!labelName || !method) return res.sendStatus(400);
+      res.json(await this.getTaggedInterface(labelName, method));
+    });
+    this.addRoute("post", "/interface", async (req, res) => {
+      const tagged = req.body as TTaggedInterface;
+      if (!tagged) return res.sendStatus(400);
+      await this.addTaggedInterface(tagged);
+      res.sendStatus(201);
+    });
+    this.addRoute("delete", "/interface", async (req, res) => {
+      const tagged = req.body as TTaggedInterface;
+      if (!tagged) return res.sendStatus(400);
+      const result = await this.deleteTaggedInterface(tagged);
+      if (result) res.sendStatus(204);
+      else res.sendStatus(400);
     });
   }
 
@@ -96,5 +120,24 @@ export default class DataService extends IRequestHandler {
       method
     );
     DataCache.getInstance().updateLabel();
+  }
+
+  async getTaggedInterface(labelName: string, method: TRequestTypeUpper) {
+    return await MongoOperator.getInstance().getTaggedInterface(
+      labelName,
+      method
+    );
+  }
+
+  async addTaggedInterface(tagged: TTaggedInterface) {
+    tagged._id = undefined;
+    tagged.timestamp = Date.now();
+    return await MongoOperator.getInstance().insertTaggedInterface(tagged);
+  }
+
+  async deleteTaggedInterface(tagged: TTaggedInterface) {
+    if (!tagged._id) return false;
+    return (await MongoOperator.getInstance().deleteTaggedInterface(tagged._id))
+      .acknowledged;
   }
 }
