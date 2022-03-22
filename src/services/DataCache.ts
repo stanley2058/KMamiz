@@ -263,8 +263,16 @@ export default class DataCache {
     return this._labeledEndpointDependenciesView;
   }
 
-  getEndpointDataTypesByLabel(label: string) {
-    const names = new Set(this.getEndpointsFromLabel(label));
+  getEndpointDataTypesByLabel(
+    label: string,
+    uniqueServiceName: string,
+    method: string
+  ) {
+    const names = new Set(
+      this.getEndpointsFromLabel(label).filter((n) =>
+        n.startsWith(`${uniqueServiceName}\t${method}`)
+      )
+    );
     return this._endpointDataType.filter((d) =>
       names.has(d.toJSON().uniqueEndpointName)
     );

@@ -85,10 +85,16 @@ export default class DataService extends IRequestHandler {
   async getEndpointDataType(
     uniqueLabelName: string
   ): Promise<TEndpointDataType | null> {
-    const [, , , method, label] = uniqueLabelName.split("\t");
+    const [service, namespace, version, method, label] =
+      uniqueLabelName.split("\t");
     if (!method || !label) return null;
 
-    const datatype = DataCache.getInstance().getEndpointDataTypesByLabel(label);
+    const uniqueServiceName = `${service}\t${namespace}\t${version}`;
+    const datatype = DataCache.getInstance().getEndpointDataTypesByLabel(
+      label,
+      uniqueServiceName,
+      method
+    );
 
     if (datatype.length === 0) return null;
     const merged = datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr));
