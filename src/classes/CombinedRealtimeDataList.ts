@@ -293,23 +293,25 @@ export default class CombinedRealtimeDataList {
   }
 
   toRealtimeDataForm() {
-    return this._combinedRealtimeData.map((r): TRealtimeData => {
-      return {
-        uniqueServiceName: r.uniqueServiceName,
-        uniqueEndpointName: r.uniqueEndpointName,
-        service: r.service,
-        namespace: r.namespace,
-        version: r.version,
-        latency: r.avgLatency,
-        method: r.method,
-        status: r.status,
-        timestamp: r.latestTimestamp,
-        replica: r.avgReplica,
-        requestBody: JSON.stringify(r.requestBody),
-        requestContentType: r.requestContentType,
-        responseBody: JSON.stringify(r.responseBody),
-        responseContentType: r.responseContentType,
-      };
+    return this._combinedRealtimeData.flatMap((r): TRealtimeData[] => {
+      return r.latencies.map((l): TRealtimeData => {
+        return {
+          uniqueServiceName: r.uniqueServiceName,
+          uniqueEndpointName: r.uniqueEndpointName,
+          service: r.service,
+          namespace: r.namespace,
+          version: r.version,
+          latency: l,
+          method: r.method,
+          status: r.status,
+          timestamp: r.latestTimestamp,
+          replica: r.avgReplica,
+          requestBody: JSON.stringify(r.requestBody),
+          requestContentType: r.requestContentType,
+          responseBody: JSON.stringify(r.responseBody),
+          responseContentType: r.responseContentType,
+        };
+      });
     });
   }
 

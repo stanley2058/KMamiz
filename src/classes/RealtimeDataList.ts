@@ -44,21 +44,20 @@ export class RealtimeDataList {
         const combinedSubGroup = [...statusMap.entries()].map(
           ([status, subGroup]): TCombinedRealtimeData => {
             const combined = subGroup.reduce((prev, curr) => {
-              prev.latency += curr.latency;
-              prev.requestBody = Utils.MergeStringBody(
-                prev.requestBody,
+              const acc = { ...prev };
+              acc.latency += curr.latency;
+              acc.requestBody = Utils.MergeStringBody(
+                acc.requestBody,
                 curr.requestBody
               );
-              prev.responseBody = Utils.MergeStringBody(
-                prev.responseBody,
+              acc.responseBody = Utils.MergeStringBody(
+                acc.responseBody,
                 curr.responseBody
               );
-              prev.timestamp =
-                prev.timestamp > curr.timestamp
-                  ? prev.timestamp
-                  : curr.timestamp;
-              if (prev.replica && curr.replica) prev.replica += curr.replica;
-              return prev;
+              acc.timestamp =
+                acc.timestamp > curr.timestamp ? acc.timestamp : curr.timestamp;
+              if (acc.replica && curr.replica) acc.replica += curr.replica;
+              return acc;
             });
             const { requestBody, requestSchema, responseBody, responseSchema } =
               this.parseRequestResponseBody(combined);
