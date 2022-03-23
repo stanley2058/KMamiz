@@ -1,14 +1,21 @@
 import { AggregateData } from "../classes/AggregateData";
+import { Cacheable } from "../classes/Cacheable/Cacheable";
+import { CCombinedRealtimeData } from "../classes/Cacheable/CCombinedRealtimeData";
+import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
+import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
+import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
+import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
+import { CReplicas } from "../classes/Cacheable/CReplicas";
+import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
+import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
 import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
-import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { TAggregateData } from "../entities/TAggregateData";
 import { TEndpointLabel } from "../entities/TEndpointLabel";
 import { THistoryData } from "../entities/THistoryData";
-import { TReplicaCount } from "../entities/TReplicaCount";
+import { TTaggedInterface } from "../entities/TTaggedInterface";
 import EndpointUtils from "../utils/EndpointUtils";
 import Logger from "../utils/Logger";
-import Utils from "../utils/Utils";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 
@@ -16,48 +23,65 @@ export default class DataCache {
   private static instance?: DataCache;
   static getInstance = () => this.instance || (this.instance = new this());
 
-  private constructor() {}
+  private _cCombinedRealtimeData: CCombinedRealtimeData;
+  private _cEndpointDependencies: CEndpointDependencies;
+  private _cLabeledEndpointDependencies: CLabeledEndpointDependencies;
+  private _cEndpointDataType: CEndpointDataType;
+  private _cReplicas: CReplicas;
+  private _cLabelMapping: CLabelMapping;
+  private _cUserDefinedLabel: CUserDefinedLabel;
+  private _cTaggedInterfaces: CTaggedInterfaces;
 
-  private _combinedRealtimeDataView?: CombinedRealtimeDataList;
-  private _endpointDependenciesView?: EndpointDependencies;
-  private _labeledEndpointDependenciesView?: EndpointDependencies;
-  private _endpointDataType: EndpointDataType[] = [];
-  private _replicasView?: TReplicaCount[];
-  private _labelMapping = new Map<string, string>();
-  private _userDefinedLabels?: TEndpointLabel;
+  private _caches: Cacheable<any>[];
+  private constructor() {
+    // NOTICE: order in array decides initialization order
+    this._caches = [
+      (this._cLabelMapping = new CLabelMapping()),
+      (this._cEndpointDataType = new CEndpointDataType()),
+      (this._cCombinedRealtimeData = new CCombinedRealtimeData()),
+      (this._cEndpointDependencies = new CEndpointDependencies()),
+      (this._cReplicas = new CReplicas()),
+      (this._cTaggedInterfaces = new CTaggedInterfaces()),
+      (this._cLabeledEndpointDependencies = new CLabeledEndpointDependencies()),
+      (this._cUserDefinedLabel = new CUserDefinedLabel()),
+    ];
+  }
 
   updateCurrentView(
     data: CombinedRealtimeDataList,
     endpointDependencies: EndpointDependencies
   ) {
-    this.setCombinedRealtimeData(data);
-    this.setEndpointDependencies(endpointDependencies);
-
+    this._cCombinedRealtimeData.setData(data);
+    this._cEndpointDependencies.setData(endpointDependencies);
     KubernetesService.getInstance()
-      .getReplicas(this._combinedRealtimeDataView?.getContainingNamespaces())
-      .then((res) => (this._replicasView = res));
+      .getReplicas(
+        this._cCombinedRealtimeData.getData()?.getContainingNamespaces()
+      )
+      .then((res) => this._cReplicas.setData(res));
+
+    this._cEndpointDataType.setData(data.extractEndpointDataType());
   }
 
   resetCombinedRealtimeData() {
-    this._combinedRealtimeDataView = undefined;
+    this._cCombinedRealtimeData = new CCombinedRealtimeData();
   }
 
   async getRealtimeHistoryData(namespace?: string) {
-    const historyData = this.labelHistoryData(
+    const historyData = this._cLabelMapping.labelHistoryData(
       await MongoOperator.getInstance().getHistoryData(namespace)
     );
 
-    if (
-      !this._combinedRealtimeDataView ||
-      !this._labeledEndpointDependenciesView
-    ) {
+    const rlData = this._cCombinedRealtimeData.getData();
+    const labeledDependencies = this._cLabeledEndpointDependencies.getData();
+
+    if (!rlData || !labeledDependencies) {
       return historyData;
     }
 
-    const rlHistory = this._combinedRealtimeDataView.toHistoryData(
-      this._labeledEndpointDependenciesView.toServiceDependencies(),
-      this._replicasView,
-      this._labelMapping
+    const rlHistory = rlData.toHistoryData(
+      labeledDependencies.toServiceDependencies(),
+      this._cReplicas.getData(),
+      this._cLabelMapping.getData()
     );
     return historyData.concat(rlHistory);
   }
@@ -66,20 +90,23 @@ export default class DataCache {
     const aggregateData = await MongoOperator.getInstance().getAggregateData(
       namespace
     );
-    if (
-      !this._combinedRealtimeDataView ||
-      !this._labeledEndpointDependenciesView
-    ) {
-      return aggregateData && this.labelAggregateData(aggregateData);
+
+    const rlData = this._cCombinedRealtimeData.getData();
+    const labeledDependencies = this._cLabeledEndpointDependencies.getData();
+
+    if (!rlData || !labeledDependencies) {
+      return (
+        aggregateData && this._cLabelMapping.labelAggregateData(aggregateData)
+      );
     }
-    const rlAggregateData = this.filterCombinedRealtimeData(
-      this._combinedRealtimeDataView,
-      namespace
-    ).toAggregatedDataAndHistoryData(
-      this._labeledEndpointDependenciesView.toServiceDependencies(),
-      this._replicasView,
-      this._labelMapping
-    ).aggregateData;
+
+    const rlAggregateData = this._cCombinedRealtimeData
+      .getData(namespace)!
+      .toAggregatedDataAndHistoryData(
+        labeledDependencies.toServiceDependencies(),
+        this._cReplicas.getData(),
+        this._cLabelMapping.getData()
+      ).aggregateData;
     if (!aggregateData) return rlAggregateData;
 
     return this.labelAggregateData(
@@ -90,177 +117,77 @@ export default class DataCache {
   }
 
   async loadBaseData() {
-    Logger.verbose("Loading EndpointLabelMap into cache.");
-    this.setEndpointLabel(
-      await MongoOperator.getInstance().getEndpointLabelMap()
-    );
-    Logger.verbose("Loading EndpointDataType into cache.");
-    this.setEndpointDataType(
-      await MongoOperator.getInstance().getAllEndpointDataTypes()
-    );
-    Logger.verbose("Loading CombinedRealtimeData into cache.");
-    this.setCombinedRealtimeData(
-      await MongoOperator.getInstance().getAllCombinedRealtimeData()
-    );
-    Logger.verbose("Loading EndpointDependencies into cache.");
-    this.setEndpointDependencies(
-      await MongoOperator.getInstance().getEndpointDependencies()
-    );
-    Logger.verbose("Loading current ReplicaCounts into cache.");
-    this._replicasView = await KubernetesService.getInstance().getReplicas(
-      this._combinedRealtimeDataView?.getContainingNamespaces()
-    );
+    const promises: Promise<any>[] = [];
+    this._caches.forEach((c) => {
+      if (c.init) {
+        Logger.verbose(`Loading ${c.name} into cache.`);
+        promises.push(c.init());
+      }
+    });
+
+    for (const promise of promises) await promise;
 
     Logger.verbose("Creating label mapping.");
+    this.updateLabel();
+  }
+
+  updateLabel() {
     this.updateLabelMap();
     this.relabel();
   }
 
-  private setEndpointLabel(endpointLabels?: TEndpointLabel) {
-    this._userDefinedLabels = endpointLabels;
-  }
-
-  private setCombinedRealtimeData(data: CombinedRealtimeDataList) {
-    if (!this._combinedRealtimeDataView) this._combinedRealtimeDataView = data;
-    else {
-      this._combinedRealtimeDataView =
-        this._combinedRealtimeDataView.combineWith(data);
-    }
-
-    this.setEndpointDataType(
-      this._combinedRealtimeDataView.extractEndpointDataType()
-    );
-  }
-
-  private setEndpointDataType(newDataType: EndpointDataType[]) {
-    if (this._endpointDataType) {
-      const dataTypeMap = new Map<string, EndpointDataType>();
-      this._endpointDataType.forEach((d) => {
-        dataTypeMap.set(d.toJSON().uniqueEndpointName, d);
-      });
-
-      newDataType.forEach((d) => {
-        const id = d.toJSON().uniqueEndpointName;
-        const existing = dataTypeMap.get(id);
-        dataTypeMap.set(id, existing ? existing.mergeSchemaWith(d) : d);
-      });
-
-      newDataType = [...dataTypeMap.values()];
-    }
-
-    this._endpointDataType = newDataType.map((t) => t.trim());
-  }
-
-  private setEndpointDependencies(endpointDependencies: EndpointDependencies) {
-    this._endpointDependenciesView = endpointDependencies.trim();
-  }
-
   private updateLabelMap() {
-    this._labelMapping = EndpointUtils.CreateEndpointLabelMapping(
-      this._endpointDataType
-    );
-
-    if (this._userDefinedLabels) {
-      this._userDefinedLabels.labels.forEach((l) => {
-        if (l.block) return;
-        l.samples.forEach((s) => {
-          this._labelMapping.set(s, l.label);
-        });
-      });
-
-      const reversedMap = new Map<string, Set<string>>();
-      this._labelMapping.forEach((v, k) =>
-        reversedMap.set(v, (reversedMap.get(v) || new Set()).add(k))
-      );
-      this._userDefinedLabels?.labels
-        .filter((l) => l.block)
-        .flatMap((l) => {
-          const endpoints = [...(reversedMap.get(l.label) || new Set())];
-          return endpoints.filter((e) =>
-            e.startsWith(`${l.uniqueServiceName}\t${l.method}`)
-          );
-        })
-        .forEach((l) => this._labelMapping.delete(l));
-    }
-
-    if (this._endpointDependenciesView) {
-      const uniqueNames = [
-        ...new Set(
-          this._endpointDependenciesView
-            .toJSON()
-            .flatMap((d) =>
-              [...d.dependBy, ...d.dependsOn, d].map(
-                (dep) => dep.endpoint.uniqueEndpointName
-              )
-            )
-        ),
-      ];
-      this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
-        uniqueNames,
-        this._labelMapping
+    const dataType = this._cEndpointDataType.getData();
+    if (dataType) {
+      this._cLabelMapping.setData(
+        EndpointUtils.CreateEndpointLabelMapping(dataType),
+        this._cUserDefinedLabel.getData(),
+        this._cEndpointDependencies.getData()
       );
     }
   }
 
   private relabel() {
-    if (this._endpointDependenciesView) {
-      this._labeledEndpointDependenciesView = new EndpointDependencies(
-        this._endpointDependenciesView.label()
-      );
+    const dep = this._cEndpointDependencies.getData();
+    if (dep) {
+      this._cLabeledEndpointDependencies.setData(dep);
     }
   }
 
-  private filterCombinedRealtimeData(
-    data: CombinedRealtimeDataList,
-    namespace?: string
-  ) {
-    if (!namespace) return data;
-    const combinedRealtimeData = data.toJSON();
-    return new CombinedRealtimeDataList(
-      combinedRealtimeData.filter((r) => r.namespace === namespace)
-    );
-  }
+  // The following methods are kept as proxy to preserve backwards compatibility
 
   get combinedRealtimeDataSnap() {
-    return this._combinedRealtimeDataView;
+    return this._cCombinedRealtimeData.getData;
   }
-
   get replicasSnap() {
-    return this._replicasView;
+    return this._cReplicas.getData();
   }
-
   get endpointDataTypeSnap() {
-    return this._endpointDataType;
+    return this._cEndpointDataType.getData() || [];
   }
 
   get labelMapping() {
-    return this._labelMapping;
+    return this._cLabelMapping.getData()!;
   }
 
   get userDefinedLabels() {
-    return this._userDefinedLabels;
+    return this._cUserDefinedLabel.getData();
+  }
+
+  get taggedInterfaces() {
+    return this._cTaggedInterfaces.getData();
+  }
+
+  getTaggedInterface(uniqueLabelName: string) {
+    return this._cTaggedInterfaces.getData(uniqueLabelName);
   }
 
   getRawEndpointDependenciesSnap(namespace?: string) {
-    if (namespace && this._endpointDependenciesView) {
-      return new EndpointDependencies(
-        this._endpointDependenciesView
-          .toJSON()
-          .filter((d) => d.endpoint.namespace === namespace)
-      );
-    }
-    return this._endpointDependenciesView;
+    return this._cEndpointDependencies.getData(namespace);
   }
 
   getEndpointDependenciesSnap(namespace?: string) {
-    if (namespace && this._labeledEndpointDependenciesView) {
-      return new EndpointDependencies(
-        this._labeledEndpointDependenciesView
-          .toJSON()
-          .filter((d) => d.endpoint.namespace === namespace)
-      );
-    }
-    return this._labeledEndpointDependenciesView;
+    return this._cLabeledEndpointDependencies.getData(namespace);
   }
 
   getEndpointDataTypesByLabel(
@@ -268,105 +195,51 @@ export default class DataCache {
     uniqueServiceName: string,
     method: string
   ) {
-    const names = new Set(
-      this.getEndpointsFromLabel(label).filter((n) =>
-        n.startsWith(`${uniqueServiceName}\t${method}`)
-      )
-    );
-    return this._endpointDataType.filter((d) =>
-      names.has(d.toJSON().uniqueEndpointName)
+    return this._cLabelMapping.getEndpointDataTypesByLabel(
+      label,
+      uniqueServiceName,
+      method,
+      this._cEndpointDataType.getData() || []
     );
   }
 
   getLabelFromUniqueEndpointName(uniqueName: string) {
-    const label = this._labelMapping.get(uniqueName);
-    if (label) return label;
-    const [, , , , url] = uniqueName.split("\t");
-    const [, , path] = Utils.ExplodeUrl(url);
-    return path;
+    return this._cLabelMapping.getLabelFromUniqueEndpointName(uniqueName);
   }
 
   getEndpointsFromLabel(label: string) {
-    const labelMap = new Map<string, string[]>();
-    [...this._labelMapping.entries()].forEach(([name, l]) => {
-      labelMap.set(l, (labelMap.get(l) || []).concat([name]));
-    });
-    return labelMap.get(label) || [label];
+    return this._cLabelMapping.getEndpointsFromLabel(label);
   }
 
   labelHistoryData(historyData: THistoryData[]) {
-    const uniqueNames = new Set(
-      historyData
-        .flatMap((h) => h.services)
-        .flatMap((s) => s.endpoints)
-        .flatMap((e) => e.uniqueEndpointName)
-    );
-    this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
-      [...uniqueNames],
-      this._labelMapping
-    );
-
-    historyData.forEach((h) => {
-      h.services.forEach((s) => {
-        s.endpoints.forEach((e) => {
-          e.labelName = this.getLabelFromUniqueEndpointName(
-            e.uniqueEndpointName
-          );
-        });
-      });
-    });
-    return historyData;
+    return this._cLabelMapping.labelHistoryData(historyData);
   }
 
   labelAggregateData(aggregateData: TAggregateData) {
-    const uniqueNames = new Set(
-      aggregateData.services
-        .flatMap((s) => s.endpoints)
-        .flatMap((e) => e.uniqueEndpointName)
-    );
-    this._labelMapping = EndpointUtils.GuessAndMergeEndpoints(
-      [...uniqueNames],
-      this._labelMapping
-    );
-
-    aggregateData.services.forEach((s) => {
-      s.endpoints.forEach((e) => {
-        e.labelName = this.getLabelFromUniqueEndpointName(e.uniqueEndpointName);
-      });
-    });
-    return aggregateData;
+    return this._cLabelMapping.labelAggregateData(aggregateData);
   }
 
   updateUserDefinedLabel(label: TEndpointLabel) {
-    label.labels.forEach((l) =>
-      DataCache.getInstance().deleteUserDefinedLabel(
-        l.label,
-        l.uniqueServiceName,
-        l.method
-      )
-    );
-    DataCache.getInstance().addUserDefinedLabel(label);
+    this._cUserDefinedLabel.update(label);
   }
+
   addUserDefinedLabel(label: TEndpointLabel) {
-    this._userDefinedLabels = {
-      labels: (this._userDefinedLabels?.labels || []).concat(label.labels),
-    };
+    this._cUserDefinedLabel.add(label);
   }
+
   deleteUserDefinedLabel(
     labelName: string,
     uniqueServiceName: string,
     method: string
   ) {
-    if (!this._userDefinedLabels) return;
-    this._userDefinedLabels.labels = this._userDefinedLabels.labels.filter(
-      (l) =>
-        l.label !== labelName ||
-        l.uniqueServiceName !== uniqueServiceName ||
-        l.method !== method
-    );
+    this._cUserDefinedLabel.delete(labelName, uniqueServiceName, method);
   }
-  updateLabel() {
-    this.updateLabelMap();
-    this.relabel();
+
+  addTaggedInterface(tagged: TTaggedInterface) {
+    this._cTaggedInterfaces.add(tagged);
+  }
+
+  deleteTaggedInterface(uniqueLabelName: string, userLabel: string) {
+    this._cTaggedInterfaces.delete(uniqueLabelName, userLabel);
   }
 }

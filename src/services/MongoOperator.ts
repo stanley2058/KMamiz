@@ -18,7 +18,6 @@ import { EndpointLabelModel } from "../entities/schema/EndpointLabel";
 import { TEndpointLabel } from "../entities/TEndpointLabel";
 import { TaggedInterfaceModel } from "../entities/schema/TaggedInterface";
 import { TTaggedInterface } from "../entities/TTaggedInterface";
-import { TRequestTypeUpper } from "../entities/TRequestType";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
@@ -218,6 +217,20 @@ export default class MongoOperator {
     return await model.save();
   }
 
+  async getAllTaggedInterface(): Promise<TTaggedInterface[]> {
+    const results = await TaggedInterfaceModel.find({}).exec();
+    return results.map((r) => r.toJSON());
+  }
+
+  async insertTaggedInterfaces(
+    tagged: TTaggedInterface[]
+  ): Promise<TTaggedInterface[]> {
+    const res = await TaggedInterfaceModel.insertMany(
+      tagged.map((t) => (t._id = undefined))
+    );
+    return res.map((r) => r.toJSON());
+  }
+
   async getTaggedInterface(
     uniqueLabelName: string
   ): Promise<TTaggedInterface[]> {
@@ -269,6 +282,11 @@ export default class MongoOperator {
   }
   async deleteTaggedInterface(id: Types.ObjectId) {
     return await TaggedInterfaceModel.findByIdAndDelete(id).exec();
+  }
+  async deleteTaggedInterfaces(ids: Types.ObjectId[]) {
+    return await TaggedInterfaceModel.deleteMany({
+      _id: { $in: ids },
+    }).exec();
   }
 
   private async smartSave<T extends { _id?: Types.ObjectId }>(

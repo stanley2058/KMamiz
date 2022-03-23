@@ -25,6 +25,10 @@ export default class DispatchStorage {
       name: "EndpointLabelMap",
       syncFunc: DispatchStorage.getInstance().syncEndpointLabelMap,
     },
+    {
+      name: "TaggedInterfaces",
+      syncFunc: DispatchStorage.getInstance().syncTaggedInterfaces,
+    },
   ];
 
   async sync() {
@@ -127,6 +131,21 @@ export default class DispatchStorage {
           await MongoOperator.getInstance().deleteEndpointLabel([toDelete._id]);
         }
       }
+    } catch (ex) {
+      Logger.error("Error saving EndpointLabelMap, skipping.");
+      Logger.verbose("", ex);
+    }
+  }
+
+  private async syncTaggedInterfaces() {
+    const toDelete = await MongoOperator.getInstance().getAllTaggedInterface();
+    const tagged = DataCache.getInstance().taggedInterfaces;
+
+    try {
+      await MongoOperator.getInstance().insertTaggedInterfaces(tagged);
+      await MongoOperator.getInstance().deleteTaggedInterfaces(
+        toDelete.map((t) => t._id!)
+      );
     } catch (ex) {
       Logger.error("Error saving EndpointLabelMap, skipping.");
       Logger.verbose("", ex);
