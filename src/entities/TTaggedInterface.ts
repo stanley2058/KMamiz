@@ -5,5 +5,6 @@ export type TTaggedInterface = {
   uniqueLabelName: string;
   userLabel: string;
   timestamp?: number;
-  interface: string;
+  requestSchema: string;
+  responseSchema: string;
 };
