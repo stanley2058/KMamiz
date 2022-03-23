@@ -47,6 +47,44 @@ export default class DataCache {
     ];
   }
 
+  async loadBaseData() {
+    const promises: Promise<any>[] = [];
+    this._caches.forEach((c) => {
+      if (c.init) {
+        Logger.verbose(`Loading ${c.name} into cache.`);
+        promises.push(c.init());
+      }
+    });
+
+    for (const promise of promises) await promise;
+
+    Logger.verbose("Creating label mapping.");
+    this.updateLabel();
+  }
+
+  updateLabel() {
+    this.updateLabelMap();
+    this.relabel();
+  }
+
+  private updateLabelMap() {
+    const dataType = this._cEndpointDataType.getData();
+    if (dataType) {
+      this._cLabelMapping.setData(
+        EndpointUtils.CreateEndpointLabelMapping(dataType),
+        this._cUserDefinedLabel.getData(),
+        this._cEndpointDependencies.getData()
+      );
+    }
+  }
+
+  private relabel() {
+    const dep = this._cEndpointDependencies.getData();
+    if (dep) {
+      this._cLabeledEndpointDependencies.setData(dep);
+    }
+  }
+
   updateCurrentView(
     data: CombinedRealtimeDataList,
     endpointDependencies: EndpointDependencies
@@ -116,48 +154,10 @@ export default class DataCache {
     );
   }
 
-  async loadBaseData() {
-    const promises: Promise<any>[] = [];
-    this._caches.forEach((c) => {
-      if (c.init) {
-        Logger.verbose(`Loading ${c.name} into cache.`);
-        promises.push(c.init());
-      }
-    });
-
-    for (const promise of promises) await promise;
-
-    Logger.verbose("Creating label mapping.");
-    this.updateLabel();
-  }
-
-  updateLabel() {
-    this.updateLabelMap();
-    this.relabel();
-  }
-
-  private updateLabelMap() {
-    const dataType = this._cEndpointDataType.getData();
-    if (dataType) {
-      this._cLabelMapping.setData(
-        EndpointUtils.CreateEndpointLabelMapping(dataType),
-        this._cUserDefinedLabel.getData(),
-        this._cEndpointDependencies.getData()
-      );
-    }
-  }
-
-  private relabel() {
-    const dep = this._cEndpointDependencies.getData();
-    if (dep) {
-      this._cLabeledEndpointDependencies.setData(dep);
-    }
-  }
-
   // The following methods are kept as proxy to preserve backwards compatibility
 
   get combinedRealtimeDataSnap() {
-    return this._cCombinedRealtimeData.getData;
+    return this._cCombinedRealtimeData.getData();
   }
   get replicasSnap() {
     return this._cReplicas.getData();

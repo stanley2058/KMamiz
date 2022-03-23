@@ -5,13 +5,13 @@ import { Cacheable } from "./Cacheable";
 export class CEndpointDependencies extends Cacheable<EndpointDependencies> {
   constructor(initData?: EndpointDependencies) {
     super("EndpointDependencies", initData);
+    this.setInit(async () => {
+      this.setData(await MongoOperator.getInstance().getEndpointDependencies());
+    });
   }
 
   setData(update: EndpointDependencies): void {
     super.setData(update.trim());
-    this.setInit(async () => {
-      this.setData(await MongoOperator.getInstance().getEndpointDependencies());
-    });
   }
 
   getData(namespace?: string): EndpointDependencies | undefined {
