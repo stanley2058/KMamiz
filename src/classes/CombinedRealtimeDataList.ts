@@ -305,9 +305,9 @@ export default class CombinedRealtimeDataList {
         status: r.status,
         timestamp: r.latestTimestamp,
         replica: r.avgReplica,
-        requestBody: r.requestBody,
+        requestBody: JSON.stringify(r.requestBody),
         requestContentType: r.requestContentType,
-        responseBody: r.responseBody,
+        responseBody: JSON.stringify(r.responseBody),
         responseContentType: r.responseContentType,
       };
     });
