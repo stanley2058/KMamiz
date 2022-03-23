@@ -268,7 +268,7 @@ export default class MongoOperator {
     }).exec();
   }
   async deleteTaggedInterface(id: Types.ObjectId) {
-    return await TaggedInterfaceModel.deleteOne({ _id: id }).exec();
+    return await TaggedInterfaceModel.findByIdAndDelete(id).exec();
   }
 
   private async smartSave<T extends { _id?: Types.ObjectId }>(

@@ -57,7 +57,9 @@ export default class DataService extends IRequestHandler {
         uniqueLabelName: string;
       };
       if (!uniqueLabelName) return res.sendStatus(400);
-      res.json(await this.getTaggedInterface(uniqueLabelName));
+      res.json(
+        await this.getTaggedInterface(decodeURIComponent(uniqueLabelName))
+      );
     });
     this.addRoute("post", "/interface", async (req, res) => {
       const tagged = req.body as TTaggedInterface;
@@ -141,10 +143,9 @@ export default class DataService extends IRequestHandler {
 
   async deleteTaggedInterface(id: string) {
     if (!id) return false;
-    return (
-      await MongoOperator.getInstance().deleteTaggedInterface(
-        new Types.ObjectId(id)
-      )
-    ).acknowledged;
+    await MongoOperator.getInstance().deleteTaggedInterface(
+      new Types.ObjectId(id)
+    );
+    return true;
   }
 }
