@@ -1,4 +1,3 @@
-import Logger from "../utils/Logger";
 import {
   TEnvoyLog,
   TStructuredEnvoyLog,

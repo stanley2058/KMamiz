@@ -1,4 +1,11 @@
-import { IEnvoyLog } from "../src/entities/IEnvoyLog";
+import { TAggregateData } from "../src/entities/TAggregateData";
+import { TCombinedRealtimeData } from "../src/entities/TCombinedRealtimeData";
+import { TEndpointDataType } from "../src/entities/TEndpointDataType";
+import { TEnvoyLog } from "../src/entities/TEnvoyLog";
+import { TRealtimeData } from "../src/entities/TRealtimeData";
+import { TReplicaCount } from "../src/entities/TReplicaCount";
+import { TServiceDependency } from "../src/entities/TServiceDependency";
+import Utils from "../src/utils/Utils";
 
 const MockTrace = [
   [
@@ -3549,65 +3556,953 @@ const MockEndpointDependencies = [
   },
 ];
 
-const MockLogs: IEnvoyLog[] = [
+const MockLogs: TEnvoyLog[] = [
+  // {
+  //   timestamp: new Date("2022-01-01T06:48:31.057Z"),
+  //   type: "Request",
+  //   requestId: "e8c54b43-d810-912c-8b08-e4c2f6249b19",
+  //   traceId: "50398473642538df0f1c5fa1b6aebbfb",
+  //   method: "GET",
+  //   path: "details:9080/details/0",
+  //   namespace: "book",
+  //   podName: "details-v1-7dcb9897f-pnxxc",
+  // },
+  // {
+  //   timestamp: new Date("2022-01-01T06:48:31.058Z"),
+  //   type: "Response",
+  //   requestId: "e8c54b43-d810-912c-8b08-e4c2f6249b19",
+  //   status: "200",
+  //   body: '{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}',
+  //   namespace: "book",
+  //   podName: "details-v1-7dcb9897f-pnxxc",
+  // },
+  // {
+  //   timestamp: new Date("2022-01-01T06:48:32.705Z"),
+  //   type: "Request",
+  //   requestId: "e3ca2764-766b-9b8f-8384-bd893cd76dab",
+  //   traceId: "1b6ddec1c9e5f94d54d23b8322eef960",
+  //   method: "GET",
+  //   path: "details:9080/details/0",
+  //   namespace: "book",
+  //   podName: "details-v1-7dcb9897f-pnxxc",
+  // },
+  // {
+  //   timestamp: new Date("2022-01-01T06:48:32.706Z"),
+  //   type: "Response",
+  //   requestId: "e3ca2764-766b-9b8f-8384-bd893cd76dab",
+  //   status: "200",
+  //   body: '{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}',
+  //   namespace: "book",
+  //   podName: "details-v1-7dcb9897f-pnxxc",
+  // },
+  // {
+  //   timestamp: new Date("2022-01-01T06:48:33.478Z"),
+  //   type: "Request",
+  //   requestId: "bdc58fbc-c2d4-9aaf-af51-02aa2f11611e",
+  //   traceId: "50693ab76557d377a9e9eeefa89169ec",
+  //   method: "GET",
+  //   path: "details:9080/details/0",
+  //   namespace: "book",
+  //   podName: "details-v1-7dcb9897f-pnxxc",
+  // },
+  // {
+  //   timestamp: new Date("2022-01-01T06:48:33.479Z"),
+  //   type: "Request",
+  //   requestId: "bdc58fbc-c2d4-9aaf-af51-02aa2f11611f",
+  //   traceId: "50693ab76557d377a9e9eeefa89169ec",
+  //   method: "GET",
+  //   path: "details:9080/details/0",
+  //   namespace: "book",
+  //   podName: "details-v1-7dcb9897f-pnxxc",
+  // },
+];
+
+const MockTracePDAS = [
   {
-    timestamp: new Date("2022-01-01T06:48:31.057Z"),
-    type: "Request",
-    requestId: "e8c54b43-d810-912c-8b08-e4c2f6249b19",
-    traceId: "50398473642538df0f1c5fa1b6aebbfb",
-    method: "GET",
-    path: "details:9080/details/0",
-    namespace: "book",
-    podName: "details-v1-7dcb9897f-pnxxc",
+    traceId: "4a5e59b938fc24847f6746ec4285c01e",
+    parentId: "ebc13038a68d6ca8",
+    id: "24a40f72c05bed24",
+    kind: "SERVER",
+    name: "user-service.pdas.svc.cluster.local:80/*",
+    timestamp: 1646208338224823,
+    duration: 1903,
+    localEndpoint: { serviceName: "user-service.pdas", ipv4: "172.17.0.24" },
+    annotations: [{ timestamp: 1646208338226812, value: "ss" }],
+    tags: {
+      component: "proxy",
+      downstream_cluster: "-",
+      "guid:x-request-id": "8c78cf18-cba3-9da3-a3d7-3c63ad4108f1",
+      "http.method": "GET",
+      "http.protocol": "HTTP/1.1",
+      "http.status_code": "200",
+      "http.url":
+        "http://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+      "istio.canonical_revision": "latest",
+      "istio.canonical_service": "user-service",
+      "istio.mesh_id": "cluster.local",
+      "istio.namespace": "pdas",
+      node_id:
+        "sidecar~172.17.0.24~user-service-54bdfb4bcc-dwzqt.pdas~pdas.svc.cluster.local",
+      "peer.address": "172.17.0.19",
+      request_size: "0",
+      response_flags: "-",
+      response_size: "227",
+      upstream_cluster: "inbound|4502||",
+      "upstream_cluster.name": "inbound|4502||",
+      user_agent: "Java/11.0.9.1",
+    },
   },
   {
-    timestamp: new Date("2022-01-01T06:48:31.058Z"),
-    type: "Response",
-    requestId: "e8c54b43-d810-912c-8b08-e4c2f6249b19",
+    traceId: "4a5e59b938fc24847f6746ec4285c01e",
+    parentId: "22edae1c77cebbbe",
+    id: "ebc13038a68d6ca8",
+    kind: "CLIENT",
+    name: "user-service.pdas.svc.cluster.local:80/*",
+    timestamp: 1646208338224579,
+    duration: 2565,
+    localEndpoint: {
+      serviceName: "external-service.pdas",
+      ipv4: "172.17.0.19",
+    },
+    annotations: [{ timestamp: 1646208338227190, value: "cr" }],
+    tags: {
+      component: "proxy",
+      downstream_cluster: "-",
+      "guid:x-request-id": "8c78cf18-cba3-9da3-a3d7-3c63ad4108f1",
+      "http.method": "GET",
+      "http.protocol": "HTTP/1.1",
+      "http.status_code": "200",
+      "http.url":
+        "http://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+      "istio.canonical_revision": "latest",
+      "istio.canonical_service": "external-service",
+      "istio.mesh_id": "cluster.local",
+      "istio.namespace": "pdas",
+      node_id:
+        "sidecar~172.17.0.19~external-service-794ccfd97-sjz2c.pdas~pdas.svc.cluster.local",
+      "peer.address": "172.17.0.19",
+      request_size: "0",
+      response_flags: "-",
+      response_size: "227",
+      upstream_cluster: "outbound|80||user-service.pdas.svc.cluster.local",
+      "upstream_cluster.name":
+        "outbound|80||user-service.pdas.svc.cluster.local",
+      user_agent: "Java/11.0.9.1",
+    },
+  },
+  {
+    traceId: "4a5e59b938fc24847f6746ec4285c01e",
+    parentId: "5fca8747e2281c08",
+    id: "aed0ef16fd098180",
+    kind: "SERVER",
+    name: "user-service.pdas.svc.cluster.local:80/*",
+    timestamp: 1646208338227724,
+    duration: 1094,
+    localEndpoint: { serviceName: "user-service.pdas", ipv4: "172.17.0.24" },
+    annotations: [{ timestamp: 1646208338228884, value: "ss" }],
+    tags: {
+      component: "proxy",
+      downstream_cluster: "-",
+      "guid:x-request-id": "8c78cf18-cba3-9da3-a3d7-3c63ad4108f1",
+      "http.method": "GET",
+      "http.protocol": "HTTP/1.1",
+      "http.status_code": "200",
+      "http.url":
+        "http://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+      "istio.canonical_revision": "latest",
+      "istio.canonical_service": "user-service",
+      "istio.mesh_id": "cluster.local",
+      "istio.namespace": "pdas",
+      node_id:
+        "sidecar~172.17.0.24~user-service-54bdfb4bcc-dwzqt.pdas~pdas.svc.cluster.local",
+      "peer.address": "172.17.0.19",
+      request_size: "0",
+      response_flags: "-",
+      response_size: "227",
+      upstream_cluster: "inbound|4502||",
+      "upstream_cluster.name": "inbound|4502||",
+      user_agent: "Java/11.0.9.1",
+    },
+  },
+  {
+    traceId: "4a5e59b938fc24847f6746ec4285c01e",
+    parentId: "22edae1c77cebbbe",
+    id: "5fca8747e2281c08",
+    kind: "CLIENT",
+    name: "user-service.pdas.svc.cluster.local:80/*",
+    timestamp: 1646208338227497,
+    duration: 1558,
+    localEndpoint: {
+      serviceName: "external-service.pdas",
+      ipv4: "172.17.0.19",
+    },
+    annotations: [{ timestamp: 1646208338229106, value: "cr" }],
+    tags: {
+      component: "proxy",
+      downstream_cluster: "-",
+      "guid:x-request-id": "8c78cf18-cba3-9da3-a3d7-3c63ad4108f1",
+      "http.method": "GET",
+      "http.protocol": "HTTP/1.1",
+      "http.status_code": "200",
+      "http.url":
+        "http://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+      "istio.canonical_revision": "latest",
+      "istio.canonical_service": "external-service",
+      "istio.mesh_id": "cluster.local",
+      "istio.namespace": "pdas",
+      node_id:
+        "sidecar~172.17.0.19~external-service-794ccfd97-sjz2c.pdas~pdas.svc.cluster.local",
+      "peer.address": "172.17.0.19",
+      request_size: "0",
+      response_flags: "-",
+      response_size: "227",
+      upstream_cluster: "outbound|80||user-service.pdas.svc.cluster.local",
+      "upstream_cluster.name":
+        "outbound|80||user-service.pdas.svc.cluster.local",
+      user_agent: "Java/11.0.9.1",
+    },
+  },
+  {
+    traceId: "4a5e59b938fc24847f6746ec4285c01e",
+    parentId: "ea9f6214dd9410b9",
+    id: "d7618fb68cdc44c1",
+    kind: "SERVER",
+    name: "contract-service.pdas.svc.cluster.local:80/*",
+    timestamp: 1646208338231628,
+    duration: 1523,
+    localEndpoint: { serviceName: "contract-service.pdas", ipv4: "172.17.0.9" },
+    annotations: [{ timestamp: 1646208338233247, value: "ss" }],
+    tags: {
+      component: "proxy",
+      downstream_cluster: "-",
+      "guid:x-request-id": "8c78cf18-cba3-9da3-a3d7-3c63ad4108f1",
+      "http.method": "POST",
+      "http.protocol": "HTTP/1.1",
+      "http.status_code": "200",
+      "http.url":
+        "http://contract-service.pdas.svc.cluster.local/internal/contract/init",
+      "istio.canonical_revision": "latest",
+      "istio.canonical_service": "contract-service",
+      "istio.mesh_id": "cluster.local",
+      "istio.namespace": "pdas",
+      node_id:
+        "sidecar~172.17.0.9~contract-service-56df7b9999-8q7zj.pdas~pdas.svc.cluster.local",
+      "peer.address": "172.17.0.19",
+      request_size: "158",
+      response_flags: "-",
+      response_size: "473",
+      upstream_cluster: "inbound|4505||",
+      "upstream_cluster.name": "inbound|4505||",
+      user_agent: "Java/11.0.9.1",
+    },
+  },
+  {
+    traceId: "4a5e59b938fc24847f6746ec4285c01e",
+    parentId: "22edae1c77cebbbe",
+    id: "ea9f6214dd9410b9",
+    kind: "CLIENT",
+    name: "contract-service.pdas.svc.cluster.local:80/*",
+    timestamp: 1646208338231429,
+    duration: 1984,
+    localEndpoint: {
+      serviceName: "external-service.pdas",
+      ipv4: "172.17.0.19",
+    },
+    annotations: [{ timestamp: 1646208338233449, value: "cr" }],
+    tags: {
+      component: "proxy",
+      downstream_cluster: "-",
+      "guid:x-request-id": "8c78cf18-cba3-9da3-a3d7-3c63ad4108f1",
+      "http.method": "POST",
+      "http.protocol": "HTTP/1.1",
+      "http.status_code": "200",
+      "http.url":
+        "http://contract-service.pdas.svc.cluster.local/internal/contract/init",
+      "istio.canonical_revision": "latest",
+      "istio.canonical_service": "external-service",
+      "istio.mesh_id": "cluster.local",
+      "istio.namespace": "pdas",
+      node_id:
+        "sidecar~172.17.0.19~external-service-794ccfd97-sjz2c.pdas~pdas.svc.cluster.local",
+      "peer.address": "172.17.0.19",
+      request_size: "158",
+      response_flags: "-",
+      response_size: "473",
+      upstream_cluster: "outbound|80||contract-service.pdas.svc.cluster.local",
+      "upstream_cluster.name":
+        "outbound|80||contract-service.pdas.svc.cluster.local",
+      user_agent: "Java/11.0.9.1",
+    },
+  },
+  {
+    traceId: "4a5e59b938fc24847f6746ec4285c01e",
+    parentId: "7f6746ec4285c01e",
+    id: "22edae1c77cebbbe",
+    kind: "SERVER",
+    name: "external-service.pdas.svc.cluster.local:80/pdas/sa/requestcontract*",
+    timestamp: 1646208338216165,
+    duration: 17776,
+    localEndpoint: {
+      serviceName: "external-service.pdas",
+      ipv4: "172.17.0.19",
+    },
+    annotations: [{ timestamp: 1646208338234063, value: "ss" }],
+    tags: {
+      component: "proxy",
+      downstream_cluster: "-",
+      "guid:x-request-id": "8c78cf18-cba3-9da3-a3d7-3c63ad4108f1",
+      "http.method": "POST",
+      "http.protocol": "HTTP/1.1",
+      "http.status_code": "200",
+      "http.url": "http://10.104.207.91/pdas/sa/requestContract",
+      "istio.canonical_revision": "latest",
+      "istio.canonical_service": "external-service",
+      "istio.mesh_id": "cluster.local",
+      "istio.namespace": "pdas",
+      node_id:
+        "sidecar~172.17.0.19~external-service-794ccfd97-sjz2c.pdas~pdas.svc.cluster.local",
+      "peer.address": "172.17.0.10",
+      request_size: "158",
+      response_flags: "-",
+      response_size: "41",
+      upstream_cluster: "inbound|4506||",
+      "upstream_cluster.name": "inbound|4506||",
+      user_agent:
+        "Mozilla/5.0 (X11; Linux x86_64; rv:97.0) Gecko/20100101 Firefox/97.0",
+    },
+  },
+  {
+    traceId: "4a5e59b938fc24847f6746ec4285c01e",
+    id: "7f6746ec4285c01e",
+    kind: "CLIENT",
+    name: "external-service.pdas.svc.cluster.local:80/pdas/sa/requestcontract*",
+    timestamp: 1646208338215362,
+    duration: 18891,
+    localEndpoint: {
+      serviceName: "istio-ingressgateway.istio-system",
+      ipv4: "172.17.0.10",
+    },
+    annotations: [{ timestamp: 1646208338234335, value: "cr" }],
+    tags: {
+      component: "proxy",
+      downstream_cluster: "-",
+      "guid:x-request-id": "8c78cf18-cba3-9da3-a3d7-3c63ad4108f1",
+      "http.method": "POST",
+      "http.protocol": "HTTP/1.1",
+      "http.status_code": "200",
+      "http.url": "http://10.104.207.91/pdas/sa/requestContract",
+      "istio.canonical_revision": "latest",
+      "istio.canonical_service": "istio-ingressgateway",
+      "istio.mesh_id": "cluster.local",
+      "istio.namespace": "istio-system",
+      node_id:
+        "router~172.17.0.10~istio-ingressgateway-5b64d5b78f-5np8l.istio-system~istio-system.svc.cluster.local",
+      "peer.address": "172.17.0.1",
+      request_size: "158",
+      response_flags: "-",
+      response_size: "41",
+      upstream_cluster: "outbound|80||external-service.pdas.svc.cluster.local",
+      "upstream_cluster.name":
+        "outbound|80||external-service.pdas.svc.cluster.local",
+      user_agent:
+        "Mozilla/5.0 (X11; Linux x86_64; rv:97.0) Gecko/20100101 Firefox/97.0",
+    },
+  },
+];
+const MockLogsPDAS =
+  `2022-03-02T08:05:38.224642Z	[Request 8c78cf18-cba3-9da3-a3d7-3c63ad4108f1/4a5e59b938fc24847f6746ec4285c01e/22edae1c77cebbbe/7f6746ec4285c01e] [GET user-service.pdas.svc.cluster.local/internal/user/user/email/admin]
+2022-03-02T08:05:38.227145Z	[Response 8c78cf18-cba3-9da3-a3d7-3c63ad4108f1/4a5e59b938fc24847f6746ec4285c01e/24a40f72c05bed24/ebc13038a68d6ca8] [Status] 200 [ContentType application/json] [Body] {"id":"5fc0b2b71952525d6bc3c523","email":"admin","telephone":null,"mobilePhone":"0912345678","address":null,"password":"$2a$10$ldgckIa8AqLUFS9TWZKV..fDTsP.Df.08Cj155GiIqiqQ3/OONF2y","userType":3,"certificates":null,"keys":null}
+2022-03-02T08:05:38.227570Z	[Request 8c78cf18-cba3-9da3-a3d7-3c63ad4108f1/4a5e59b938fc24847f6746ec4285c01e/22edae1c77cebbbe/7f6746ec4285c01e] [GET user-service.pdas.svc.cluster.local/internal/user/user/email/admin]
+2022-03-02T08:05:38.229071Z	[Response 8c78cf18-cba3-9da3-a3d7-3c63ad4108f1/4a5e59b938fc24847f6746ec4285c01e/aed0ef16fd098180/5fca8747e2281c08] [Status] 200 [ContentType application/json] [Body] {"id":"5fc0b2b71952525d6bc3c523","email":"admin","telephone":null,"mobilePhone":"0912345678","address":null,"password":"$2a$10$ldgckIa8AqLUFS9TWZKV..fDTsP.Df.08Cj155GiIqiqQ3/OONF2y","userType":3,"certificates":null,"keys":null}
+2022-03-02T08:05:38.231484Z	[Request 8c78cf18-cba3-9da3-a3d7-3c63ad4108f1/4a5e59b938fc24847f6746ec4285c01e/22edae1c77cebbbe/7f6746ec4285c01e] [POST contract-service.pdas.svc.cluster.local/internal/contract/init] [ContentType application/json] [Body] {"idDataRequester":"5fc0b2b71952525d6bc3c525","idDataHolder":"5fc0b2b71952525d6bc3c526","idOrdinaryUsers":[],"deadline":1647964800000,"contractBody":"123123"}
+2022-03-02T08:05:38.233419Z	[Response 8c78cf18-cba3-9da3-a3d7-3c63ad4108f1/4a5e59b938fc24847f6746ec4285c01e/d7618fb68cdc44c1/ea9f6214dd9410b9] [Status] 200 [ContentType application/json] [Body] {"id":"621f2552ad281a095b2732ad","originId":null,"originBody":"123123","firstSignature":"MTIzMTIz","secondSignature":null,"transactionHash":null,"idOrdinaryUser":null,"idDataRequester":"5fc0b2b71952525d6bc3c525","idDataHolder":"5fc0b2b71952525d6bc3c526","firstSignDate":0,"secondSignDate":0,"signState":0,"deadline":1647964800000,"hasNotified":false,"ouSerialNumber":null,"drSerialNumber":null,"dhSerialNumber":null,"ouPublicKey":null,"drPublicKey":null,"dhPublicKey":null}
+2022-03-02T08:05:38.234013Z	[Response 8c78cf18-cba3-9da3-a3d7-3c63ad4108f1/4a5e59b938fc24847f6746ec4285c01e/22edae1c77cebbbe/7f6746ec4285c01e] [Status] 200 [ContentType application/json] [Body] {"contractId":"621f2552ad281a095b2732ad"}`.split(
+    "\n"
+  );
+
+const Service = "srv";
+const Namespace = "ns";
+const Version = "latest";
+const UniqueServiceName = `${Service}\t${Namespace}\t${Version}`;
+const UniqueEndpointName = `${UniqueServiceName}\tGET\thttp://srv/api/a`;
+const Method = "GET";
+const Status = "200";
+const Today = Date.now();
+const Yesterday = Date.now() - 86400000;
+const UniversalServiceBaseData = {
+  service: Service,
+  namespace: Namespace,
+  version: Version,
+  uniqueServiceName: UniqueServiceName,
+};
+const UniversalEndpointBaseData = {
+  ...UniversalServiceBaseData,
+  uniqueEndpointName: UniqueEndpointName,
+};
+
+const MockAggregateData1: TAggregateData = {
+  fromDate: new Date(Today),
+  toDate: new Date(Today),
+  services: [
+    {
+      ...UniversalServiceBaseData,
+      avgLatencyCV: 1,
+      avgRisk: 0.5,
+      totalRequests: 1000,
+      totalRequestErrors: 10,
+      totalServerErrors: 1,
+      endpoints: [
+        {
+          uniqueServiceName: UniqueServiceName,
+          uniqueEndpointName: `${UniqueServiceName}\t${Method}\thttp://srv/api/a`,
+          avgLatencyCV: 1,
+          method: "GET",
+          totalRequests: 500,
+          totalRequestErrors: 5,
+          totalServerErrors: 1,
+          labelName: "/srv/api/a",
+        },
+        {
+          uniqueServiceName: UniqueServiceName,
+          uniqueEndpointName: `${UniqueServiceName}\t${Method}\thttp://srv/api/b`,
+          avgLatencyCV: 1,
+          method: "GET",
+          totalRequests: 500,
+          totalRequestErrors: 5,
+          totalServerErrors: 0,
+          labelName: "/srv/api/b",
+        },
+      ],
+    },
+  ],
+};
+const MockAggregateData2: TAggregateData = {
+  fromDate: new Date(Today),
+  toDate: new Date(Today),
+  services: [
+    {
+      ...UniversalServiceBaseData,
+      avgLatencyCV: 1,
+      avgRisk: 0.5,
+      totalRequests: 1000,
+      totalRequestErrors: 10,
+      totalServerErrors: 1,
+      endpoints: [
+        {
+          uniqueServiceName: UniqueServiceName,
+          uniqueEndpointName: `${UniqueServiceName}\t${Method}\thttp://srv/api/a`,
+          avgLatencyCV: 1,
+          method: "GET",
+          totalRequests: 500,
+          totalRequestErrors: 5,
+          totalServerErrors: 1,
+          labelName: "/srv/api/a",
+        },
+        {
+          uniqueServiceName: UniqueServiceName,
+          uniqueEndpointName: `${UniqueServiceName}\t${Method}\thttp://srv/api/b`,
+          avgLatencyCV: 1,
+          method: "GET",
+          totalRequests: 500,
+          totalRequestErrors: 5,
+          totalServerErrors: 0,
+          labelName: "/srv/api/b",
+        },
+      ],
+    },
+  ],
+};
+
+const MockMergedAggregateData: TAggregateData = {
+  fromDate: new Date(Today),
+  toDate: new Date(Today),
+  services: [
+    {
+      ...UniversalServiceBaseData,
+      avgLatencyCV: 1,
+      avgRisk: 0.5,
+      totalRequests: 2000,
+      totalRequestErrors: 20,
+      totalServerErrors: 2,
+      endpoints: [
+        {
+          uniqueServiceName: UniqueServiceName,
+          uniqueEndpointName: `${UniqueServiceName}\t${Method}\thttp://srv/api/a`,
+          avgLatencyCV: 1,
+          method: Method,
+          totalRequests: 1000,
+          totalRequestErrors: 10,
+          totalServerErrors: 2,
+          labelName: "/srv/api/a",
+        },
+        {
+          uniqueServiceName: UniqueServiceName,
+          uniqueEndpointName: `${UniqueServiceName}\t${Method}\thttp://srv/api/b`,
+          avgLatencyCV: 1,
+          method: Method,
+          totalRequests: 1000,
+          totalRequestErrors: 10,
+          totalServerErrors: 0,
+          labelName: "/srv/api/b",
+        },
+      ],
+    },
+  ],
+};
+
+const MockRlDataPDAS = [
+  {
+    timestamp: 1646208338224823,
+    service: "user-service",
+    namespace: "pdas",
+    version: "latest",
+    method: "GET",
+    latency: 1903,
     status: "200",
-    body: '{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}',
-    namespace: "book",
-    podName: "details-v1-7dcb9897f-pnxxc",
+    uniqueServiceName: "user-service\tpdas\tlatest",
+    uniqueEndpointName:
+      "user-service\tpdas\tlatest\tGET\thttp://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+    replica: undefined,
   },
   {
-    timestamp: new Date("2022-01-01T06:48:32.705Z"),
-    type: "Request",
-    requestId: "e3ca2764-766b-9b8f-8384-bd893cd76dab",
-    traceId: "1b6ddec1c9e5f94d54d23b8322eef960",
+    timestamp: 1646208338227724,
+    service: "user-service",
+    namespace: "pdas",
+    version: "latest",
     method: "GET",
-    path: "details:9080/details/0",
-    namespace: "book",
-    podName: "details-v1-7dcb9897f-pnxxc",
-  },
-  {
-    timestamp: new Date("2022-01-01T06:48:32.706Z"),
-    type: "Response",
-    requestId: "e3ca2764-766b-9b8f-8384-bd893cd76dab",
+    latency: 1094,
     status: "200",
-    body: '{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}',
-    namespace: "book",
-    podName: "details-v1-7dcb9897f-pnxxc",
+    uniqueServiceName: "user-service\tpdas\tlatest",
+    uniqueEndpointName:
+      "user-service\tpdas\tlatest\tGET\thttp://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+    replica: undefined,
   },
   {
-    timestamp: new Date("2022-01-01T06:48:33.478Z"),
-    type: "Request",
-    requestId: "bdc58fbc-c2d4-9aaf-af51-02aa2f11611e",
-    traceId: "50693ab76557d377a9e9eeefa89169ec",
-    method: "GET",
-    path: "details:9080/details/0",
-    namespace: "book",
-    podName: "details-v1-7dcb9897f-pnxxc",
+    timestamp: 1646208338231628,
+    service: "contract-service",
+    namespace: "pdas",
+    version: "latest",
+    method: "POST",
+    latency: 1523,
+    status: "200",
+    uniqueServiceName: "contract-service\tpdas\tlatest",
+    uniqueEndpointName:
+      "contract-service\tpdas\tlatest\tPOST\thttp://contract-service.pdas.svc.cluster.local/internal/contract/init",
+    replica: undefined,
   },
   {
-    timestamp: new Date("2022-01-01T06:48:33.479Z"),
-    type: "Request",
-    requestId: "bdc58fbc-c2d4-9aaf-af51-02aa2f11611f",
-    traceId: "50693ab76557d377a9e9eeefa89169ec",
-    method: "GET",
-    path: "details:9080/details/0",
-    namespace: "book",
-    podName: "details-v1-7dcb9897f-pnxxc",
+    timestamp: 1646208338216165,
+    service: "external-service",
+    namespace: "pdas",
+    version: "latest",
+    method: "POST",
+    latency: 17776,
+    status: "200",
+    uniqueServiceName: "external-service\tpdas\tlatest",
+    uniqueEndpointName:
+      "external-service\tpdas\tlatest\tPOST\thttp://10.104.207.91/pdas/sa/requestContract",
+    replica: undefined,
+  },
+];
+const MockEndpointDependenciesPDAS = [
+  {
+    endpoint: {
+      version: "latest",
+      service: "user-service",
+      namespace: "pdas",
+      url: "http://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+      host: "user-service.pdas.svc.cluster.local",
+      path: "/internal/user/user/email/admin",
+      port: "80",
+      clusterName: "cluster.local",
+      method: "GET",
+      uniqueServiceName: "user-service\tpdas\tlatest",
+      uniqueEndpointName:
+        "user-service\tpdas\tlatest\tGET\thttp://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+    },
+    dependBy: [
+      {
+        endpoint: {
+          version: "latest",
+          service: "external-service",
+          namespace: "pdas",
+          url: "http://10.104.207.91/pdas/sa/requestContract",
+          host: "10.104.207.91",
+          path: "/pdas/sa/requestContract",
+          port: "80",
+          clusterName: "cluster.local",
+          method: "POST",
+          uniqueServiceName: "external-service\tpdas\tlatest",
+          uniqueEndpointName:
+            "external-service\tpdas\tlatest\tPOST\thttp://10.104.207.91/pdas/sa/requestContract",
+        },
+        distance: 1,
+        type: "CLIENT",
+      },
+    ],
+    dependsOn: [],
+  },
+  {
+    endpoint: {
+      version: "latest",
+      service: "user-service",
+      namespace: "pdas",
+      url: "http://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+      host: "user-service.pdas.svc.cluster.local",
+      path: "/internal/user/user/email/admin",
+      port: "80",
+      clusterName: "cluster.local",
+      method: "GET",
+      uniqueServiceName: "user-service\tpdas\tlatest",
+      uniqueEndpointName:
+        "user-service\tpdas\tlatest\tGET\thttp://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+    },
+    dependBy: [
+      {
+        endpoint: {
+          version: "latest",
+          service: "external-service",
+          namespace: "pdas",
+          url: "http://10.104.207.91/pdas/sa/requestContract",
+          host: "10.104.207.91",
+          path: "/pdas/sa/requestContract",
+          port: "80",
+          clusterName: "cluster.local",
+          method: "POST",
+          uniqueServiceName: "external-service\tpdas\tlatest",
+          uniqueEndpointName:
+            "external-service\tpdas\tlatest\tPOST\thttp://10.104.207.91/pdas/sa/requestContract",
+        },
+        distance: 1,
+        type: "CLIENT",
+      },
+    ],
+    dependsOn: [],
+  },
+  {
+    endpoint: {
+      version: "latest",
+      service: "contract-service",
+      namespace: "pdas",
+      url: "http://contract-service.pdas.svc.cluster.local/internal/contract/init",
+      host: "contract-service.pdas.svc.cluster.local",
+      path: "/internal/contract/init",
+      port: "80",
+      clusterName: "cluster.local",
+      method: "POST",
+      uniqueServiceName: "contract-service\tpdas\tlatest",
+      uniqueEndpointName:
+        "contract-service\tpdas\tlatest\tPOST\thttp://contract-service.pdas.svc.cluster.local/internal/contract/init",
+    },
+    dependBy: [
+      {
+        endpoint: {
+          version: "latest",
+          service: "external-service",
+          namespace: "pdas",
+          url: "http://10.104.207.91/pdas/sa/requestContract",
+          host: "10.104.207.91",
+          path: "/pdas/sa/requestContract",
+          port: "80",
+          clusterName: "cluster.local",
+          method: "POST",
+          uniqueServiceName: "external-service\tpdas\tlatest",
+          uniqueEndpointName:
+            "external-service\tpdas\tlatest\tPOST\thttp://10.104.207.91/pdas/sa/requestContract",
+        },
+        distance: 1,
+        type: "CLIENT",
+      },
+    ],
+    dependsOn: [],
+  },
+  {
+    endpoint: {
+      version: "latest",
+      service: "external-service",
+      namespace: "pdas",
+      url: "http://10.104.207.91/pdas/sa/requestContract",
+      host: "10.104.207.91",
+      path: "/pdas/sa/requestContract",
+      port: "80",
+      clusterName: "cluster.local",
+      method: "POST",
+      uniqueServiceName: "external-service\tpdas\tlatest",
+      uniqueEndpointName:
+        "external-service\tpdas\tlatest\tPOST\thttp://10.104.207.91/pdas/sa/requestContract",
+    },
+    dependBy: [],
+    dependsOn: [
+      {
+        endpoint: {
+          version: "latest",
+          service: "user-service",
+          namespace: "pdas",
+          url: "http://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+          host: "user-service.pdas.svc.cluster.local",
+          path: "/internal/user/user/email/admin",
+          port: "80",
+          clusterName: "cluster.local",
+          method: "GET",
+          uniqueServiceName: "user-service\tpdas\tlatest",
+          uniqueEndpointName:
+            "user-service\tpdas\tlatest\tGET\thttp://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+        },
+        distance: 1,
+        type: "SERVER",
+      },
+      {
+        endpoint: {
+          version: "latest",
+          service: "contract-service",
+          namespace: "pdas",
+          url: "http://contract-service.pdas.svc.cluster.local/internal/contract/init",
+          host: "contract-service.pdas.svc.cluster.local",
+          path: "/internal/contract/init",
+          port: "80",
+          clusterName: "cluster.local",
+          method: "POST",
+          uniqueServiceName: "contract-service\tpdas\tlatest",
+          uniqueEndpointName:
+            "contract-service\tpdas\tlatest\tPOST\thttp://contract-service.pdas.svc.cluster.local/internal/contract/init",
+        },
+        distance: 1,
+        type: "SERVER",
+      },
+    ],
   },
 ];
 
-export { MockTrace, MockEndpointDependencies, MockLogs };
+const MockBaseRlData1: TRealtimeData[] = [
+  {
+    uniqueServiceName: UniqueServiceName,
+    uniqueEndpointName: UniqueEndpointName,
+    service: Service,
+    namespace: Namespace,
+    version: Version,
+    method: Method,
+    status: Status,
+    latency: 100,
+    timestamp: Yesterday * 1000,
+    replica: 1,
+    requestBody: JSON.stringify({ name: "test request" }),
+    requestContentType: "application/json",
+    responseBody: JSON.stringify({ name: "test response" }),
+    responseContentType: "application/json",
+  },
+];
+const MockBaseCrlData1: TCombinedRealtimeData[] = [
+  {
+    service: Service,
+    namespace: Namespace,
+    version: Version,
+    latestTimestamp: Yesterday * 1000,
+    combined: 10,
+    latencies: [100, 120, 80, 100, 120, 80, 120, 80, 120, 80],
+    avgLatency: 100,
+    method: Method,
+    status: Status,
+    uniqueServiceName: UniqueServiceName,
+    uniqueEndpointName: UniqueEndpointName,
+    avgReplica: 1,
+    requestBody: { name: "test request" },
+    requestContentType: "application/json",
+    requestSchema: Utils.ObjectToInterfaceString({ name: "string" }),
+    responseBody: { name: "test response" },
+    responseContentType: "application/json",
+    responseSchema: Utils.ObjectToInterfaceString({ name: "string" }),
+  },
+];
+const MockBaseCrlData2: TCombinedRealtimeData[] = [
+  {
+    service: Service,
+    namespace: Namespace,
+    version: Version,
+    latestTimestamp: Today * 1000,
+    combined: 10,
+    latencies: [150, 170, 130, 130, 170, 150, 120, 180, 120, 180],
+    avgLatency: 150,
+    method: Method,
+    status: Status,
+    uniqueServiceName: UniqueServiceName,
+    uniqueEndpointName: UniqueEndpointName,
+    avgReplica: 1,
+    requestBody: { name: "test request" },
+    requestContentType: "application/json",
+    requestSchema: Utils.ObjectToInterfaceString({ name: "string" }),
+    responseBody: { name: "test response" },
+    responseContentType: "application/json",
+    responseSchema: Utils.ObjectToInterfaceString({ name: "string" }),
+  },
+];
+const MockCombinedBaseData: TCombinedRealtimeData[] = [
+  {
+    uniqueEndpointName: UniqueEndpointName,
+    uniqueServiceName: UniqueServiceName,
+    service: Service,
+    namespace: Namespace,
+    version: Version,
+    method: Method,
+    status: Status,
+    combined: 20,
+    requestContentType: "application/json",
+    responseContentType: "application/json",
+    avgLatency: 125,
+    latestTimestamp: Today * 1000,
+    requestBody: { name: "test request" },
+    requestSchema: Utils.ObjectToInterfaceString({ name: "string" }),
+    responseBody: { name: "test response" },
+    responseSchema: Utils.ObjectToInterfaceString({ name: "string" }),
+    latencies: [
+      100, 120, 80, 100, 120, 80, 120, 80, 120, 80, 150, 170, 130, 130, 170,
+      150, 120, 180, 120, 180,
+    ],
+  },
+];
+const MockReplicas: TReplicaCount[] = [
+  {
+    service: Service,
+    namespace: Namespace,
+    version: Version,
+    uniqueServiceName: UniqueServiceName,
+    replicas: 1,
+  },
+];
+const MockDependencies: TServiceDependency[] = [
+  {
+    service: Service,
+    namespace: Namespace,
+    version: Version,
+    uniqueServiceName: UniqueServiceName,
+    dependency: [],
+    links: [],
+  },
+];
+const MockHistoryData = [
+  {
+    date: new Date(Utils.BelongsToDateTimestamp(Date.now() - 86400000)),
+    services: [
+      {
+        date: new Date(Utils.BelongsToDateTimestamp(Date.now() - 86400000)),
+        endpoints: [
+          {
+            latencyCV: 0.17888543819998318,
+            method: Method,
+            requestErrors: 0,
+            requests: 10,
+            serverErrors: 0,
+            uniqueEndpointName: UniqueEndpointName,
+            uniqueServiceName: UniqueServiceName,
+          },
+        ],
+        service: Service,
+        namespace: Namespace,
+        version: Version,
+        requests: 10,
+        requestErrors: 0,
+        serverErrors: 0,
+        latencyCV: 0.17888543819998318,
+        uniqueServiceName: UniqueServiceName,
+        risk: 0.1,
+      },
+    ],
+  },
+];
+const MockAggregateData = {
+  fromDate: new Date(Utils.BelongsToDateTimestamp(Yesterday)),
+  toDate: new Date(Utils.BelongsToDateTimestamp(Yesterday)),
+  services: [
+    {
+      uniqueServiceName: UniqueServiceName,
+      service: Service,
+      namespace: Namespace,
+      version: Version,
+      totalRequests: 10,
+      totalServerErrors: 0,
+      totalRequestErrors: 0,
+      avgRisk: 0.1,
+      avgLatencyCV: 0.17888543819998318,
+      endpoints: [
+        {
+          uniqueServiceName: UniqueServiceName,
+          uniqueEndpointName: UniqueEndpointName,
+          method: Method,
+          totalRequests: 10,
+          totalServerErrors: 0,
+          totalRequestErrors: 0,
+          avgLatencyCV: 0.17888543819998318,
+        },
+      ],
+    },
+  ],
+};
+
+const MockEndpointDataType: TEndpointDataType[] = [
+  {
+    service: Service,
+    namespace: Namespace,
+    version: Version,
+    method: Method,
+    uniqueServiceName: UniqueServiceName,
+    uniqueEndpointName: UniqueEndpointName,
+    schemas: [
+      {
+        status: "200",
+        time: new Date(Yesterday),
+        requestContentType: "application/json",
+        responseContentType: "application/json",
+        requestSample: { name: "test request" },
+        responseSample: { name: "test response" },
+        requestSchema: Utils.ObjectToInterfaceString({ name: "string" }),
+        responseSchema: Utils.ObjectToInterfaceString({ name: "string" }),
+      },
+    ],
+  },
+];
+
+const MockEndpointInfoPDAS1 = {
+  version: "latest",
+  service: "user-service",
+  namespace: "pdas",
+  url: "http://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+  host: "user-service.pdas.svc.cluster.local",
+  path: "/internal/user/user/email/admin",
+  port: "80",
+  clusterName: "cluster.local",
+  method: "GET",
+  uniqueServiceName: "user-service\tpdas\tlatest",
+  uniqueEndpointName:
+    "user-service\tpdas\tlatest\tGET\thttp://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
+};
+
+export {
+  MockTrace,
+  MockEndpointDependencies,
+  MockLogs,
+  MockTracePDAS,
+  MockLogsPDAS,
+  Service,
+  Namespace,
+  Version,
+  Method,
+  Status,
+  Today,
+  Yesterday,
+  UniversalServiceBaseData,
+  UniversalEndpointBaseData,
+  MockBaseRlData1,
+  MockBaseCrlData1,
+  MockBaseCrlData2,
+  MockCombinedBaseData,
+  MockReplicas,
+  MockDependencies,
+  MockHistoryData,
+  MockAggregateData,
+  MockEndpointDataType,
+  MockAggregateData1,
+  MockAggregateData2,
+  MockMergedAggregateData,
+  MockRlDataPDAS,
+  MockEndpointDependenciesPDAS,
+  MockEndpointInfoPDAS1,
+};

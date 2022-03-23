@@ -206,58 +206,90 @@ describe("Utils", () => {
     ).toBeCloseTo(0.94);
   });
 
-  it("guesses API endpoints based on requests and request bodies", () => {
-    const urls = [
-      "/api/user/all",
-      "/api/user/list",
-      "/api/user/id/0",
-      "/api/user/id/0/info",
-      "/api/user/id/0/name",
-      "/api/user/id/1",
-      "/api/user/id/1/info",
-      "/api/user/id/1/name",
-      "/api/user/id/0/record/0",
-      "/api/user/id/1/record/2",
-      "/api/product",
-      "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/info",
-      "/api/product/254e1263-1356-4461-bb92-15dd36ea37f2/comment/0",
-      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/info",
-      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/comment/1",
-      "/api/product/fb631f10-e7c7-40e8-bc63-7c2384dd8bed/comment/2",
-    ];
-    const bodies = [
-      "8",
-      "9",
-      "1",
-      "2",
-      "3",
-      "1",
-      "2",
-      "3",
-      "4",
-      "4",
-      "5",
-      "6",
-      "7",
-      "6",
-      "7",
-      "7",
-    ];
+  it("maps object to OpenAPI type", () => {
+    const obj = {
+      name: "string",
+      nestObj: {
+        array: [1, 2, 3],
+        id: "test",
+      },
+    };
+    expect(Utils.MapObjectToOpenAPITypes(obj)).toEqual({
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        nestObj: {
+          type: "object",
+          properties: {
+            array: { type: "array", items: { type: "number" } },
+            id: { type: "string" },
+          },
+        },
+      },
+    });
+  });
 
-    const guessesWithBody = Utils.ExtractPathPatternWithBody(urls, bodies);
-
-    const expectResult = new Set([
-      "/api/user/all",
-      "/api/user/list",
-      "/api/user/id/{}",
-      "/api/user/id/{}/info",
-      "/api/user/id/{}/name",
-      "/api/user/id/{}/record/{}",
-      "/api/product",
-      "/api/product/{}/info",
-      "/api/product/{}/comment/{}",
+  it("gets parameters form url", () => {
+    expect(Utils.GetParamsFromUrl("http://example.com/?a=b&b=a&a=a")).toEqual([
+      { param: "a", type: "string" },
+      { param: "b", type: "string" },
     ]);
-    expect(guessesWithBody).toBeTruthy();
-    expect(new Set([...guessesWithBody!.values()])).toEqual(expectResult);
+  });
+
+  it("removes duplicated parameters", () => {
+    expect(
+      Utils.UniqueParams([
+        { param: "a", type: "string" },
+        { param: "a", type: "string" },
+        { param: "b", type: "string" },
+        { param: "b", type: "string" },
+        { param: "a", type: "string" },
+        { param: "b", type: "string" },
+      ])
+    ).toEqual([
+      { param: "a", type: "string" },
+      { param: "b", type: "string" },
+    ]);
+  });
+
+  it("merges objects or array of objects", () => {
+    const obj1 = { name: "test", nestObj: { time: 123 } };
+    const obj2 = { id: "123", nestObj: { id: "123", array: [1, 2, 3, 4, 5] } };
+
+    const arr1 = [{ name: "123" }, { name: "234", id: 123 }];
+    const arr2 = [
+      { name: "456" },
+      { id: 234 },
+      { id: 1234, array: [1, 2, 3, 4, 5] },
+    ];
+
+    expect(Utils.Merge(obj1, obj2)).toEqual({
+      name: "test",
+      nestObj: { id: "123", array: [1, 2, 3, 4, 5] },
+      id: "123",
+    });
+    expect(Utils.Merge(arr1, arr2)).toEqual([
+      { name: "123" },
+      { name: "234", id: 123 },
+      { name: "456" },
+      { id: 234 },
+      { id: 1234, array: [1, 2, 3, 4, 5] },
+    ]);
+  });
+
+  it("merges stringified body", () => {
+    const str1 = JSON.stringify({ name: "test", nestObj: { time: 123 } });
+    const str2 = JSON.stringify({
+      id: "123",
+      nestObj: { id: "123", array: [1, 2, 3, 4, 5] },
+    });
+
+    expect(Utils.MergeStringBody(str1, str2)).toEqual(
+      JSON.stringify({
+        name: "test",
+        nestObj: { id: "123", array: [1, 2, 3, 4, 5] },
+        id: "123",
+      })
+    );
   });
 });
