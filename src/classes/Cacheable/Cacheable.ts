@@ -2,6 +2,7 @@ export abstract class Cacheable<T> {
   private readonly _name: string;
   private _data?: T;
   private _init?: () => Promise<void>;
+  private _sync?: () => Promise<void>;
 
   constructor(name: string, initData?: T) {
     this._name = name;
@@ -23,14 +24,19 @@ export abstract class Cacheable<T> {
   get init() {
     return this._init;
   }
+  get sync() {
+    return this._sync;
+  }
 
   protected setInit(f: () => Promise<void>) {
     this._init = f;
   }
+  protected setSync(f: () => Promise<void>) {
+    this._sync = f;
+  }
 
-  call(funcName: string, ...args: any[]) {
-    const f = (this as any)[funcName];
-    if (f) f(args);
+  protected clear() {
+    this._data = undefined;
   }
 
   toJSON() {

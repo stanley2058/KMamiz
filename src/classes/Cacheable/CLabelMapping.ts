@@ -8,6 +8,7 @@ import { EndpointDependencies } from "../EndpointDependencies";
 import { Cacheable } from "./Cacheable";
 
 export class CLabelMapping extends Cacheable<Map<string, string>> {
+  static readonly uniqueName = "LabelMapping";
   constructor(initData?: Map<string, string>) {
     super("LabelMapping", initData);
   }

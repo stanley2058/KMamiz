@@ -1,3 +1,6 @@
+import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
+import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
+import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
 import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { TAreaLineChartData } from "../entities/TAreaLineChartData";
@@ -6,6 +9,7 @@ import IRequestHandler from "../entities/TRequestHandler";
 import { TServiceCohesion } from "../entities/TServiceCohesion";
 import { TTotalServiceInterfaceCohesion } from "../entities/TTotalServiceInterfaceCohesion";
 import DataCache from "../services/DataCache";
+import ServiceUtils from "../services/ServiceUtils";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
@@ -52,7 +56,8 @@ export default class GraphService extends IRequestHandler {
 
   async getDependencyGraph(namespace?: string) {
     return DataCache.getInstance()
-      .getEndpointDependenciesSnap(namespace)
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .getData(namespace)
       ?.toGraphData();
   }
 
@@ -85,8 +90,9 @@ export default class GraphService extends IRequestHandler {
   }
 
   async getDirectServiceChord(namespace?: string) {
-    const dependencies =
-      DataCache.getInstance().getEndpointDependenciesSnap(namespace);
+    const dependencies = DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .getData(namespace);
     if (!dependencies) return [];
     const dep = dependencies.toJSON();
     dep.forEach((ep) => {
@@ -98,13 +104,14 @@ export default class GraphService extends IRequestHandler {
   async getInDirectServiceChord(namespace?: string) {
     return (
       DataCache.getInstance()
-        .getEndpointDependenciesSnap(namespace)
+        .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+        .getData(namespace)
         ?.toChordData() || []
     );
   }
 
   async getAreaLineData(namespace?: string): Promise<TAreaLineChartData[]> {
-    const historyData = await DataCache.getInstance().getRealtimeHistoryData(
+    const historyData = await ServiceUtils.getInstance().getRealtimeHistoryData(
       namespace
     );
     return historyData
@@ -126,17 +133,23 @@ export default class GraphService extends IRequestHandler {
   }
 
   getServiceCohesion(namespace?: string) {
-    const dependencies =
-      DataCache.getInstance().getEndpointDependenciesSnap(namespace);
+    const dependencies = DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .getData(namespace);
     if (!dependencies) return [];
 
-    const dataType = DataCache.getInstance().endpointDataTypeSnap.map((e) => {
-      const raw = e.toJSON();
-      raw.labelName =
-        DataCache.getInstance().labelMapping.get(raw.uniqueEndpointName) ||
-        raw.uniqueEndpointName;
-      return new EndpointDataType(raw);
-    });
+    const dataType = DataCache.getInstance()
+      .get<CEndpointDataType>("EndpointDataType")
+      .getData()
+      .map((e) => {
+        const raw = e.toJSON();
+        raw.labelName =
+          DataCache.getInstance()
+            .get<CLabelMapping>("LabelMapping")
+            .getData()
+            ?.get(raw.uniqueEndpointName) || raw.uniqueEndpointName;
+        return new EndpointDataType(raw);
+      });
 
     const dataCohesion = EndpointDataType.GetServiceCohesion(dataType).reduce(
       (map, d) => map.set(d.uniqueServiceName, d),
@@ -164,15 +177,17 @@ export default class GraphService extends IRequestHandler {
   }
 
   getServiceInstability(namespace?: string) {
-    const dependencies =
-      DataCache.getInstance().getEndpointDependenciesSnap(namespace);
+    const dependencies = DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .getData(namespace);
     if (!dependencies) return [];
     return dependencies.toServiceInstability();
   }
 
   getServiceCoupling(namespace?: string) {
-    const dependencies =
-      DataCache.getInstance().getEndpointDependenciesSnap(namespace);
+    const dependencies = DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .getData(namespace);
     if (!dependencies) return [];
     return dependencies.toServiceCoupling();
   }

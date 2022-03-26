@@ -5,31 +5,28 @@ import MongoOperator from "./MongoOperator";
 export default class DispatchStorage {
   private static instance?: DispatchStorage;
   static getInstance = () => this.instance || (this.instance = new this());
-  private constructor() {}
   private _lock: boolean = false;
   private syncType = 0;
-  private syncStrategies: { name: string; syncFunc: () => Promise<void> }[] = [
-    {
-      name: "CombinedRealtimeData",
-      syncFunc: DispatchStorage.getInstance().syncCombinedRealtimeData,
-    },
-    {
-      name: "EndpointDataType",
-      syncFunc: DispatchStorage.getInstance().syncEndpointDataType,
-    },
-    {
-      name: "EndpointDependencies",
-      syncFunc: DispatchStorage.getInstance().syncEndpointDependencies,
-    },
-    {
-      name: "EndpointLabelMap",
-      syncFunc: DispatchStorage.getInstance().syncEndpointLabelMap,
-    },
-    {
-      name: "TaggedInterfaces",
-      syncFunc: DispatchStorage.getInstance().syncTaggedInterfaces,
-    },
-  ];
+  private syncStrategies: { name: string; syncFunc: () => Promise<void> }[] =
+    [];
+
+  private constructor() {
+    this.loadSyncs();
+  }
+
+  loadSyncs() {
+    DispatchStorage.getInstance().syncStrategies = [
+      ...DataCache.getInstance().getAll().entries(),
+    ]
+      .filter(([, cache]) => !!cache.sync)
+      .sort(([aName], [bName]) => aName.localeCompare(bName))
+      .map(([name, cache]) => {
+        return {
+          name,
+          syncFunc: cache.sync!,
+        };
+      });
+  }
 
   async sync() {
     if (DispatchStorage.getInstance()._lock)
@@ -61,95 +58,6 @@ export default class DispatchStorage {
     const current = DispatchStorage.getInstance().syncType;
     const total = DispatchStorage.getInstance().syncStrategies.length;
     DispatchStorage.getInstance().syncType = (current + 1) % total;
-  }
-
-  private async syncCombinedRealtimeData() {
-    const rlData = DataCache.getInstance().combinedRealtimeDataSnap;
-    const rlDataToDelete = (
-      await MongoOperator.getInstance().getAllCombinedRealtimeData()
-    ).toJSON();
-
-    if (rlData) {
-      try {
-        await MongoOperator.getInstance().insertCombinedRealtimeData(rlData);
-        await MongoOperator.getInstance().deleteCombinedRealtimeData(
-          rlDataToDelete.map((d) => d._id!)
-        );
-      } catch (ex) {
-        Logger.error("Error saving CombinedRealtimeData, skipping.");
-        Logger.verbose("", ex);
-      }
-    }
-  }
-
-  private async syncEndpointDataType() {
-    const dataTypes = DataCache.getInstance().endpointDataTypeSnap;
-    const dataTypesToDelete =
-      await MongoOperator.getInstance().getAllEndpointDataTypes();
-
-    try {
-      await MongoOperator.getInstance().insertEndpointDataTypes(dataTypes);
-      await MongoOperator.getInstance().deleteEndpointDataType(
-        dataTypesToDelete.map((d) => d.toJSON()._id!)
-      );
-    } catch (ex) {
-      Logger.error("Error saving EndpointDataType, skipping.");
-      Logger.verbose("", ex);
-    }
-  }
-
-  private async syncEndpointDependencies() {
-    const dependencies =
-      DataCache.getInstance().getRawEndpointDependenciesSnap();
-    const dependenciesToDelete = (
-      await MongoOperator.getInstance().getEndpointDependencies()
-    ).toJSON();
-
-    if (dependencies) {
-      try {
-        await MongoOperator.getInstance().insertEndpointDependencies(
-          dependencies
-        );
-        await MongoOperator.getInstance().deleteEndpointDependencies(
-          dependenciesToDelete.map((d) => d._id!)
-        );
-      } catch (ex) {
-        Logger.error("Error saving EndpointDependencies, skipping.");
-        Logger.verbose("", ex);
-      }
-    }
-  }
-
-  private async syncEndpointLabelMap() {
-    const toDelete = await MongoOperator.getInstance().getEndpointLabelMap();
-    const labelMap = DataCache.getInstance().userDefinedLabels;
-
-    try {
-      if (labelMap) {
-        await MongoOperator.getInstance().insertEndpointLabelMap(labelMap);
-        if (toDelete && toDelete._id) {
-          await MongoOperator.getInstance().deleteEndpointLabel([toDelete._id]);
-        }
-      }
-    } catch (ex) {
-      Logger.error("Error saving EndpointLabelMap, skipping.");
-      Logger.verbose("", ex);
-    }
-  }
-
-  private async syncTaggedInterfaces() {
-    const toDelete = await MongoOperator.getInstance().getAllTaggedInterface();
-    const tagged = DataCache.getInstance().taggedInterfaces;
-
-    try {
-      await MongoOperator.getInstance().insertTaggedInterfaces(tagged);
-      await MongoOperator.getInstance().deleteTaggedInterfaces(
-        toDelete.map((t) => t._id!)
-      );
-    } catch (ex) {
-      Logger.error("Error saving EndpointLabelMap, skipping.");
-      Logger.verbose("", ex);
-    }
   }
 
   waitUntilUnlock() {

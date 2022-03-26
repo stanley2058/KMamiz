@@ -1,4 +1,7 @@
+import { Types } from "mongoose";
+
 export type TEndpointLabel = {
+  _id?: Types.ObjectId;
   labels: TEndpointLabelType[];
 };
 

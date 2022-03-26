@@ -1,5 +1,18 @@
 import { AggregateData } from "../classes/AggregateData";
+import { CCombinedRealtimeData } from "../classes/Cacheable/CCombinedRealtimeData";
+import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
+import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
+import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
+import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
+import { CReplicas } from "../classes/Cacheable/CReplicas";
+import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
+import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
+import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
 import { Traces } from "../classes/Traces";
+import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
+import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
+import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
+import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
@@ -9,6 +22,7 @@ import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 import Scheduler from "./Scheduler";
 import ServiceOperator from "./ServiceOperator";
+import ServiceUtils from "./ServiceUtils";
 import ZipkinService from "./ZipkinService";
 
 export default class Initializer {
@@ -45,10 +59,14 @@ export default class Initializer {
           endpointDependencies.toServiceDependencies(),
           replicas
         );
-      await MongoOperator.getInstance().saveAggregateData(
-        new AggregateData(aggregateData)
+      await MongoOperator.getInstance().save(
+        new AggregateData(aggregateData).toJSON(),
+        AggregateDataModel
       );
-      await MongoOperator.getInstance().saveHistoryData(historyData);
+      await MongoOperator.getInstance().insertMany(
+        historyData,
+        HistoryDataModel
+      );
     }
 
     // get traces from 00:00 today local time to now, and save it to database as realtime data
@@ -57,8 +75,9 @@ export default class Initializer {
         Date.now() - todayTime
       )
     );
-    await MongoOperator.getInstance().insertCombinedRealtimeData(
-      todayTraces.toRealTimeData(replicas).toCombinedRealtimeData()
+    await MongoOperator.getInstance().insertMany(
+      todayTraces.toRealTimeData(replicas).toCombinedRealtimeData().toJSON(),
+      CombinedRealtimeDataModel
     );
 
     // merge endpoint dependencies and save to database
@@ -75,13 +94,30 @@ export default class Initializer {
     );
 
     const dependencies = traces.toEndpointDependencies().trim();
-    await MongoOperator.getInstance().deleteAllEndpointDependencies();
-    await MongoOperator.getInstance().saveEndpointDependencies(dependencies);
+    await MongoOperator.getInstance().deleteAll(EndpointDependencyModel);
+    await MongoOperator.getInstance().insertMany(
+      dependencies.toJSON(),
+      EndpointDependencyModel
+    );
   }
 
   async serverStartUp() {
+    Logger.info("Registering caches.");
+    DataCache.getInstance().register([
+      new CLabelMapping(),
+      new CEndpointDataType(),
+      new CCombinedRealtimeData(),
+      new CEndpointDependencies(),
+      new CReplicas(),
+      new CTaggedInterfaces(),
+      new CTaggedSwaggers(),
+      new CLabeledEndpointDependencies(),
+      new CUserDefinedLabel(),
+    ]);
+
     Logger.info("Loading data into cache.");
     await DataCache.getInstance().loadBaseData();
+    ServiceUtils.getInstance().updateLabel();
 
     if (!GlobalSettings.ReadOnlyMode) {
       Logger.info("Setting up scheduled tasks.");

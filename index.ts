@@ -9,6 +9,7 @@ import Initializer from "./src/services/Initializer";
 import DataCache from "./src/services/DataCache";
 import exitHook from "async-exit-hook";
 import DispatchStorage from "./src/services/DispatchStorage";
+import { CCombinedRealtimeData } from "./src/classes/Cacheable/CCombinedRealtimeData";
 
 Logger.setGlobalLogLevel(GlobalSettings.LogLevel);
 Logger.verbose("Configuration loaded:");
@@ -33,10 +34,11 @@ app.use(Routes.getInstance().getRoutes());
   Logger.info("Running startup tasks.");
   await Initializer.getInstance().serverStartUp();
 
-  if (
-    !aggregateData &&
-    DataCache.getInstance().combinedRealtimeDataSnap?.toJSON().length === 0
-  ) {
+  const rlData = DataCache.getInstance()
+    .get<CCombinedRealtimeData>("CombinedRealtimeData")
+    .getData();
+
+  if (!aggregateData && rlData?.toJSON().length === 0) {
     Logger.info("Database is empty, running first time setup.");
     await Initializer.getInstance().firstTimeSetup();
   }

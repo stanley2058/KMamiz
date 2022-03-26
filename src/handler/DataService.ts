@@ -3,6 +3,11 @@ import DataCache from "../services/DataCache";
 import { TEndpointDataType } from "../entities/TEndpointDataType";
 import { TEndpointLabel } from "../entities/TEndpointLabel";
 import { TTaggedInterface } from "../entities/TTaggedInterface";
+import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
+import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
+import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
+import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
+import ServiceUtils from "../services/ServiceUtils";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -75,11 +80,11 @@ export default class DataService extends IRequestHandler {
   }
 
   async getAggregateData(namespace?: string) {
-    return await DataCache.getInstance().getRealtimeAggregateData(namespace);
+    return await ServiceUtils.getInstance().getRealtimeAggregateData(namespace);
   }
 
   async getHistoryData(namespace?: string) {
-    return await DataCache.getInstance().getRealtimeHistoryData(namespace);
+    return await ServiceUtils.getInstance().getRealtimeHistoryData(namespace);
   }
 
   async getEndpointDataType(
@@ -90,11 +95,17 @@ export default class DataService extends IRequestHandler {
     if (!method || !label) return null;
 
     const uniqueServiceName = `${service}\t${namespace}\t${version}`;
-    const datatype = DataCache.getInstance().getEndpointDataTypesByLabel(
-      label,
-      uniqueServiceName,
-      method
-    );
+
+    const datatype = DataCache.getInstance()
+      .get<CLabelMapping>("LabelMapping")
+      .getEndpointDataTypesByLabel(
+        label,
+        uniqueServiceName,
+        method,
+        DataCache.getInstance()
+          .get<CEndpointDataType>("EndpointDataType")
+          .getData() || []
+      );
 
     if (datatype.length === 0) return null;
     const merged = datatype.reduce((prev, curr) => prev.mergeSchemaWith(curr));
@@ -102,16 +113,24 @@ export default class DataService extends IRequestHandler {
   }
 
   getLabelMap() {
-    return [...DataCache.getInstance().labelMapping.entries()];
+    const entries = DataCache.getInstance()
+      .get<CLabelMapping>("LabelMapping")
+      .getData()
+      ?.entries();
+    return entries ? [...entries] : [];
   }
 
   getUserDefinedLabel() {
-    return DataCache.getInstance().userDefinedLabels;
+    return DataCache.getInstance()
+      .get<CUserDefinedLabel>("UserDefinedLabel")
+      .getData();
   }
 
   updateUserDefinedLabel(label: TEndpointLabel) {
-    DataCache.getInstance().updateUserDefinedLabel(label);
-    DataCache.getInstance().updateLabel();
+    DataCache.getInstance()
+      .get<CUserDefinedLabel>("UserDefinedLabel")
+      .update(label);
+    ServiceUtils.getInstance().updateLabel();
   }
 
   deleteUserDefinedLabel(
@@ -119,23 +138,27 @@ export default class DataService extends IRequestHandler {
     method: string,
     label: string
   ) {
-    DataCache.getInstance().deleteUserDefinedLabel(
-      label,
-      uniqueServiceName,
-      method
-    );
-    DataCache.getInstance().updateLabel();
+    DataCache.getInstance()
+      .get<CUserDefinedLabel>("UserDefinedLabel")
+      .delete(label, uniqueServiceName, method);
+    ServiceUtils.getInstance().updateLabel();
   }
 
   getTaggedInterface(uniqueLabelName: string) {
-    return DataCache.getInstance().getTaggedInterface(uniqueLabelName);
+    return DataCache.getInstance()
+      .get<CTaggedInterfaces>("TaggedInterfaces")
+      .getData(uniqueLabelName);
   }
 
   addTaggedInterface(tagged: TTaggedInterface) {
-    DataCache.getInstance().addTaggedInterface(tagged);
+    DataCache.getInstance()
+      .get<CTaggedInterfaces>("TaggedInterfaces")
+      .add(tagged);
   }
 
   deleteTaggedInterface(uniqueLabelName: string, userLabel: string) {
-    DataCache.getInstance().deleteTaggedInterface(uniqueLabelName, userLabel);
+    DataCache.getInstance()
+      .get<CTaggedInterfaces>("TaggedInterfaces")
+      .delete(uniqueLabelName, userLabel);
   }
 }

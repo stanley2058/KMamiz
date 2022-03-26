@@ -1,23 +1,13 @@
 import { connect, Model, Types } from "mongoose";
-import { AggregateData } from "../classes/AggregateData";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { TAggregateData } from "../entities/TAggregateData";
 import { THistoryData } from "../entities/THistoryData";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
-import EndpointDataType from "../classes/EndpointDataType";
 import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
 import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
-import { EndpointDataTypeModel } from "../entities/schema/EndpointDataTypeSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
-import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
-import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
 import { TEndpointDependency } from "../entities/TEndpointDependency";
-import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
-import { EndpointLabelModel } from "../entities/schema/EndpointLabel";
-import { TEndpointLabel } from "../entities/TEndpointLabel";
-import { TaggedInterfaceModel } from "../entities/schema/TaggedInterface";
-import { TTaggedInterface } from "../entities/TTaggedInterface";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
@@ -80,53 +70,6 @@ export default class MongoOperator {
     return res.map((r) => r.toObject()) as THistoryData[];
   }
 
-  async getEndpointDependencies(namespace?: string) {
-    const query = namespace
-      ? {
-          endpoint: { namespace },
-        }
-      : {};
-    const res = await EndpointDependencyModel.find(query).exec();
-    return new EndpointDependencies(res.map((r) => r.toObject()));
-  }
-
-  async getEndpointDataType(uniqueEndpointName: string) {
-    const res = await EndpointDataTypeModel.findOne({
-      uniqueEndpointName,
-    }).exec();
-    if (!res) return null;
-    return new EndpointDataType(res.toObject());
-  }
-
-  async getEndpointDataTypes(uniqueEndpointNames: string[]) {
-    const res = await EndpointDataTypeModel.find({
-      uniqueEndpointName: { $in: uniqueEndpointNames },
-    }).exec();
-    return res.map((r) => new EndpointDataType(r.toObject()));
-  }
-
-  async getAllEndpointDataTypes() {
-    const res = await EndpointDataTypeModel.find({}).exec();
-    return res.map((r) => new EndpointDataType(r.toObject()));
-  }
-
-  async getEndpointDataTypeByService(uniqueServiceName: string) {
-    const res = await EndpointDataTypeModel.find({
-      uniqueServiceName,
-    }).exec();
-    return res.map((r) => new EndpointDataType(r.toObject()));
-  }
-
-  async saveAggregateData(aggregateData: AggregateData) {
-    return await this.smartSave(aggregateData.toJSON(), AggregateDataModel);
-  }
-
-  async saveHistoryData(historyData: THistoryData[]): Promise<THistoryData[]> {
-    return (await HistoryDataModel.insertMany(historyData)).map((h) =>
-      h.toObject()
-    );
-  }
-
   async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {
     const results: TEndpointDependency[] = [];
     for (const dep of endpointDependencies.toJSON()) {
@@ -138,158 +81,27 @@ export default class MongoOperator {
     return new EndpointDependencies(results);
   }
 
-  async insertEndpointDependencies(endpointDependencies: EndpointDependencies) {
-    const dependencies = endpointDependencies.toJSON();
-    dependencies.forEach((d) => (d._id = undefined));
-    const res = await EndpointDependencyModel.insertMany(dependencies);
-    return new EndpointDependencies(res.map((r) => r.toObject()));
+  async delete<T>(ids: Types.ObjectId[], model: Model<T>) {
+    return await model.deleteMany({ _id: { $in: ids } }).exec();
   }
 
-  async saveEndpointDataType(endpointDataType: EndpointDataType) {
-    return await this.smartSave(
-      endpointDataType.toJSON(),
-      EndpointDataTypeModel
-    );
+  async deleteAll<T>(model: Model<T>) {
+    return await model.deleteMany({}).exec();
   }
 
-  async saveEndpointDataTypes(endpointDataType: EndpointDataType[]) {
-    const results: EndpointDataType[] = [];
-    for (const dataType of endpointDataType) {
-      const endpointDataType = dataType.toJSON();
-      const model = new EndpointDataTypeModel(endpointDataType);
-      if (endpointDataType._id) model.isNew = false;
-      try {
-        const result = (await model.save()).toObject();
-        results.push(new EndpointDataType(result));
-      } catch (ex) {
-        Logger.error("Error saving EndpointDataType, skipping.");
-        Logger.verbose("", ex);
-      }
-    }
-    return results;
+  async insertMany<T extends { _id?: Types.ObjectId }>(
+    arr: T[],
+    model: Model<T>
+  ) {
+    arr.forEach((a) => (a._id = undefined));
+    return (await model.insertMany(arr)).map((r) => r.toJSON());
   }
 
-  async insertEndpointDataTypes(endpointDataType: EndpointDataType[]) {
-    endpointDataType.forEach((e) => (e.toJSON()._id = undefined));
-    const res = await EndpointDataTypeModel.insertMany(
-      endpointDataType.map((e) => e.toJSON())
-    );
-
-    return res.map((r) => r.toObject());
+  async findAll<T>(model: Model<T>) {
+    return (await model.find({}).exec()).map((r) => r.toJSON()) as T[];
   }
 
-  async getAllCombinedRealtimeData() {
-    return new CombinedRealtimeDataList(
-      (await CombinedRealtimeDataModel.find({}).exec()).map((r) => r.toObject())
-    );
-  }
-
-  async insertCombinedRealtimeData(cRlData: CombinedRealtimeDataList) {
-    const combinedRealtimeData = cRlData.toJSON();
-    combinedRealtimeData.forEach((c) => (c._id = undefined));
-    return new CombinedRealtimeDataList(
-      await CombinedRealtimeDataModel.insertMany(combinedRealtimeData)
-    );
-  }
-
-  async saveCombinedRealtimeData(cRlData: CombinedRealtimeDataList) {
-    const results: TCombinedRealtimeData[] = [];
-    for (const rlData of cRlData.toJSON()) {
-      const model = new CombinedRealtimeDataModel(rlData);
-      if (rlData._id) model.isNew = false;
-      try {
-        const result = (await model.save()).toObject();
-        results.push(result);
-      } catch (ex) {
-        Logger.error("Error saving CombinedRealtimeData, skipping.");
-        Logger.verbose("", ex);
-      }
-    }
-    return new CombinedRealtimeDataList(results);
-  }
-
-  async getEndpointLabelMap() {
-    return (await EndpointLabelModel.findOne({}).exec())?.toJSON();
-  }
-
-  async insertEndpointLabelMap(labelMap: TEndpointLabel) {
-    const model = new EndpointLabelModel(labelMap);
-    return await model.save();
-  }
-
-  async getAllTaggedInterface(): Promise<TTaggedInterface[]> {
-    const results = await TaggedInterfaceModel.find({}).exec();
-    return results.map((r) => r.toJSON());
-  }
-
-  async insertTaggedInterfaces(
-    tagged: TTaggedInterface[]
-  ): Promise<TTaggedInterface[]> {
-    const res = await TaggedInterfaceModel.insertMany(
-      tagged.map((t) => (t._id = undefined))
-    );
-    return res.map((r) => r.toJSON());
-  }
-
-  async getTaggedInterface(
-    uniqueLabelName: string
-  ): Promise<TTaggedInterface[]> {
-    const results = await TaggedInterfaceModel.find({
-      uniqueLabelName,
-    }).exec();
-    return results.map((r) => r.toJSON());
-  }
-
-  async insertTaggedInterface(tagged: TTaggedInterface) {
-    return await MongoOperator.getInstance().smartSave(
-      tagged,
-      TaggedInterfaceModel
-    );
-  }
-
-  async deleteAllCombinedRealtimeData() {
-    return await CombinedRealtimeDataModel.deleteMany({}).exec();
-  }
-  async deleteAllEndpointDependencies() {
-    return await EndpointDependencyModel.deleteMany({}).exec();
-  }
-  async deleteAllEndpointDataType() {
-    return await EndpointDataTypeModel.deleteMany({}).exec();
-  }
-  async deleteAllEndpointLabelMap() {
-    return await EndpointLabelModel.deleteMany({}).exec();
-  }
-
-  async deleteCombinedRealtimeData(ids: Types.ObjectId[]) {
-    return await CombinedRealtimeDataModel.deleteMany({
-      _id: { $in: ids },
-    }).exec();
-  }
-  async deleteEndpointDependencies(ids: Types.ObjectId[]) {
-    return await EndpointDependencyModel.deleteMany({
-      _id: { $in: ids },
-    }).exec();
-  }
-  async deleteEndpointDataType(ids: Types.ObjectId[]) {
-    return await EndpointDataTypeModel.deleteMany({
-      _id: { $in: ids },
-    }).exec();
-  }
-  async deleteEndpointLabel(ids: Types.ObjectId[]) {
-    return await EndpointLabelModel.deleteMany({
-      _id: { $in: ids },
-    }).exec();
-  }
-  async deleteTaggedInterface(id: Types.ObjectId) {
-    return await TaggedInterfaceModel.findByIdAndDelete(id).exec();
-  }
-  async deleteTaggedInterfaces(ids: Types.ObjectId[]) {
-    return await TaggedInterfaceModel.deleteMany({
-      _id: { $in: ids },
-    }).exec();
-  }
-
-  private async smartSave<T extends { _id?: Types.ObjectId }>(
+  async save<T extends { _id?: Types.ObjectId }>(
     data: T,
     model: Model<T>
   ): Promise<T> {

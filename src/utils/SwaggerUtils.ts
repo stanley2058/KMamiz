@@ -1,4 +1,5 @@
 import { OpenAPIV3_1 } from "openapi-types";
+import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
 import {
   TEndpointDataType,
   TEndpointRequestParam,
@@ -88,9 +89,9 @@ export default class SwaggerUtils {
         };
       });
 
-    const endpoints = DataCache.getInstance().getEndpointsFromLabel(
-      endpoint.labelName!
-    );
+    const endpoints = DataCache.getInstance()
+      .get<CLabelMapping>("LabelMapping")
+      .getEndpointsFromLabel(endpoint.labelName!);
     const exampleUrls = endpoints
       .slice(0, 10)
       .map((e) => {

@@ -9,6 +9,16 @@ import DataCache from "./DataCache";
 import Scheduler from "./Scheduler";
 import ZipkinService from "./ZipkinService";
 import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
+import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
+import { CCombinedRealtimeData } from "../classes/Cacheable/CCombinedRealtimeData";
+import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
+import { CReplicas } from "../classes/Cacheable/CReplicas";
+import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
+import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
+import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
+import { EndpointDependencies } from "../classes/EndpointDependencies";
+import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
+import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -18,10 +28,12 @@ export default class ServiceOperator {
   private previousRealtimeTime = Date.now();
 
   async aggregateDailyData() {
-    const combinedRealtimeData =
-      await MongoOperator.getInstance().getAllCombinedRealtimeData();
-    const endpointDependencies =
-      await MongoOperator.getInstance().getEndpointDependencies();
+    const combinedRealtimeData = new CombinedRealtimeDataList(
+      await MongoOperator.getInstance().findAll(CombinedRealtimeDataModel)
+    );
+    const endpointDependencies = new EndpointDependencies(
+      await MongoOperator.getInstance().findAll(EndpointDependencyModel)
+    );
     const namespaces = combinedRealtimeData.getContainingNamespaces();
 
     const replicas: TReplicaCount[] =
@@ -41,9 +53,14 @@ export default class ServiceOperator {
         newAggData.toJSON()._id = prevAggData.toJSON()._id;
     }
 
-    await MongoOperator.getInstance().saveAggregateData(newAggData);
-    await MongoOperator.getInstance().saveHistoryData(historyData);
-    DataCache.getInstance().resetCombinedRealtimeData();
+    await MongoOperator.getInstance().save(
+      newAggData.toJSON(),
+      AggregateDataModel
+    );
+    await MongoOperator.getInstance().insertMany(historyData, HistoryDataModel);
+    DataCache.getInstance()
+      .get<CCombinedRealtimeData>("CombinedRealtimeData")
+      .reset();
   }
 
   async retrieveRealtimeData() {
@@ -97,10 +114,30 @@ export default class ServiceOperator {
     traces: Traces,
     data: CombinedRealtimeDataList
   ) {
-    const existingDep = DataCache.getInstance().getEndpointDependenciesSnap();
+    const existingDep = DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .getData();
     const newDep = traces.toEndpointDependencies();
     const dep = existingDep ? existingDep.combineWith(newDep) : newDep;
 
-    DataCache.getInstance().updateCurrentView(data, dep);
+    DataCache.getInstance()
+      .get<CCombinedRealtimeData>("CombinedRealtimeData")
+      .setData(data);
+    DataCache.getInstance()
+      .get<CEndpointDependencies>("EndpointDependencies")
+      .setData(dep);
+
+    KubernetesService.getInstance()
+      .getReplicas(
+        DataCache.getInstance()
+          .get<CCombinedRealtimeData>("CombinedRealtimeData")
+          .getData()
+          ?.getContainingNamespaces()
+      )
+      .then(DataCache.getInstance().get<CReplicas>("ReplicaCounts").setData);
+
+    DataCache.getInstance()
+      .get<CEndpointDataType>("EndpointDataType")
+      .setData(data.extractEndpointDataType());
   }
 }

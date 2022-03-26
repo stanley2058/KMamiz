@@ -10,6 +10,7 @@ import {
 import { TServiceEndpointCohesion } from "../entities/TServiceEndpointCohesion";
 import DataCache from "../services/DataCache";
 import RiskAnalyzer from "../utils/RiskAnalyzer";
+import { CLabelMapping } from "./Cacheable/CLabelMapping";
 
 export class EndpointDependencies {
   private readonly _dependencies: TEndpointDependency[];
@@ -46,18 +47,19 @@ export class EndpointDependencies {
 
   label() {
     return this._dependencies.map((d): TEndpointDependency => {
-      const labelName = DataCache.getInstance().getLabelFromUniqueEndpointName(
-        d.endpoint.uniqueEndpointName
-      );
+      const getEpName = (uniqueName: string) => {
+        return DataCache.getInstance()
+          .get<CLabelMapping>("LabelMapping")
+          .getLabelFromUniqueEndpointName(uniqueName);
+      };
 
+      const labelName = getEpName(d.endpoint.uniqueEndpointName);
       const dependBy = d.dependBy.map((dep) => {
         return {
           ...dep,
           endpoint: {
             ...dep.endpoint,
-            labelName: DataCache.getInstance().getLabelFromUniqueEndpointName(
-              dep.endpoint.uniqueEndpointName
-            ),
+            labelName: getEpName(dep.endpoint.uniqueEndpointName),
           },
         };
       });
@@ -66,9 +68,7 @@ export class EndpointDependencies {
           ...dep,
           endpoint: {
             ...dep.endpoint,
-            labelName: DataCache.getInstance().getLabelFromUniqueEndpointName(
-              dep.endpoint.uniqueEndpointName
-            ),
+            labelName: getEpName(dep.endpoint.uniqueEndpointName),
           },
         };
       });
