@@ -12,7 +12,7 @@ export default class SwaggerUtils {
     title: string,
     version: string,
     endpoints: TEndpointDataType[]
-  ) {
+  ): OpenAPIV3_1.Document {
     const endpointMapping = endpoints.reduce((prev, curr) => {
       prev.set(curr.labelName!, [...(prev.get(curr.labelName!) || []), curr]);
       return prev;

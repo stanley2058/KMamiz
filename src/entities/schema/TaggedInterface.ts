@@ -7,6 +7,7 @@ export const TaggedInterfaceSchema = new Schema<TTaggedInterface>({
   requestSchema: { type: String, required: true },
   responseSchema: { type: String, required: true },
   timestamp: { type: Number, required: true },
+  boundToSwagger: { type: Boolean, default: false },
 });
 
 export const TaggedInterfaceModel = model<TTaggedInterface>(

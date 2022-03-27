@@ -74,8 +74,8 @@ export default class DataService extends IRequestHandler {
         userLabel: string;
       };
       if (!uniqueLabelName || !userLabel) return res.sendStatus(400);
-      this.deleteTaggedInterface(uniqueLabelName, userLabel);
-      res.sendStatus(204);
+      const result = this.deleteTaggedInterface(uniqueLabelName, userLabel);
+      res.sendStatus(result ? 204 : 400);
     });
   }
 
@@ -157,8 +157,15 @@ export default class DataService extends IRequestHandler {
   }
 
   deleteTaggedInterface(uniqueLabelName: string, userLabel: string) {
+    const existing = DataCache.getInstance()
+      .get<CTaggedInterfaces>("TaggedInterfaces")
+      .getData(uniqueLabelName)
+      .find((i) => i.userLabel === userLabel);
+    if (!existing || existing.boundToSwagger) return false;
+
     DataCache.getInstance()
       .get<CTaggedInterfaces>("TaggedInterfaces")
       .delete(uniqueLabelName, userLabel);
+    return true;
   }
 }

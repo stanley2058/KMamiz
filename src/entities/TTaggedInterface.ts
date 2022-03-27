@@ -7,4 +7,5 @@ export type TTaggedInterface = {
   timestamp?: number;
   requestSchema: string;
   responseSchema: string;
+  boundToSwagger?: boolean;
 };

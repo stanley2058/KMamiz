@@ -134,7 +134,9 @@ export default class ServiceOperator {
           .getData()
           ?.getContainingNamespaces()
       )
-      .then(DataCache.getInstance().get<CReplicas>("ReplicaCounts").setData);
+      .then((r) =>
+        DataCache.getInstance().get<CReplicas>("ReplicaCounts").setData(r)
+      );
 
     DataCache.getInstance()
       .get<CEndpointDataType>("EndpointDataType")
