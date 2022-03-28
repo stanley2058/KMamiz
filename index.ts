@@ -15,6 +15,14 @@ import path from "path";
 Logger.setGlobalLogLevel(GlobalSettings.LogLevel);
 Logger.verbose("Configuration loaded:");
 Logger.plain.verbose("", GlobalSettings);
+Logger.plain.verbose(
+  "KUBERNETES_SERVICE_HOST:",
+  process.env.KUBERNETES_SERVICE_HOST
+);
+Logger.plain.verbose(
+  "KUBERNETES_SERVICE_PORT:",
+  process.env.KUBERNETES_SERVICE_PORT
+);
 
 const app = express();
 app.use(express.json());

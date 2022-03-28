@@ -21,7 +21,7 @@ export default class Routes {
       new h().getRoutes().forEach(({ method, path, handler }) => {
         const apiPath = `${this.apiPrefix}${path}`;
         this.router[method](apiPath, handler);
-        Logger.plain.verbose(`${method} ${apiPath}`);
+        Logger.plain.verbose(`[${method.toUpperCase()}]\t${apiPath}`);
       });
     });
   }
