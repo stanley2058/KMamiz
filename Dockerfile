@@ -1,6 +1,7 @@
 ARG APP_ENV=dev
 
-FROM kmamiz-web as base
+FROM kmamiz-web as web
+FROM node:lts-alpine as base
 WORKDIR /kmamiz
 COPY .env .
 COPY package.json package-lock.json ./
@@ -22,5 +23,5 @@ FROM base as prod
 ENV NODE_ENV=production
 RUN ["npm", "i"]
 COPY --from=build /kmamiz/dist .
-RUN ["ln", "-s", "/kmamiz-web/dist", "/kmamiz/dist"]
+COPY --from=web /kmamiz-web/dist dist
 CMD ["node", "index.js"]
