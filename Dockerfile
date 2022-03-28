@@ -1,7 +1,7 @@
 ARG APP_ENV=dev
 
-FROM node:lts-alpine as base
-WORKDIR /usr/src/app
+FROM kmamiz-web as base
+WORKDIR /kmamiz
 COPY .env .
 COPY package.json package-lock.json ./
 
@@ -21,5 +21,6 @@ RUN ["tsc"]
 FROM base as prod
 ENV NODE_ENV=production
 RUN ["npm", "i"]
-COPY --from=build /usr/src/app/dist/ .
+COPY --from=build /kmamiz/dist .
+RUN ["ln", "-s", "/kmamiz-web/dist", "/kmamiz/dist"]
 CMD ["node", "index.js"]

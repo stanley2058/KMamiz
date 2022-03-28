@@ -10,6 +10,7 @@ import DataCache from "./src/services/DataCache";
 import exitHook from "async-exit-hook";
 import DispatchStorage from "./src/services/DispatchStorage";
 import { CCombinedRealtimeData } from "./src/classes/Cacheable/CCombinedRealtimeData";
+import path from "path";
 
 Logger.setGlobalLogLevel(GlobalSettings.LogLevel);
 Logger.verbose("Configuration loaded:");
@@ -22,6 +23,12 @@ app.use(cors());
 app.use(compression());
 
 app.use(Routes.getInstance().getRoutes());
+
+// serve SPA webpage
+app.use(express.static("dist"));
+app.get("*", (_, res) =>
+  res.sendFile(path.resolve(__dirname, "dist/index.html"))
+);
 
 (async () => {
   const aggregateData = await MongoOperator.getInstance().getAggregateData();

@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-DOCKER_BUILDKIT=1 docker build . -t pdvps-pricing-image --build-arg APP_ENV=prod
+DOCKER_BUILDKIT=1 docker build . -t kmamiz --build-arg APP_ENV=prod
