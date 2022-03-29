@@ -2,11 +2,9 @@ import { AggregateData } from "../classes/AggregateData";
 import { EnvoyLogs } from "../classes/EnvoyLog";
 import { Traces } from "../classes/Traces";
 import { TReplicaCount } from "../entities/TReplicaCount";
-import Logger from "../utils/Logger";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 import DataCache from "./DataCache";
-import Scheduler from "./Scheduler";
 import ZipkinService from "./ZipkinService";
 import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
 import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
@@ -64,13 +62,6 @@ export default class ServiceOperator {
   }
 
   async retrieveRealtimeData() {
-    const job = Scheduler.getInstance().get("realtime");
-    if (!job) {
-      return Logger.fatal(
-        "Cannot get CronJob: [realtime], were jobs correctly registered?"
-      );
-    }
-
     // query traces from last job time to now
     const lookBack =
       Date.now() - ServiceOperator.getInstance().previousRealtimeTime;
