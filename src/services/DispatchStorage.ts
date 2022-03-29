@@ -1,6 +1,5 @@
 import Logger from "../utils/Logger";
 import DataCache from "./DataCache";
-import MongoOperator from "./MongoOperator";
 
 export default class DispatchStorage {
   private static instance?: DispatchStorage;
