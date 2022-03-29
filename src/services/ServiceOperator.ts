@@ -66,11 +66,13 @@ export default class ServiceOperator {
     const lookBack =
       Date.now() - ServiceOperator.getInstance().previousRealtimeTime;
     ServiceOperator.getInstance().previousRealtimeTime = Date.now();
-    let rawTrace =
+    const traces = new Traces(
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-        lookBack
-      );
-    const traces = new Traces(rawTrace.slice(0, 25000));
+        lookBack,
+        Date.now(),
+        25000
+      )
+    );
 
     // get namespaces from traces for querying envoy logs
     const namespaces = traces.toRealTimeData().getContainingNamespaces();

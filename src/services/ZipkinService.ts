@@ -40,12 +40,13 @@ export default class ZipkinService {
   async getTraceListFromZipkinByServiceName(
     lookBack: number = this.DEFAULT_LOOKBACK,
     endTs: number = Date.now(),
+    limit = 100000,
     serviceName: string = "istio-ingressgateway.istio-system"
   ) {
     const response = await Utils.AxiosRequest<Trace[][]>(
       this.zipkinClient,
       "get",
-      `/traces?serviceName=${serviceName}&endTs=${endTs}&lookback=${lookBack}&limit=100000`
+      `/traces?serviceName=${serviceName}&endTs=${endTs}&lookback=${lookBack}&limit=${limit}`
     );
     if (response) return response.data;
     return [];
