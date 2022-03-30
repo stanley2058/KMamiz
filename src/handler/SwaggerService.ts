@@ -10,6 +10,7 @@ import { TTaggedSwagger } from "../entities/TTaggedSwagger";
 import { TTaggedInterface } from "../entities/TTaggedInterface";
 import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
 import { TEndpointDataSchema } from "../entities/TEndpointDataType";
+import EndpointDataType from "../classes/EndpointDataType";
 
 export default class SwaggerService extends IRequestHandler {
   constructor() {
@@ -107,7 +108,14 @@ export default class SwaggerService extends IRequestHandler {
       .filter((d) => d.toJSON().uniqueServiceName === tagged.uniqueServiceName);
 
     const schemaMap = new Map<string, TTaggedInterface>();
+    const mergedDataTypeMap = new Map<string, EndpointDataType>();
     dataTypes.forEach((d) => {
+      const name = d.toJSON().labelName!;
+      const existing = mergedDataTypeMap.get(name);
+      mergedDataTypeMap.set(name, existing ? existing.mergeSchemaWith(d) : d);
+    });
+
+    [...mergedDataTypeMap.values()].forEach((d) => {
       const dt = d.toJSON();
       const statusMap = new Map<string, TEndpointDataSchema>();
       dt.schemas
@@ -119,20 +127,14 @@ export default class SwaggerService extends IRequestHandler {
           timestamp: s.time.getTime(),
           requestSchema: s.requestSchema || "",
           responseSchema: s.responseSchema || "",
-          userLabel: `${tagged.tag}-${dt.method}-${s.status}`,
+          userLabel: `${tagged.tag}-${s.status}`,
           uniqueLabelName: `${dt.uniqueServiceName}\t${dt.method}\t${dt.labelName}`,
           boundToSwagger: true,
         };
-        schemaMap.set(
-          `${schema.requestSchema}\t${schema.responseSchema}`,
-          schema
-        );
+        DataCache.getInstance()
+          .get<CTaggedInterfaces>("TaggedInterfaces")
+          .add(schema);
       });
-    });
-
-    [...schemaMap.values()].forEach((s, i) => {
-      s.userLabel = `${s.userLabel} (${i})`;
-      DataCache.getInstance().get<CTaggedInterfaces>("TaggedInterfaces").add(s);
     });
   }
 
