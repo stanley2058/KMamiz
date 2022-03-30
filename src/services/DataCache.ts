@@ -44,4 +44,9 @@ export default class DataCache {
 
     for (const promise of promises) await promise;
   }
+
+  clear() {
+    this._caches = [];
+    this._cacheMap = new Map();
+  }
 }

@@ -8,6 +8,13 @@ import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
 import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
 import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
 import ServiceUtils from "../services/ServiceUtils";
+import { CCombinedRealtimeData } from "../classes/Cacheable/CCombinedRealtimeData";
+import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
+import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
+import { CReplicas } from "../classes/Cacheable/CReplicas";
+import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
+import GlobalSettings from "../GlobalSettings";
+import MongoOperator from "../services/MongoOperator";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -77,6 +84,25 @@ export default class DataService extends IRequestHandler {
       const result = this.deleteTaggedInterface(uniqueLabelName, userLabel);
       res.sendStatus(result ? 204 : 400);
     });
+
+    if (GlobalSettings.EnableTestingEndpoints) {
+      this.addRoute("delete", "/clear", async (_, res) => {
+        DataCache.getInstance().clear();
+        DataCache.getInstance().register([
+          new CLabelMapping(),
+          new CEndpointDataType(),
+          new CCombinedRealtimeData(),
+          new CEndpointDependencies(),
+          new CReplicas(),
+          new CTaggedInterfaces(),
+          new CTaggedSwaggers(),
+          new CLabeledEndpointDependencies(),
+          new CUserDefinedLabel(),
+        ]);
+        MongoOperator.getInstance().clearDatabase();
+        res.sendStatus(200);
+      });
+    }
   }
 
   async getAggregateData(namespace?: string) {

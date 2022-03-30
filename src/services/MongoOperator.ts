@@ -8,6 +8,11 @@ import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
 import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
 import { TEndpointDependency } from "../entities/TEndpointDependency";
+import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
+import { EndpointDataTypeModel } from "../entities/schema/EndpointDataTypeSchema";
+import { EndpointLabelModel } from "../entities/schema/EndpointLabel";
+import { TaggedInterfaceModel } from "../entities/schema/TaggedInterface";
+import { TaggedSwaggerModel } from "../entities/schema/TaggedSwagger";
 
 export default class MongoOperator {
   private static instance?: MongoOperator;
@@ -109,5 +114,17 @@ export default class MongoOperator {
     if (!data._id) return await m.save();
     if (await model.findById(data._id).exec()) m.isNew = false;
     return (await m.save()).toObject<T>();
+  }
+
+  async clearDatabase() {
+    if (!GlobalSettings.EnableTestingEndpoints) return;
+    await MongoOperator.getInstance().deleteAll(AggregateDataModel);
+    await MongoOperator.getInstance().deleteAll(CombinedRealtimeDataModel);
+    await MongoOperator.getInstance().deleteAll(EndpointDataTypeModel);
+    await MongoOperator.getInstance().deleteAll(EndpointDependencyModel);
+    await MongoOperator.getInstance().deleteAll(EndpointLabelModel);
+    await MongoOperator.getInstance().deleteAll(HistoryDataModel);
+    await MongoOperator.getInstance().deleteAll(TaggedInterfaceModel);
+    await MongoOperator.getInstance().deleteAll(TaggedSwaggerModel);
   }
 }

@@ -16,6 +16,7 @@ type Settings = {
   EnvoyLogLevel: "info" | "warning" | "error";
   ResetEndpointDependencies: boolean;
   ReadOnlyMode: boolean;
+  EnableTestingEndpoints: boolean;
 };
 
 const {
@@ -35,6 +36,7 @@ const {
   KUBERNETES_SERVICE_PORT,
   RESET_ENDPOINT_DEPENDENCIES,
   READ_ONLY_MODE,
+  ENABLE_TESTING_ENDPOINTS,
 } = process.env;
 
 const GlobalSettings: Settings = {
@@ -57,6 +59,7 @@ const GlobalSettings: Settings = {
     (ENVOY_LOG_LEVEL as "info" | "warning" | "error" | undefined) || "info",
   ResetEndpointDependencies: RESET_ENDPOINT_DEPENDENCIES === "true",
   ReadOnlyMode: READ_ONLY_MODE === "true",
+  EnableTestingEndpoints: ENABLE_TESTING_ENDPOINTS === "true",
 };
 
 if (
