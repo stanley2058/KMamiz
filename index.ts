@@ -55,7 +55,12 @@ app.get("*", (_, res) =>
 
   if (!aggregateData && rlData?.toJSON().length === 0) {
     Logger.info("Database is empty, running first time setup.");
-    await Initializer.getInstance().firstTimeSetup();
+    try {
+      await Initializer.getInstance().firstTimeSetup();
+    } catch (err) {
+      Logger.error("Cannot run first time setup, skipping.");
+      Logger.plain.error("", err);
+    }
   }
 
   Logger.info("Initialization done, starting server");
