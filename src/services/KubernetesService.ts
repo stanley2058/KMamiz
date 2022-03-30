@@ -9,6 +9,7 @@ import Utils from "../utils/Utils";
 import Logger from "../utils/Logger";
 import { TRequestTypeUpper } from "../entities/TRequestType";
 import { readFileSync } from "fs";
+import { Agent } from "https";
 
 export default class KubernetesService {
   private static instance?: KubernetesService;
@@ -29,6 +30,11 @@ export default class KubernetesService {
         config.headers = {
           Authorization: `Bearer ${token}`,
         };
+        config.httpsAgent = new Agent({
+          ca: readFileSync(
+            "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+          ),
+        });
       } catch (err) {
         Logger.fatal(
           "Cannot retrieve authorization token for Kubernetes API server.",
