@@ -12,26 +12,26 @@ spec:
     spec:
       containers:
         - name: kmamiz
-          image: image
+          image: "{your-image}"
           ports:
             - containerPort: 3000
           env:
             - name: PORT
-              value: 3000
+              value: "3000"
             - name: MONGODB_URI
-              value: ""
+              value: "{your-mongodb-uri}"
             - name: ZIPKIN_URL
               value: "http://zipkin.istio-system:9411"
             - name: LOG_LEVEL
               value: "info"
             - name: IS_RUNNING_IN_K8S
-              value: true
+              value: "true"
             - name: ENVOY_LOG_LEVEL
               value: "warning" # accept: info | warning | error
             - name: READ_ONLY_MODE
-              value: false
+              value: "false"
             - name: ENABLE_TESTING_ENDPOINTS
-              value: false
+              value: "false"
   selector:
     matchLabels:
       app: kmamiz
