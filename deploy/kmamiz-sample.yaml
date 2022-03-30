@@ -10,6 +10,7 @@ spec:
       labels:
         app: kmamiz
     spec:
+      serviceAccountName: kmamiz-reader
       containers:
         - name: kmamiz
           image: "{your-image}"
