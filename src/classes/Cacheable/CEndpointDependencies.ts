@@ -1,4 +1,5 @@
 import { EndpointDependencyModel } from "../../entities/schema/EndpointDependencySchema";
+import { TEndpointDependency } from "../../entities/TEndpointDependency";
 import MongoOperator from "../../services/MongoOperator";
 import Logger from "../../utils/Logger";
 import { EndpointDependencies } from "../EndpointDependencies";
@@ -6,8 +7,11 @@ import { Cacheable } from "./Cacheable";
 
 export class CEndpointDependencies extends Cacheable<EndpointDependencies> {
   static readonly uniqueName = "EndpointDependencies";
-  constructor(initData?: EndpointDependencies) {
-    super("EndpointDependencies", initData);
+  constructor(initData?: TEndpointDependency[]) {
+    super(
+      "EndpointDependencies",
+      initData && new EndpointDependencies(initData)
+    );
     this.setInit(async () => {
       this.setData(
         new EndpointDependencies(

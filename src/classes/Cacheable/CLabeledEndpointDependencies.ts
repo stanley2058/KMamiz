@@ -1,10 +1,14 @@
+import { TEndpointDependency } from "../../entities/TEndpointDependency";
 import { EndpointDependencies } from "../EndpointDependencies";
 import { Cacheable } from "./Cacheable";
 
 export class CLabeledEndpointDependencies extends Cacheable<EndpointDependencies> {
   static readonly uniqueName = "LabeledEndpointDependencies";
-  constructor(initData?: EndpointDependencies) {
-    super("LabeledEndpointDependencies", initData);
+  constructor(initData?: TEndpointDependency[]) {
+    super(
+      "LabeledEndpointDependencies",
+      initData && new EndpointDependencies(initData)
+    );
   }
 
   setData(update: EndpointDependencies): void {

@@ -36,10 +36,9 @@ export default class DataCache {
   async loadBaseData() {
     const promises: Promise<any>[] = [];
     this._caches.forEach((c) => {
-      if (c.init) {
-        Logger.verbose(`Loading ${c.name} into cache.`);
-        promises.push(c.init());
-      }
+      if (!c.init) return;
+      Logger.verbose(`Loading ${c.name} into cache.`);
+      promises.push(c.init());
     });
 
     for (const promise of promises) await promise;
@@ -47,16 +46,12 @@ export default class DataCache {
 
   clear() {
     this._caches = [];
-    this._cacheMap = new Map();
+    this._cacheMap.clear();
   }
 
   import(caches: [CacheableNames, any][]) {
     this.clear();
-    this._caches = caches.map(([name, init]) => new classes[name](init));
-    this._cacheMap = new Map();
-    this._caches.forEach((c) =>
-      this._cacheMap.set(c.name as CacheableNames, c)
-    );
+    this.register(caches.map(([name, init]) => new classes[name](init)));
   }
 
   export(): [CacheableNames, any][] {

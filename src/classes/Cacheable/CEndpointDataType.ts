@@ -1,4 +1,5 @@
 import { EndpointDataTypeModel } from "../../entities/schema/EndpointDataTypeSchema";
+import { TEndpointDataType } from "../../entities/TEndpointDataType";
 import MongoOperator from "../../services/MongoOperator";
 import Logger from "../../utils/Logger";
 import EndpointDataType from "../EndpointDataType";
@@ -6,8 +7,11 @@ import { Cacheable } from "./Cacheable";
 
 export class CEndpointDataType extends Cacheable<EndpointDataType[]> {
   static readonly uniqueName = "EndpointDataType";
-  constructor(initData?: EndpointDataType[]) {
-    super("EndpointDataType", initData);
+  constructor(initData?: TEndpointDataType[]) {
+    super(
+      "EndpointDataType",
+      initData && initData.map((e) => new EndpointDataType(e))
+    );
     this.setInit(async () => {
       this.setData(
         (await MongoOperator.getInstance().findAll(EndpointDataTypeModel)).map(

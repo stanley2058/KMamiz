@@ -1,4 +1,5 @@
 import { CombinedRealtimeDataModel } from "../../entities/schema/CombinedRealtimeDateSchema";
+import { TCombinedRealtimeData } from "../../entities/TCombinedRealtimeData";
 import MongoOperator from "../../services/MongoOperator";
 import Logger from "../../utils/Logger";
 import CombinedRealtimeDataList from "../CombinedRealtimeDataList";
@@ -6,8 +7,11 @@ import { Cacheable } from "./Cacheable";
 
 export class CCombinedRealtimeData extends Cacheable<CombinedRealtimeDataList> {
   static readonly uniqueName = "CombinedRealtimeData";
-  constructor(initData?: CombinedRealtimeDataList) {
-    super("CombinedRealtimeData", initData);
+  constructor(initData?: TCombinedRealtimeData[]) {
+    super(
+      "CombinedRealtimeData",
+      initData && new CombinedRealtimeDataList(initData)
+    );
     this.setInit(async () => {
       this.setData(
         new CombinedRealtimeDataList(

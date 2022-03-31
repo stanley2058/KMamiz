@@ -9,8 +9,10 @@ import { Cacheable } from "./Cacheable";
 
 export class CLabelMapping extends Cacheable<Map<string, string>> {
   static readonly uniqueName = "LabelMapping";
-  constructor(initData?: Map<string, string>) {
-    super("LabelMapping", initData);
+  constructor(initData?: [string, string][]) {
+    const map = new Map<string, string>();
+    if (initData) initData.forEach(([ep, label]) => map.set(ep, label));
+    super("LabelMapping", initData && map);
   }
 
   setData(
