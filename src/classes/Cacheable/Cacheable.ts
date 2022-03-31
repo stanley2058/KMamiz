@@ -40,7 +40,8 @@ export abstract class Cacheable<T> {
   }
 
   toJSON() {
-    const f = (this._data as any).toJSON;
-    return f ? f() : this._data;
+    const hasCustom = (this._data as any)?.toJSON;
+    const custom = hasCustom && (this._data as any).toJSON();
+    return custom || this._data;
   }
 }

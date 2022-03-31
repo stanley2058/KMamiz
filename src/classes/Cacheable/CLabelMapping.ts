@@ -138,4 +138,10 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
     });
     return map.get(label) || [label];
   }
+
+  toJSON() {
+    const data = this.getData();
+    if (!data) return [];
+    return [...data.entries()];
+  }
 }

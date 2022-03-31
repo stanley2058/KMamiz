@@ -15,6 +15,9 @@ import { CReplicas } from "../classes/Cacheable/CReplicas";
 import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
 import GlobalSettings from "../GlobalSettings";
 import MongoOperator from "../services/MongoOperator";
+import { CacheableNames } from "../classes/Cacheable";
+import { tgz } from "compressing";
+import Logger from "../utils/Logger";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -101,6 +104,38 @@ export default class DataService extends IRequestHandler {
         ]);
         MongoOperator.getInstance().clearDatabase();
         res.sendStatus(200);
+      });
+      this.addRoute("get", "/export", async (_, res) => {
+        res.contentType("application/tar+gzip");
+        const json = JSON.stringify(DataCache.getInstance().export());
+        const stream = new tgz.Stream();
+        stream.addEntry(Buffer.from(json, "utf8"), {
+          relativePath: "KMamiz.cache.json",
+        });
+        stream.on("end", () => res.end());
+        stream.pipe(res);
+      });
+      this.addRoute("post", "/import", async (req, res) => {
+        try {
+          const chunks: any[] = [];
+          const stream = new tgz.UncompressStream();
+          stream.on("entry", (_, s) => {
+            s.on("data", (chunk: any) => chunks.push(chunk));
+            s.on("end", () => {
+              const caches = JSON.parse(
+                Buffer.concat(chunks).toString("utf8")
+              ) as [CacheableNames, any][];
+              if (!caches) return res.sendStatus(400);
+              DataCache.getInstance().import(caches);
+              res.sendStatus(201);
+            });
+          });
+          req.pipe(stream);
+        } catch (err) {
+          Logger.error("Error parsing import");
+          Logger.plain.verbose("", err);
+          res.sendStatus(400);
+        }
       });
     }
   }
