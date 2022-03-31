@@ -8,6 +8,18 @@ import { CTaggedInterfaces } from "./CTaggedInterfaces";
 import { CTaggedSwaggers } from "./CTaggedSwaggers";
 import { CUserDefinedLabel } from "./CUserDefinedLabel";
 
+const classes = {
+  [CCombinedRealtimeData.uniqueName]: CCombinedRealtimeData,
+  [CEndpointDependencies.uniqueName]: CEndpointDependencies,
+  [CLabeledEndpointDependencies.uniqueName]: CLabeledEndpointDependencies,
+  [CEndpointDataType.uniqueName]: CEndpointDataType,
+  [CReplicas.uniqueName]: CReplicas,
+  [CLabelMapping.uniqueName]: CLabelMapping,
+  [CUserDefinedLabel.uniqueName]: CUserDefinedLabel,
+  [CTaggedInterfaces.uniqueName]: CTaggedInterfaces,
+  [CTaggedSwaggers.uniqueName]: CTaggedSwaggers,
+};
+
 const names = [
   CCombinedRealtimeData.uniqueName,
   CEndpointDependencies.uniqueName,
@@ -21,17 +33,4 @@ const names = [
 ] as const;
 
 export type CacheableNames = typeof names[number];
-
-const classes = {
-  [CCombinedRealtimeData.uniqueName]: CCombinedRealtimeData,
-  [CEndpointDependencies.uniqueName]: CEndpointDependencies,
-  [CLabeledEndpointDependencies.uniqueName]: CLabeledEndpointDependencies,
-  [CEndpointDataType.uniqueName]: CEndpointDataType,
-  [CReplicas.uniqueName]: CReplicas,
-  [CLabelMapping.uniqueName]: CLabelMapping,
-  [CUserDefinedLabel.uniqueName]: CUserDefinedLabel,
-  [CTaggedInterfaces.uniqueName]: CTaggedInterfaces,
-  [CTaggedSwaggers.uniqueName]: CTaggedSwaggers,
-};
-
 export { classes };

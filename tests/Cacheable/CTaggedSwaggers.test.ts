@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CTaggedSwaggers } from "../../src/classes/Cacheable/CTaggedSwaggers";
 
 describe("Cacheable TaggedSwaggers", () => {

@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CEndpointDependencies } from "../../src/classes/Cacheable/CEndpointDependencies";
 import { EndpointDependencies } from "../../src/classes/EndpointDependencies";
 

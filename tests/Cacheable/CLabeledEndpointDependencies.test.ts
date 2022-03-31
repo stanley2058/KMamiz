@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CLabeledEndpointDependencies } from "../../src/classes/Cacheable/CLabeledEndpointDependencies";
 import { EndpointDependencies } from "../../src/classes/EndpointDependencies";
 

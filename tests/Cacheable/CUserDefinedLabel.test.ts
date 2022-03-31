@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CUserDefinedLabel } from "../../src/classes/Cacheable/CUserDefinedLabel";
 
 describe("Cacheable UserDefinedLabel", () => {

@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CTaggedInterfaces } from "../../src/classes/Cacheable/CTaggedInterfaces";
 
 describe("Cacheable TaggedInterfaces", () => {

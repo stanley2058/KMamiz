@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CEndpointDataType } from "../../src/classes/Cacheable/CEndpointDataType";
 
 describe("Cacheable EndpointDataType", () => {

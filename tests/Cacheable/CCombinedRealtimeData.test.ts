@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CCombinedRealtimeData } from "../../src/classes/Cacheable/CCombinedRealtimeData";
 import CombinedRealtimeDataList from "../../src/classes/CombinedRealtimeDataList";
 

@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CReplicas } from "../../src/classes/Cacheable/CReplicas";
 
 describe("Cacheable Replicas", () => {

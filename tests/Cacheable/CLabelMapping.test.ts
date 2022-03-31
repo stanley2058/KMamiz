@@ -1,3 +1,4 @@
+import "../../src/classes/Cacheable";
 import { CLabelMapping } from "../../src/classes/Cacheable/CLabelMapping";
 import { MockAggregateData, MockHistoryData } from "../MockData";
 
