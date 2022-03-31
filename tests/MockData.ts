@@ -2,6 +2,7 @@ import { TAggregateData } from "../src/entities/TAggregateData";
 import { TCombinedRealtimeData } from "../src/entities/TCombinedRealtimeData";
 import { TEndpointDataType } from "../src/entities/TEndpointDataType";
 import { TEnvoyLog } from "../src/entities/TEnvoyLog";
+import { THistoryData } from "../src/entities/THistoryData";
 import { TRealtimeData } from "../src/entities/TRealtimeData";
 import { TReplicaCount } from "../src/entities/TReplicaCount";
 import { TServiceDependency } from "../src/entities/TServiceDependency";
@@ -4523,7 +4524,7 @@ const MockDependencies: TServiceDependency[] = [
     links: [],
   },
 ];
-const MockHistoryData = [
+const MockHistoryData: THistoryData[] = [
   {
     date: new Date(Utils.BelongsToDateTimestamp(Date.now() - 86400000)),
     services: [
@@ -4553,7 +4554,7 @@ const MockHistoryData = [
     ],
   },
 ];
-const MockAggregateData = {
+const MockAggregateData: TAggregateData = {
   fromDate: new Date(Utils.BelongsToDateTimestamp(Yesterday)),
   toDate: new Date(Utils.BelongsToDateTimestamp(Yesterday)),
   services: [
