@@ -15,7 +15,14 @@ export class CLabeledEndpointDependencies extends Cacheable<EndpointDependencies
     super.setData(new EndpointDependencies(update.trim().label()));
   }
 
+  label() {
+    const data = super.getData();
+    if (!data) return;
+    this.setData(new EndpointDependencies(data.label()));
+  }
+
   getData(namespace?: string): EndpointDependencies | undefined {
+    this.label();
     const data = super.getData();
     if (namespace && data) {
       return new EndpointDependencies(

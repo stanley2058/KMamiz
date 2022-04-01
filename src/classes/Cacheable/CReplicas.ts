@@ -12,4 +12,8 @@ export class CReplicas extends Cacheable<TReplicaCount[]> {
       this.setData(await KubernetesService.getInstance().getReplicas());
     });
   }
+
+  setData(update: TReplicaCount[]): void {
+    super.setData(update.filter((r) => !!r.service));
+  }
 }

@@ -45,6 +45,9 @@ export class CCombinedRealtimeData extends Cacheable<CombinedRealtimeDataList> {
   }
 
   setData(update: CombinedRealtimeDataList): void {
+    update = new CombinedRealtimeDataList(
+      update.toJSON().filter((rl) => rl.service)
+    );
     const data = super.getData();
     super.setData(data ? data.combineWith(update) : update);
   }
