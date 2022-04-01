@@ -22,12 +22,12 @@ export default class RiskAnalyzer {
       ),
     ].map((s) => {
       const [serviceName, serviceNamespace, serviceVersion] = s.split("\t");
-      const { impact } = impacts.find(
-        ({ uniqueServiceName }) => uniqueServiceName === s
-      )!;
-      const { probability } = probabilities.find(
-        ({ uniqueServiceName }) => uniqueServiceName === s
-      )!;
+      const impact =
+        impacts.find(({ uniqueServiceName }) => uniqueServiceName === s)
+          ?.impact || 0;
+      const probability =
+        probabilities.find(({ uniqueServiceName }) => uniqueServiceName === s)
+          ?.probability || 0;
 
       return {
         uniqueServiceName: s,
