@@ -6,11 +6,11 @@ export default class DispatchStorage {
   static getInstance = () => this.instance || (this.instance = new this());
   private _lock: boolean = false;
   private syncType = 0;
-  private syncStrategies: { name: string; syncFunc: () => Promise<void> }[] =
-    [];
 
-  private constructor() {
-    this.syncStrategies = [...DataCache.getInstance().getAll().entries()]
+  private constructor() {}
+
+  get syncStrategies() {
+    return [...DataCache.getInstance().getAll().entries()]
       .filter(([, cache]) => !!cache.sync)
       .sort(([aName], [bName]) => aName.localeCompare(bName))
       .map(([name, cache]) => {
@@ -25,6 +25,7 @@ export default class DispatchStorage {
     if (DispatchStorage.getInstance()._lock)
       return await DispatchStorage.getInstance().waitUntilUnlock();
     DispatchStorage.getInstance()._lock = true;
+    DispatchStorage.getInstance().nextSyncType();
 
     const index = DispatchStorage.getInstance().syncType;
     const sync = DispatchStorage.getInstance().syncStrategies[index];
@@ -32,7 +33,6 @@ export default class DispatchStorage {
     Logger.verbose(`Dispatch syncing type: ${sync.name}`);
     await sync.syncFunc();
 
-    DispatchStorage.getInstance().nextSyncType();
     DispatchStorage.getInstance()._lock = false;
   }
 
