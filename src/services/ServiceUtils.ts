@@ -1,4 +1,4 @@
-import { AggregateData } from "../classes/AggregateData";
+import { AggregatedData } from "../classes/AggregatedData";
 import { CCombinedRealtimeData } from "../classes/Cacheable/CCombinedRealtimeData";
 import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
 import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
@@ -71,34 +71,34 @@ export default class ServiceUtils {
     }
   }
 
-  async getRealtimeHistoryData(namespace?: string) {
+  async getRealtimeHistoricalData(namespace?: string) {
     const { labelMapping, cRlData, labeledDependencies, replicas } =
       this.getCaches();
 
-    const historyData = labelMapping.labelHistoryData(
-      await MongoOperator.getInstance().getHistoryData(namespace)
+    const historicalData = labelMapping.labelHistoricalData(
+      await MongoOperator.getInstance().getHistoricalData(namespace)
     );
 
     const rlData = cRlData.getData();
     const dep = labeledDependencies.getData();
 
     if (!rlData || !dep) {
-      return historyData;
+      return historicalData;
     }
 
-    const rlHistory = rlData.toHistoryData(
+    const rlHistory = rlData.toHistoricalData(
       dep.toServiceDependencies(),
       replicas.getData(),
       labelMapping.getData()
     );
-    return historyData.concat(rlHistory);
+    return historicalData.concat(rlHistory);
   }
 
-  async getRealtimeAggregateData(namespace?: string) {
+  async getRealtimeAggregatedData(namespace?: string) {
     const { labelMapping, cRlData, labeledDependencies, replicas } =
       this.getCaches();
 
-    const aggregateData = await MongoOperator.getInstance().getAggregateData(
+    const aggregatedData = await MongoOperator.getInstance().getAggregatedData(
       namespace
     );
 
@@ -106,21 +106,21 @@ export default class ServiceUtils {
     const dep = labeledDependencies.getData();
 
     if (!rlData || !dep) {
-      return aggregateData && labelMapping.labelAggregateData(aggregateData);
+      return aggregatedData && labelMapping.labelAggregatedData(aggregatedData);
     }
 
-    const rlAggregateData = cRlData
+    const rlAggregatedData = cRlData
       .getData(namespace)!
-      .toAggregatedDataAndHistoryData(
+      .toAggregatedDataAndHistoricalData(
         dep.toServiceDependencies(),
         replicas.getData(),
         labelMapping.getData()
-      ).aggregateData;
-    if (!aggregateData) return rlAggregateData;
+      ).aggregatedData;
+    if (!aggregatedData) return rlAggregatedData;
 
-    return labelMapping.labelAggregateData(
-      new AggregateData(labelMapping.labelAggregateData(aggregateData))
-        .combine(rlAggregateData)
+    return labelMapping.labelAggregatedData(
+      new AggregatedData(labelMapping.labelAggregatedData(aggregatedData))
+        .combine(rlAggregatedData)
         .toJSON()
     );
   }

@@ -1,13 +1,13 @@
 import { Types } from "mongoose";
 import { TRequestTypeUpper } from "./TRequestType";
 
-export type THistoryData = {
+export type THistoricalData = {
   _id?: Types.ObjectId;
   date: Date;
-  services: THistoryServiceInfo[];
+  services: THistoricalServiceInfo[];
 };
 
-export type THistoryServiceInfo = {
+export type THistoricalServiceInfo = {
   uniqueServiceName: string;
   date: Date;
   service: string;
@@ -18,10 +18,10 @@ export type THistoryServiceInfo = {
   requestErrors: number;
   risk?: number;
   latencyCV: number;
-  endpoints: THistoryEndpointInfo[];
+  endpoints: THistoricalEndpointInfo[];
 };
 
-export type THistoryEndpointInfo = {
+export type THistoricalEndpointInfo = {
   uniqueServiceName: string;
   uniqueEndpointName: string;
   labelName?: string;

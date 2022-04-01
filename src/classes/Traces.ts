@@ -150,7 +150,7 @@ export class Traces {
           lowerMap.set(`${endpoint.uniqueEndpointName}\t${distance}`, endpoint);
         });
 
-        const dependBy = [...upperMap.entries()].map(([id, endpoint]) => {
+        const dependingBy = [...upperMap.entries()].map(([id, endpoint]) => {
           const token = id.split("\t");
           const distance = parseInt(token[token.length - 1]);
           return {
@@ -160,7 +160,7 @@ export class Traces {
           };
         });
 
-        const dependsOn = [...lowerMap.entries()].map(([id, endpoint]) => {
+        const dependingOn = [...lowerMap.entries()].map(([id, endpoint]) => {
           const token = id.split("\t");
           const distance = parseInt(token[token.length - 1]);
           return {
@@ -172,8 +172,8 @@ export class Traces {
 
         return {
           endpoint: Traces.ToEndpointInfo(span),
-          dependBy,
-          dependsOn,
+          dependingBy,
+          dependingOn,
         };
       });
     return new EndpointDependencies(dependencies);

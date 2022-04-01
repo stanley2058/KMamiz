@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import { TAggregateData } from "../TAggregateData";
+import { TAggregatedData } from "../TAggregatedData";
 
-export const AggregateDataSchema = new Schema<TAggregateData>({
+export const AggregatedDataSchema = new Schema<TAggregatedData>({
   fromDate: { type: Date, required: true },
   toDate: { type: Date, required: true },
   services: [
@@ -30,7 +30,7 @@ export const AggregateDataSchema = new Schema<TAggregateData>({
   ],
 });
 
-export const AggregateDataModel = model<TAggregateData>(
-  "AggregateData",
-  AggregateDataSchema
+export const AggregatedDataModel = model<TAggregatedData>(
+  "AggregatedData",
+  AggregatedDataSchema
 );

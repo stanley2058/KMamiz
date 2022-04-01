@@ -1,8 +1,8 @@
-import { TAggregateData } from "../src/entities/TAggregateData";
+import { TAggregatedData } from "../src/entities/TAggregatedData";
 import { TCombinedRealtimeData } from "../src/entities/TCombinedRealtimeData";
 import { TEndpointDataType } from "../src/entities/TEndpointDataType";
 import { TEnvoyLog } from "../src/entities/TEnvoyLog";
-import { THistoryData } from "../src/entities/THistoryData";
+import { THistoricalData } from "../src/entities/THistoricalData";
 import { TRealtimeData } from "../src/entities/TRealtimeData";
 import { TReplicaCount } from "../src/entities/TReplicaCount";
 import { TServiceDependency } from "../src/entities/TServiceDependency";
@@ -3183,8 +3183,8 @@ const MockEndpointDependencies = [
       uniqueEndpointName:
         "ratings\tbook\tv1\tGET\thttp://ratings:9080/ratings/0",
     },
-    dependsOn: [],
-    dependBy: [
+    dependingOn: [],
+    dependingBy: [
       {
         endpoint: {
           labelName: "reviews.book.svc.cluster.local:9080/*",
@@ -3260,7 +3260,7 @@ const MockEndpointDependencies = [
       uniqueEndpointName:
         "reviews\tbook\tv2\tGET\thttp://reviews:9080/reviews/0",
     },
-    dependsOn: [
+    dependingOn: [
       {
         endpoint: {
           labelName: "ratings.book.svc.cluster.local:9080/*",
@@ -3281,7 +3281,7 @@ const MockEndpointDependencies = [
         type: "SERVER",
       },
     ],
-    dependBy: [
+    dependingBy: [
       {
         endpoint: {
           labelName: "productpage.book.svc.cluster.local:9080/productpage",
@@ -3319,7 +3319,7 @@ const MockEndpointDependencies = [
       uniqueEndpointName:
         "productpage\tbook\tv1\tGET\thttp://192.168.39.24:31629/productpage",
     },
-    dependsOn: [
+    dependingOn: [
       {
         endpoint: {
           labelName: "reviews.book.svc.cluster.local:9080/*",
@@ -3416,7 +3416,7 @@ const MockEndpointDependencies = [
         type: "SERVER",
       },
     ],
-    dependBy: [],
+    dependingBy: [],
   },
   {
     endpoint: {
@@ -3434,8 +3434,8 @@ const MockEndpointDependencies = [
       uniqueEndpointName:
         "details\tbook\tv1\tGET\thttp://details:9080/details/0",
     },
-    dependsOn: [],
-    dependBy: [
+    dependingOn: [],
+    dependingBy: [
       {
         endpoint: {
           labelName: "productpage.book.svc.cluster.local:9080/productpage",
@@ -3473,7 +3473,7 @@ const MockEndpointDependencies = [
       uniqueEndpointName:
         "reviews\tbook\tv3\tGET\thttp://reviews:9080/reviews/0",
     },
-    dependsOn: [
+    dependingOn: [
       {
         endpoint: {
           labelName: "ratings.book.svc.cluster.local:9080/*",
@@ -3494,7 +3494,7 @@ const MockEndpointDependencies = [
         type: "SERVER",
       },
     ],
-    dependBy: [
+    dependingBy: [
       {
         endpoint: {
           labelName: "productpage.book.svc.cluster.local:9080/productpage",
@@ -3532,8 +3532,8 @@ const MockEndpointDependencies = [
       uniqueEndpointName:
         "reviews\tbook\tv1\tGET\thttp://reviews:9080/reviews/0",
     },
-    dependsOn: [],
-    dependBy: [
+    dependingOn: [],
+    dependingBy: [
       {
         endpoint: {
           labelName: "productpage.book.svc.cluster.local:9080/productpage",
@@ -3941,7 +3941,7 @@ const UniversalEndpointBaseData = {
   uniqueEndpointName: UniqueEndpointName,
 };
 
-const MockAggregateData1: TAggregateData = {
+const MockAggregatedData1: TAggregatedData = {
   fromDate: new Date(Today),
   toDate: new Date(Today),
   services: [
@@ -3977,7 +3977,7 @@ const MockAggregateData1: TAggregateData = {
     },
   ],
 };
-const MockAggregateData2: TAggregateData = {
+const MockAggregatedData2: TAggregatedData = {
   fromDate: new Date(Today),
   toDate: new Date(Today),
   services: [
@@ -4014,7 +4014,7 @@ const MockAggregateData2: TAggregateData = {
   ],
 };
 
-const MockMergedAggregateData: TAggregateData = {
+const MockMergedAggregatedData: TAggregatedData = {
   fromDate: new Date(Today),
   toDate: new Date(Today),
   services: [
@@ -4121,7 +4121,7 @@ const MockEndpointDependenciesPDAS = [
       uniqueEndpointName:
         "user-service\tpdas\tlatest\tGET\thttp://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
     },
-    dependBy: [
+    dependingBy: [
       {
         endpoint: {
           version: "latest",
@@ -4141,7 +4141,7 @@ const MockEndpointDependenciesPDAS = [
         type: "CLIENT",
       },
     ],
-    dependsOn: [],
+    dependingOn: [],
   },
   {
     endpoint: {
@@ -4158,7 +4158,7 @@ const MockEndpointDependenciesPDAS = [
       uniqueEndpointName:
         "user-service\tpdas\tlatest\tGET\thttp://user-service.pdas.svc.cluster.local/internal/user/user/email/admin",
     },
-    dependBy: [
+    dependingBy: [
       {
         endpoint: {
           version: "latest",
@@ -4178,7 +4178,7 @@ const MockEndpointDependenciesPDAS = [
         type: "CLIENT",
       },
     ],
-    dependsOn: [],
+    dependingOn: [],
   },
   {
     endpoint: {
@@ -4195,7 +4195,7 @@ const MockEndpointDependenciesPDAS = [
       uniqueEndpointName:
         "contract-service\tpdas\tlatest\tPOST\thttp://contract-service.pdas.svc.cluster.local/internal/contract/init",
     },
-    dependBy: [
+    dependingBy: [
       {
         endpoint: {
           version: "latest",
@@ -4215,7 +4215,7 @@ const MockEndpointDependenciesPDAS = [
         type: "CLIENT",
       },
     ],
-    dependsOn: [],
+    dependingOn: [],
   },
   {
     endpoint: {
@@ -4232,8 +4232,8 @@ const MockEndpointDependenciesPDAS = [
       uniqueEndpointName:
         "external-service\tpdas\tlatest\tPOST\thttp://10.104.207.91/pdas/sa/requestContract",
     },
-    dependBy: [],
-    dependsOn: [
+    dependingBy: [],
+    dependingOn: [
       {
         endpoint: {
           version: "latest",
@@ -4524,7 +4524,7 @@ const MockDependencies: TServiceDependency[] = [
     links: [],
   },
 ];
-const MockHistoryData: THistoryData[] = [
+const MockHistoricalData: THistoricalData[] = [
   {
     date: new Date(Utils.BelongsToDateTimestamp(Date.now() - 86400000)),
     services: [
@@ -4554,7 +4554,7 @@ const MockHistoryData: THistoryData[] = [
     ],
   },
 ];
-const MockAggregateData: TAggregateData = {
+const MockAggregatedData: TAggregatedData = {
   fromDate: new Date(Utils.BelongsToDateTimestamp(Yesterday)),
   toDate: new Date(Utils.BelongsToDateTimestamp(Yesterday)),
   services: [
@@ -4642,12 +4642,12 @@ export {
   MockCombinedBaseData,
   MockReplicas,
   MockDependencies,
-  MockHistoryData,
-  MockAggregateData,
+  MockHistoricalData,
+  MockAggregatedData,
   MockEndpointDataType,
-  MockAggregateData1,
-  MockAggregateData2,
-  MockMergedAggregateData,
+  MockAggregatedData1,
+  MockAggregatedData2,
+  MockMergedAggregatedData,
   MockRlDataPDAS,
   MockEndpointDependenciesPDAS,
   MockEndpointInfoPDAS1,

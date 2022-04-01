@@ -24,10 +24,10 @@ export default class DataService extends IRequestHandler {
   constructor() {
     super("data");
     this.addRoute("get", "/aggregate/:namespace?", async (req, res) => {
-      res.json(await this.getAggregateData(req.params["namespace"]));
+      res.json(await this.getAggregatedData(req.params["namespace"]));
     });
     this.addRoute("get", "/history/:namespace?", async (req, res) => {
-      res.json(await this.getHistoryData(req.params["namespace"]));
+      res.json(await this.getHistoricalData(req.params["namespace"]));
     });
     this.addRoute("get", "/datatype/:uniqueLabelName", async (req, res) => {
       const labelName = decodeURIComponent(req.params["uniqueLabelName"]);
@@ -146,12 +146,16 @@ export default class DataService extends IRequestHandler {
     }
   }
 
-  async getAggregateData(namespace?: string) {
-    return await ServiceUtils.getInstance().getRealtimeAggregateData(namespace);
+  async getAggregatedData(namespace?: string) {
+    return await ServiceUtils.getInstance().getRealtimeAggregatedData(
+      namespace
+    );
   }
 
-  async getHistoryData(namespace?: string) {
-    return await ServiceUtils.getInstance().getRealtimeHistoryData(namespace);
+  async getHistoricalData(namespace?: string) {
+    return await ServiceUtils.getInstance().getRealtimeHistoricalData(
+      namespace
+    );
   }
 
   async getEndpointDataType(

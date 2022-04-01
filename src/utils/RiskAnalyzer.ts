@@ -128,10 +128,10 @@ export default class RiskAnalyzer {
     const factorMap = new Map<string, number>();
     dependencies.forEach(({ uniqueServiceName, links, dependency }) => {
       const factor = links.reduce(
-        (prev, curr) => prev + curr.dependBy / curr.distance,
+        (prev, curr) => prev + curr.dependingBy / curr.distance,
         0
       );
-      const isGateway = dependency.find((d) => d.dependBy.length === 0);
+      const isGateway = dependency.find((d) => d.dependingBy.length === 0);
       factorMap.set(uniqueServiceName, factor + (isGateway ? 1 : 0));
     });
     return [...factorMap.entries()].map(([uniqueServiceName, factor]) => ({
@@ -150,18 +150,18 @@ export default class RiskAnalyzer {
     /**
      * ACS: Absolute Criticality of the Service
      * AIS: Absolute Importance of the Service
-     *      Count of lower dependency (dependBy/CLIENT)
+     *      Count of lower dependency (dependingBy/CLIENT)
      * ADS: Absolute Dependence of the Service
-     *      Count of upper dependency (dependsOn/SERVER)
+     *      Count of upper dependency (dependingOn/SERVER)
      */
     return dependencies.map(({ uniqueServiceName, links, dependency }) => {
-      const isGateway = dependency.find((d) => d.dependBy.length === 0);
+      const isGateway = dependency.find((d) => d.dependingBy.length === 0);
       const { ais, ads } = links
         .filter((l) => l.distance === 1)
         .reduce(
           (prev, l) => {
-            if (l.dependBy > 0) prev.ais++;
-            if (l.dependsOn > 0) prev.ads++;
+            if (l.dependingBy > 0) prev.ais++;
+            if (l.dependingOn > 0) prev.ads++;
             return prev;
           },
           { ais: isGateway ? 1 : 0, ads: 0 }

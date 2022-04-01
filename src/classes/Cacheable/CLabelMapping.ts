@@ -1,6 +1,6 @@
-import { TAggregateData } from "../../entities/TAggregateData";
+import { TAggregatedData } from "../../entities/TAggregatedData";
 import { TEndpointLabel } from "../../entities/TEndpointLabel";
-import { THistoryData } from "../../entities/THistoryData";
+import { THistoricalData } from "../../entities/THistoricalData";
 import EndpointUtils from "../../utils/EndpointUtils";
 import Utils from "../../utils/Utils";
 import EndpointDataType from "../EndpointDataType";
@@ -49,7 +49,7 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
           endpointDependencies
             .toJSON()
             .flatMap((d) =>
-              [...d.dependBy, ...d.dependsOn, d].map(
+              [...d.dependingBy, ...d.dependingOn, d].map(
                 (dep) => dep.endpoint.uniqueEndpointName
               )
             )
@@ -61,11 +61,11 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
     super.setData(update);
   }
 
-  labelHistoryData(historyData: THistoryData[]) {
+  labelHistoricalData(historicalData: THistoricalData[]) {
     const labelMap = this.getData();
-    if (!labelMap) return historyData;
+    if (!labelMap) return historicalData;
     const uniqueNames = new Set(
-      historyData
+      historicalData
         .flatMap((h) => h.services)
         .flatMap((s) => s.endpoints)
         .flatMap((e) => e.uniqueEndpointName)
@@ -74,7 +74,7 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
       EndpointUtils.GuessAndMergeEndpoints([...uniqueNames], labelMap)
     );
 
-    historyData.forEach((h) => {
+    historicalData.forEach((h) => {
       h.services.forEach((s) => {
         s.endpoints.forEach((e) => {
           e.labelName = this.getLabelFromUniqueEndpointName(
@@ -83,14 +83,14 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
         });
       });
     });
-    return historyData;
+    return historicalData;
   }
 
-  labelAggregateData(aggregateData: TAggregateData) {
+  labelAggregatedData(aggregatedData: TAggregatedData) {
     const labelMap = this.getData();
-    if (!labelMap) return aggregateData;
+    if (!labelMap) return aggregatedData;
     const uniqueNames = new Set(
-      aggregateData.services
+      aggregatedData.services
         .flatMap((s) => s.endpoints)
         .flatMap((e) => e.uniqueEndpointName)
     );
@@ -98,12 +98,12 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
       EndpointUtils.GuessAndMergeEndpoints([...uniqueNames], labelMap)
     );
 
-    aggregateData.services.forEach((s) => {
+    aggregatedData.services.forEach((s) => {
       s.endpoints.forEach((e) => {
         e.labelName = this.getLabelFromUniqueEndpointName(e.uniqueEndpointName);
       });
     });
-    return aggregateData;
+    return aggregatedData;
   }
 
   getEndpointDataTypesByLabel(

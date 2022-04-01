@@ -1,6 +1,6 @@
 import "../../src/classes/Cacheable";
 import { CLabelMapping } from "../../src/classes/Cacheable/CLabelMapping";
-import { MockAggregateData, MockHistoryData } from "../MockData";
+import { MockAggregatedData, MockHistoricalData } from "../MockData";
 
 describe("Cacheable LabelMapping", () => {
   const cache = new CLabelMapping();
@@ -30,9 +30,11 @@ describe("Cacheable LabelMapping", () => {
   });
 
   it("label history data and aggregate data", () => {
-    expect(cache.labelHistoryData(MockHistoryData)).toEqual(MockHistoryData);
-    expect(cache.labelAggregateData(MockAggregateData)).toEqual(
-      MockAggregateData
+    expect(cache.labelHistoricalData(MockHistoricalData)).toEqual(
+      MockHistoricalData
+    );
+    expect(cache.labelAggregatedData(MockAggregatedData)).toEqual(
+      MockAggregatedData
     );
   });
 

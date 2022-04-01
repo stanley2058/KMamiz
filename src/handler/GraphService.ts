@@ -96,7 +96,7 @@ export default class GraphService extends IRequestHandler {
     if (!dependencies) return [];
     const dep = dependencies.toJSON();
     dep.forEach((ep) => {
-      ep.dependsOn = ep.dependsOn.filter((d) => d.distance === 1);
+      ep.dependingOn = ep.dependingOn.filter((d) => d.distance === 1);
     });
     return new EndpointDependencies(dep).toChordData();
   }
@@ -111,10 +111,9 @@ export default class GraphService extends IRequestHandler {
   }
 
   async getAreaLineData(namespace?: string): Promise<TAreaLineChartData[]> {
-    const historyData = await ServiceUtils.getInstance().getRealtimeHistoryData(
-      namespace
-    );
-    return historyData
+    const historicalData =
+      await ServiceUtils.getInstance().getRealtimeHistoricalData(namespace);
+    return historicalData
       .map((h) => {
         return h.services.map((s) => {
           const name = `${s.service}.${s.namespace} (${s.version})`;

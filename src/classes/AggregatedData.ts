@@ -1,26 +1,26 @@
 import {
-  TAggregateData,
-  TAggregateEndpointInfo,
-  TAggregateServiceInfo,
-} from "../entities/TAggregateData";
+  TAggregatedData,
+  TAggregatedEndpointInfo,
+  TAggregatedServiceInfo,
+} from "../entities/TAggregatedData";
 import Logger from "../utils/Logger";
 
-export class AggregateData {
-  private readonly _aggregateData: TAggregateData;
-  constructor(aggregateData: TAggregateData) {
-    this._aggregateData = aggregateData;
+export class AggregatedData {
+  private readonly _aggregatedData: TAggregatedData;
+  constructor(aggregatedData: TAggregatedData) {
+    this._aggregatedData = aggregatedData;
   }
 
   toJSON() {
-    return this._aggregateData;
+    return this._aggregatedData;
   }
 
-  combine({ fromDate: fDate, toDate: tDate, services }: TAggregateData) {
+  combine({ fromDate: fDate, toDate: tDate, services }: TAggregatedData) {
     const fromDate = this.decideFromDate(fDate);
     const toDate = this.decideToDate(tDate);
 
-    const serviceMap = new Map<string, TAggregateServiceInfo>();
-    [...this._aggregateData.services, ...services].forEach((s) => {
+    const serviceMap = new Map<string, TAggregatedServiceInfo>();
+    [...this._aggregatedData.services, ...services].forEach((s) => {
       if (!serviceMap.has(s.uniqueServiceName))
         serviceMap.set(s.uniqueServiceName, s);
       else {
@@ -33,7 +33,7 @@ export class AggregateData {
         );
       }
     });
-    return new AggregateData({
+    return new AggregatedData({
       fromDate,
       toDate,
       services: [...serviceMap.values()],
@@ -41,8 +41,8 @@ export class AggregateData {
   }
 
   mergeAggregateServiceInfo(
-    a: TAggregateServiceInfo,
-    b: TAggregateServiceInfo
+    a: TAggregatedServiceInfo,
+    b: TAggregatedServiceInfo
   ) {
     if (a.uniqueServiceName !== b.uniqueServiceName) {
       Logger.error("Trying to merge mismatched service info, skipping.");
@@ -59,10 +59,10 @@ export class AggregateData {
     return { ...a, totalRequests };
   }
   mergeAggregateEndpointInfo(
-    a: TAggregateEndpointInfo[],
-    b: TAggregateEndpointInfo[]
+    a: TAggregatedEndpointInfo[],
+    b: TAggregatedEndpointInfo[]
   ) {
-    const endpointMap = new Map<string, TAggregateEndpointInfo>();
+    const endpointMap = new Map<string, TAggregatedEndpointInfo>();
     [...a, ...b].forEach((e) => {
       if (!endpointMap.has(e.uniqueEndpointName)) {
         endpointMap.set(e.uniqueEndpointName, e);
@@ -78,11 +78,11 @@ export class AggregateData {
   }
 
   private decideFromDate(date: Date) {
-    const { fromDate } = this._aggregateData;
+    const { fromDate } = this._aggregatedData;
     return fromDate > date ? date : fromDate;
   }
   private decideToDate(date: Date) {
-    const { toDate } = this._aggregateData;
+    const { toDate } = this._aggregatedData;
     return toDate < date ? date : toDate;
   }
 }

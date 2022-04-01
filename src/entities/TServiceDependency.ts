@@ -20,6 +20,6 @@ export type TServiceLink = TServiceLinkInfo & {
 export type TServiceLinkInfo = {
   distance: number;
   count: number;
-  dependBy: number;
-  dependsOn: number;
+  dependingBy: number;
+  dependingOn: number;
 };

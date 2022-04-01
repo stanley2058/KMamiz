@@ -1,14 +1,14 @@
 import { Types } from "mongoose";
 import { TRequestTypeUpper } from "./TRequestType";
 
-export type TAggregateData = {
+export type TAggregatedData = {
   _id?: Types.ObjectId;
   fromDate: Date;
   toDate: Date;
-  services: TAggregateServiceInfo[];
+  services: TAggregatedServiceInfo[];
 };
 
-export type TAggregateServiceInfo = {
+export type TAggregatedServiceInfo = {
   uniqueServiceName: string;
   service: string;
   namespace: string;
@@ -18,9 +18,9 @@ export type TAggregateServiceInfo = {
   totalRequestErrors: number;
   avgRisk: number;
   avgLatencyCV: number;
-  endpoints: TAggregateEndpointInfo[];
+  endpoints: TAggregatedEndpointInfo[];
 };
-export type TAggregateEndpointInfo = {
+export type TAggregatedEndpointInfo = {
   uniqueServiceName: string;
   uniqueEndpointName: string;
   labelName?: string;

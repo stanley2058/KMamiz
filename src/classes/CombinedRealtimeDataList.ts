@@ -1,11 +1,11 @@
-import { TAggregateEndpointInfo } from "../entities/TAggregateData";
+import { TAggregatedEndpointInfo } from "../entities/TAggregatedData";
 import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 import { TEndpointDataType } from "../entities/TEndpointDataType";
 import {
-  THistoryData,
-  THistoryEndpointInfo,
-  THistoryServiceInfo,
-} from "../entities/THistoryData";
+  THistoricalData,
+  THistoricalEndpointInfo,
+  THistoricalServiceInfo,
+} from "../entities/THistoricalData";
 import { TRealtimeData } from "../entities/TRealtimeData";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import { TRequestTypeUpper } from "../entities/TRequestType";
@@ -25,7 +25,7 @@ export default class CombinedRealtimeDataList {
     return this._combinedRealtimeData;
   }
 
-  toHistoryData(
+  toHistoricalData(
     serviceDependencies: TServiceDependency[],
     replicas: TReplicaCount[] = [],
     labelMap?: Map<string, string>
@@ -36,45 +36,47 @@ export default class CombinedRealtimeDataList {
       dateMapping.set(time, (dateMapping.get(time) || []).concat([r]));
     });
 
-    return [...dateMapping.entries()].map(([time, dailyData]): THistoryData => {
-      const risks = RiskAnalyzer.RealtimeRisk(
-        new CombinedRealtimeDataList(dailyData).toRealtimeDataForm(),
-        serviceDependencies,
-        replicas
-      );
-      const endpointMap = new Map<string, TCombinedRealtimeData[]>();
-      const serviceMap = new Map<string, TCombinedRealtimeData[]>();
-      dailyData.forEach((r) => {
-        endpointMap.set(
-          r.uniqueEndpointName,
-          (endpointMap.get(r.uniqueEndpointName) || []).concat([r])
+    return [...dateMapping.entries()].map(
+      ([time, dailyData]): THistoricalData => {
+        const risks = RiskAnalyzer.RealtimeRisk(
+          new CombinedRealtimeDataList(dailyData).toRealtimeDataForm(),
+          serviceDependencies,
+          replicas
         );
-        serviceMap.set(
-          r.uniqueServiceName,
-          (serviceMap.get(r.uniqueServiceName) || []).concat([r])
+        const endpointMap = new Map<string, TCombinedRealtimeData[]>();
+        const serviceMap = new Map<string, TCombinedRealtimeData[]>();
+        dailyData.forEach((r) => {
+          endpointMap.set(
+            r.uniqueEndpointName,
+            (endpointMap.get(r.uniqueEndpointName) || []).concat([r])
+          );
+          serviceMap.set(
+            r.uniqueServiceName,
+            (serviceMap.get(r.uniqueServiceName) || []).concat([r])
+          );
+        });
+        const allEndpoints = this.createHistoryEndpointInfo(
+          endpointMap,
+          labelMap
         );
-      });
-      const allEndpoints = this.createHistoryEndpointInfo(
-        endpointMap,
-        labelMap
-      );
-      return {
-        date: new Date(time),
-        services: this.createHistoryServiceInfo(
-          time,
-          serviceMap,
-          allEndpoints,
-          risks
-        ),
-      };
-    });
+        return {
+          date: new Date(time),
+          services: this.createHistoryServiceInfo(
+            time,
+            serviceMap,
+            allEndpoints,
+            risks
+          ),
+        };
+      }
+    );
   }
   private createHistoryEndpointInfo(
     endpointMap: Map<string, TCombinedRealtimeData[]>,
     labelMap?: Map<string, string>
   ) {
     return [...endpointMap.entries()].map(
-      ([uniqueEndpointName, r]): THistoryEndpointInfo => {
+      ([uniqueEndpointName, r]): THistoricalEndpointInfo => {
         const [service, namespace, version, method] =
           uniqueEndpointName.split("\t");
         let requestErrors = 0;
@@ -103,11 +105,11 @@ export default class CombinedRealtimeDataList {
   private createHistoryServiceInfo(
     time: number,
     serviceMap: Map<string, TCombinedRealtimeData[]>,
-    allEndpoints: THistoryEndpointInfo[],
+    allEndpoints: THistoricalEndpointInfo[],
     risks: TRiskResult[]
   ) {
     return [...serviceMap.entries()].map(
-      ([uniqueServiceName, r]): THistoryServiceInfo => {
+      ([uniqueServiceName, r]): THistoricalServiceInfo => {
         const [service, namespace, version] = uniqueServiceName.split("\t");
         const endpoints = allEndpoints.filter(
           (e) => e.uniqueServiceName === uniqueServiceName
@@ -141,12 +143,12 @@ export default class CombinedRealtimeDataList {
     );
   }
 
-  toAggregatedDataAndHistoryData(
+  toAggregatedDataAndHistoricalData(
     serviceDependencies: TServiceDependency[],
     replicas: TReplicaCount[] = [],
     labelMap?: Map<string, string>
   ) {
-    const historyData = this.toHistoryData(
+    const historicalData = this.toHistoricalData(
       serviceDependencies,
       replicas,
       labelMap
@@ -154,8 +156,8 @@ export default class CombinedRealtimeDataList {
     let minDate = Number.MAX_SAFE_INTEGER;
     let maxDate = Number.MIN_SAFE_INTEGER;
 
-    const serviceMap = new Map<string, THistoryServiceInfo[]>();
-    historyData
+    const serviceMap = new Map<string, THistoricalServiceInfo[]>();
+    historicalData
       .flatMap((h) => h.services)
       .forEach((s) => {
         const time = s.date.getTime();
@@ -168,21 +170,21 @@ export default class CombinedRealtimeDataList {
         );
       });
 
-    const aggregateData = {
+    const aggregatedData = {
       fromDate: new Date(minDate),
       toDate: new Date(maxDate),
       services: this.createAggregateServiceInfo(serviceMap, labelMap),
     };
-    return { aggregateData, historyData };
+    return { aggregatedData, historicalData };
   }
   private createAggregateServiceInfo(
-    serviceMap: Map<string, THistoryServiceInfo[]>,
+    serviceMap: Map<string, THistoricalServiceInfo[]>,
     labelMap?: Map<string, string>
   ) {
     return [...serviceMap.entries()].map(
       ([uniqueServiceName, serviceGroup]) => {
         const [service, namespace, version] = uniqueServiceName.split("\t");
-        const endpointMap = new Map<string, THistoryEndpointInfo[]>();
+        const endpointMap = new Map<string, THistoricalEndpointInfo[]>();
         serviceGroup
           .flatMap((s) => s.endpoints)
           .forEach((e) => {
@@ -229,11 +231,11 @@ export default class CombinedRealtimeDataList {
   }
   private createAggregateEndpointInfo(
     uniqueServiceName: string,
-    endpointMap: Map<string, THistoryEndpointInfo[]>,
+    endpointMap: Map<string, THistoricalEndpointInfo[]>,
     labelMap?: Map<string, string>
   ) {
     return [...endpointMap.entries()].map(
-      ([uniqueEndpointName, endpointGroup]): TAggregateEndpointInfo => {
+      ([uniqueEndpointName, endpointGroup]): TAggregatedEndpointInfo => {
         const [, , , method] = uniqueEndpointName.split("\t");
         let totalRequests = 0;
         let totalServerErrors = 0;

@@ -39,7 +39,7 @@ app.get("*", (_, res) =>
 );
 
 (async () => {
-  const aggregateData = await MongoOperator.getInstance().getAggregateData();
+  const aggregatedData = await MongoOperator.getInstance().getAggregatedData();
 
   if (GlobalSettings.ResetEndpointDependencies) {
     Logger.info("Resetting EndpointDependencies.");
@@ -53,7 +53,7 @@ app.get("*", (_, res) =>
     .get<CCombinedRealtimeData>("CombinedRealtimeData")
     .getData();
 
-  if (!aggregateData && rlData?.toJSON().length === 0) {
+  if (!aggregatedData && rlData?.toJSON().length === 0) {
     Logger.info("Database is empty, running first time setup.");
     try {
       await Initializer.getInstance().firstTimeSetup();

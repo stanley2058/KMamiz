@@ -26,20 +26,20 @@ export class EndpointDependencies {
     return new EndpointDependencies(
       this._dependencies.map((d): TEndpointDependency => {
         const dOnMap = new Map<string, any>();
-        d.dependsOn.forEach((dOn) => {
+        d.dependingOn.forEach((dOn) => {
           const id = `${dOn.distance}\t${dOn.endpoint.uniqueEndpointName}`;
           dOnMap.set(id, dOn);
         });
         const dByMap = new Map<string, any>();
-        d.dependBy.forEach((dBy) => {
+        d.dependingBy.forEach((dBy) => {
           const id = `${dBy.distance}\t${dBy.endpoint.uniqueEndpointName}`;
           dByMap.set(id, dBy);
         });
 
         return {
           ...d,
-          dependBy: [...dByMap.values()],
-          dependsOn: [...dOnMap.values()],
+          dependingBy: [...dByMap.values()],
+          dependingOn: [...dOnMap.values()],
         };
       })
     );
@@ -54,7 +54,7 @@ export class EndpointDependencies {
       };
 
       const labelName = getEpName(d.endpoint.uniqueEndpointName);
-      const dependBy = d.dependBy.map((dep) => {
+      const dependingBy = d.dependingBy.map((dep) => {
         return {
           ...dep,
           endpoint: {
@@ -63,7 +63,7 @@ export class EndpointDependencies {
           },
         };
       });
-      const dependsOn = d.dependsOn.map((dep) => {
+      const dependingOn = d.dependingOn.map((dep) => {
         return {
           ...dep,
           endpoint: {
@@ -78,8 +78,8 @@ export class EndpointDependencies {
           ...d.endpoint,
           labelName,
         },
-        dependsOn,
-        dependBy,
+        dependingOn,
+        dependingBy,
       };
     });
   }
@@ -154,7 +154,7 @@ export class EndpointDependencies {
         }
 
         // endpoint to endpoint links
-        e.dependsOn
+        e.dependingOn
           .filter((dep) => dep.distance === 1)
           .forEach((dep) => {
             const depId = `${dep.endpoint.uniqueServiceName}\t${dep.endpoint.method}\t${dep.endpoint.labelName}`;
@@ -166,7 +166,7 @@ export class EndpointDependencies {
               existLinks.add(`${id}\t${depId}`);
             }
           });
-        if (e.dependBy.length === 0) {
+        if (e.dependingBy.length === 0) {
           if (!existLinks.has(`null\t${id}`)) {
             links.push({
               source: "null",
@@ -195,7 +195,7 @@ export class EndpointDependencies {
       switch (n.id) {
         case "null": // root node
           n.dependencies = dependencyWithId
-            .filter((d) => d.dependBy.length === 0)
+            .filter((d) => d.dependingBy.length === 0)
             .map(({ uid }) => uid);
           n.linkInBetween = n.dependencies.map((d) => ({
             source: "null",
@@ -213,25 +213,25 @@ export class EndpointDependencies {
           break;
         default:
           // endpoint node
-          // find the node and sort dependsOn & dependBy with descending distance
+          // find the node and sort dependingOn & dependingBy with descending distance
           const node = dependencyWithId.find((d) => d.uid === n.id)!;
-          const dependsOnSorted = this.sortEndpointInfoByDistanceDesc(
-            node.dependsOn
+          const dependingOnSorted = this.sortEndpointInfoByDistanceDesc(
+            node.dependingOn
           );
-          const dependBySorted = this.sortEndpointInfoByDistanceDesc(
-            node.dependBy
+          const dependingBySorted = this.sortEndpointInfoByDistanceDesc(
+            node.dependingBy
           );
 
           // fill in links to highlight
           n.linkInBetween = [
-            ...this.mapToLinks(dependsOnSorted, n, links),
-            ...this.mapToLinks(dependBySorted, n, links),
+            ...this.mapToLinks(dependingOnSorted, n, links),
+            ...this.mapToLinks(dependingBySorted, n, links),
           ].filter((l) => !!l) as TLink[];
           // fill in nodes to highlight
           n.dependencies = [
             ...new Set([
-              ...this.remapToId(dependsOnSorted),
-              ...this.remapToId(dependBySorted),
+              ...this.remapToId(dependingOnSorted),
+              ...this.remapToId(dependingBySorted),
             ]),
           ];
       }
@@ -317,7 +317,7 @@ export class EndpointDependencies {
   ) {
     // create links info from endpointDependencies
     const linkMap = dependency
-      .map((dep) => [...dep.dependsOn, ...dep.dependBy])
+      .map((dep) => [...dep.dependingOn, ...dep.dependingBy])
       .flat()
       .map((dep) => {
         return {
@@ -331,13 +331,13 @@ export class EndpointDependencies {
           prev[uniqueName] = {
             distance,
             count: 1,
-            dependBy: type === "CLIENT" ? 1 : 0,
-            dependsOn: type === "SERVER" ? 1 : 0,
+            dependingBy: type === "CLIENT" ? 1 : 0,
+            dependingOn: type === "SERVER" ? 1 : 0,
           };
         } else {
           prev[uniqueName].count++;
-          if (type === "CLIENT") prev[uniqueName].dependBy++;
-          else prev[uniqueName].dependsOn++;
+          if (type === "CLIENT") prev[uniqueName].dependingBy++;
+          else prev[uniqueName].dependingOn++;
         }
         return prev;
       }, {} as { [uniqueName: string]: TServiceLinkInfo });
@@ -355,7 +355,7 @@ export class EndpointDependencies {
     [...dependencyMap.values()].forEach((ep) => {
       const service = ep.endpoint.uniqueServiceName!;
       if (!serviceMap.has(service)) serviceMap.set(service, new Map());
-      ep.dependsOn.forEach((s) => {
+      ep.dependingOn.forEach((s) => {
         const dependName = s.endpoint.uniqueServiceName!;
         serviceMap
           .get(service)!
@@ -393,8 +393,8 @@ export class EndpointDependencies {
       string,
       {
         endpoint: TEndpointDependency;
-        dependBySet: Set<string>;
-        dependsOnSet: Set<string>;
+        dependingBySet: Set<string>;
+        dependingOnSet: Set<string>;
       }
     >();
     this._dependencies.forEach((d) => {
@@ -406,18 +406,18 @@ export class EndpointDependencies {
     endpointDependencies._dependencies.forEach((d) => {
       const existing = dependencyMap.get(d.endpoint.uniqueEndpointName);
       if (existing) {
-        d.dependBy.forEach((dep) => {
+        d.dependingBy.forEach((dep) => {
           const id = `${dep.endpoint.uniqueEndpointName}\t${dep.distance}`;
-          if (!existing.dependBySet.has(id)) {
-            existing.endpoint.dependBy.push(dep);
-            existing.dependBySet.add(id);
+          if (!existing.dependingBySet.has(id)) {
+            existing.endpoint.dependingBy.push(dep);
+            existing.dependingBySet.add(id);
           }
         });
-        d.dependsOn.forEach((dep) => {
+        d.dependingOn.forEach((dep) => {
           const id = `${dep.endpoint.uniqueEndpointName}\t${dep.distance}`;
-          if (!existing.dependBySet.has(id)) {
-            existing.endpoint.dependsOn.push(dep);
-            existing.dependsOnSet.add(id);
+          if (!existing.dependingBySet.has(id)) {
+            existing.endpoint.dependingOn.push(dep);
+            existing.dependingOnSet.add(id);
           }
         });
       } else {
@@ -433,18 +433,18 @@ export class EndpointDependencies {
   }
   private createDependencyMapObject(endpoint: TEndpointDependency): {
     endpoint: TEndpointDependency;
-    dependBySet: Set<string>;
-    dependsOnSet: Set<string>;
+    dependingBySet: Set<string>;
+    dependingOnSet: Set<string>;
   } {
     return {
       endpoint,
-      dependBySet: new Set(
-        endpoint.dependBy.map(
+      dependingBySet: new Set(
+        endpoint.dependingBy.map(
           (dep) => `${dep.endpoint.uniqueEndpointName}\t${dep.distance}`
         )
       ),
-      dependsOnSet: new Set(
-        endpoint.dependsOn.map(
+      dependingOnSet: new Set(
+        endpoint.dependingOn.map(
           (dep) => `${dep.endpoint.uniqueEndpointName}\t${dep.distance}`
         )
       ),
@@ -465,7 +465,7 @@ export class EndpointDependencies {
       ([uniqueServiceName, endpoints]): TServiceEndpointCohesion => {
         const serviceUtilizedMap = endpoints
           .flatMap((e) =>
-            e.dependBy
+            e.dependingBy
               .filter((d) => d.distance === 1)
               .map((dep) => ({ e, dep }))
           )
@@ -504,21 +504,21 @@ export class EndpointDependencies {
     const serviceDependencies = this.toServiceDependencies();
 
     return serviceDependencies.map((s) => {
-      const { dependBy, dependsOn } = s.links.reduce(
+      const { dependingBy, dependingOn } = s.links.reduce(
         (acc, cur) => {
-          if (cur.dependBy > 0) acc.dependBy++;
-          if (cur.dependsOn > 0) acc.dependsOn++;
+          if (cur.dependingBy > 0) acc.dependingBy++;
+          if (cur.dependingOn > 0) acc.dependingOn++;
           return acc;
         },
-        { dependBy: 0, dependsOn: 0 }
+        { dependingBy: 0, dependingOn: 0 }
       );
 
       return {
         uniqueServiceName: s.uniqueServiceName,
         name: `${s.service}.${s.namespace} (${s.version})`,
-        dependBy,
-        dependsOn,
-        instability: dependsOn / (dependsOn + dependBy),
+        dependingBy,
+        dependingOn,
+        instability: dependingOn / (dependingOn + dependingBy),
       };
     });
   }

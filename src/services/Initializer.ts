@@ -1,4 +1,4 @@
-import { AggregateData } from "../classes/AggregateData";
+import { AggregatedData } from "../classes/AggregatedData";
 import { CCombinedRealtimeData } from "../classes/Cacheable/CCombinedRealtimeData";
 import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
 import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
@@ -9,10 +9,10 @@ import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
 import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
 import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
 import { Traces } from "../classes/Traces";
-import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
+import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
 import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
-import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
+import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
@@ -41,7 +41,7 @@ export default class Initializer {
       )
     );
 
-    // try to create aggregateData and historyData
+    // try to create aggregatedData and historicalData
     const endpointDependencies = traces.toEndpointDependencies().trim();
     const replicas: TReplicaCount[] = [];
     for (const ns of await KubernetesService.getInstance().getNamespaces()) {
@@ -54,18 +54,18 @@ export default class Initializer {
       .toRealTimeData(replicas)
       .toCombinedRealtimeData();
     if (realtimeData.toJSON().length !== 0) {
-      const { aggregateData, historyData } =
-        realtimeData.toAggregatedDataAndHistoryData(
+      const { aggregatedData, historicalData } =
+        realtimeData.toAggregatedDataAndHistoricalData(
           endpointDependencies.toServiceDependencies(),
           replicas
         );
       await MongoOperator.getInstance().save(
-        new AggregateData(aggregateData).toJSON(),
-        AggregateDataModel
+        new AggregatedData(aggregatedData).toJSON(),
+        AggregatedDataModel
       );
       await MongoOperator.getInstance().insertMany(
-        historyData,
-        HistoryDataModel
+        historicalData,
+        HistoricalDataModel
       );
     }
 

@@ -1,11 +1,11 @@
 import { connect, Model, Types } from "mongoose";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
-import { TAggregateData } from "../entities/TAggregateData";
-import { THistoryData } from "../entities/THistoryData";
+import { TAggregatedData } from "../entities/TAggregatedData";
+import { THistoricalData } from "../entities/THistoricalData";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
-import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
-import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
+import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
+import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
 import { TEndpointDependency } from "../entities/TEndpointDependency";
 import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
@@ -24,10 +24,10 @@ export default class MongoOperator {
       .catch((error) => Logger.error(error));
   }
 
-  async getAggregateData(namespace?: string) {
+  async getAggregatedData(namespace?: string) {
     if (!namespace)
-      return (await AggregateDataModel.findOne({}).exec())?.toObject();
-    const filtered = await AggregateDataModel.aggregate([
+      return (await AggregatedDataModel.findOne({}).exec())?.toObject();
+    const filtered = await AggregatedDataModel.aggregate([
       { $match: {} },
       {
         $project: {
@@ -44,19 +44,19 @@ export default class MongoOperator {
         },
       },
     ]).exec();
-    return (filtered[0].toObject() as TAggregateData) || null;
+    return (filtered[0].toObject() as TAggregatedData) || null;
   }
 
-  async getHistoryData(namespace?: string, time = 86400000 * 30) {
+  async getHistoricalData(namespace?: string, time = 86400000 * 30) {
     const notBefore = new Date(Date.now() - time);
     if (!namespace) {
       return (
-        await HistoryDataModel.find({
+        await HistoricalDataModel.find({
           date: { $gte: notBefore },
         }).exec()
       ).map((r) => r.toObject());
     }
-    const res = await HistoryDataModel.aggregate([
+    const res = await HistoricalDataModel.aggregate([
       { $match: { date: { $gte: notBefore } } },
       {
         $project: {
@@ -72,7 +72,7 @@ export default class MongoOperator {
         },
       },
     ]).exec();
-    return res.map((r) => r.toObject()) as THistoryData[];
+    return res.map((r) => r.toObject()) as THistoricalData[];
   }
 
   async saveEndpointDependencies(endpointDependencies: EndpointDependencies) {
@@ -118,12 +118,12 @@ export default class MongoOperator {
 
   async clearDatabase() {
     if (!GlobalSettings.EnableTestingEndpoints) return;
-    await MongoOperator.getInstance().deleteAll(AggregateDataModel);
+    await MongoOperator.getInstance().deleteAll(AggregatedDataModel);
     await MongoOperator.getInstance().deleteAll(CombinedRealtimeDataModel);
     await MongoOperator.getInstance().deleteAll(EndpointDataTypeModel);
     await MongoOperator.getInstance().deleteAll(EndpointDependencyModel);
     await MongoOperator.getInstance().deleteAll(EndpointLabelModel);
-    await MongoOperator.getInstance().deleteAll(HistoryDataModel);
+    await MongoOperator.getInstance().deleteAll(HistoricalDataModel);
     await MongoOperator.getInstance().deleteAll(TaggedInterfaceModel);
     await MongoOperator.getInstance().deleteAll(TaggedSwaggerModel);
   }

@@ -1,4 +1,4 @@
-import { AggregateData } from "../classes/AggregateData";
+import { AggregatedData } from "../classes/AggregatedData";
 import { EnvoyLogs } from "../classes/EnvoyLog";
 import { Traces } from "../classes/Traces";
 import { TReplicaCount } from "../entities/TReplicaCount";
@@ -15,8 +15,8 @@ import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
 import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
-import { AggregateDataModel } from "../entities/schema/AggregateDataSchema";
-import { HistoryDataModel } from "../entities/schema/HistoryDataSchema";
+import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
+import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -36,26 +36,29 @@ export default class ServiceOperator {
 
     const replicas: TReplicaCount[] =
       await KubernetesService.getInstance().getReplicas(namespaces);
-    const { historyData, aggregateData } =
-      combinedRealtimeData.toAggregatedDataAndHistoryData(
+    const { historicalData, aggregatedData } =
+      combinedRealtimeData.toAggregatedDataAndHistoricalData(
         endpointDependencies.toServiceDependencies(),
         replicas
       );
 
-    const prevAggRaw = await MongoOperator.getInstance().getAggregateData();
-    let newAggData = new AggregateData(aggregateData);
+    const prevAggRaw = await MongoOperator.getInstance().getAggregatedData();
+    let newAggData = new AggregatedData(aggregatedData);
     if (prevAggRaw) {
-      const prevAggData = new AggregateData(prevAggRaw);
-      newAggData = prevAggData.combine(aggregateData);
+      const prevAggData = new AggregatedData(prevAggRaw);
+      newAggData = prevAggData.combine(aggregatedData);
       if (prevAggData.toJSON()._id)
         newAggData.toJSON()._id = prevAggData.toJSON()._id;
     }
 
     await MongoOperator.getInstance().save(
       newAggData.toJSON(),
-      AggregateDataModel
+      AggregatedDataModel
     );
-    await MongoOperator.getInstance().insertMany(historyData, HistoryDataModel);
+    await MongoOperator.getInstance().insertMany(
+      historicalData,
+      HistoricalDataModel
+    );
     DataCache.getInstance()
       .get<CCombinedRealtimeData>("CombinedRealtimeData")
       .reset();

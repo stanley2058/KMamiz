@@ -1,13 +1,15 @@
-import { AggregateData } from "../src/classes/AggregateData";
+import { AggregatedData } from "../src/classes/AggregatedData";
 import {
-  MockAggregateData1,
-  MockAggregateData2,
-  MockMergedAggregateData,
+  MockAggregatedData1,
+  MockAggregatedData2,
+  MockMergedAggregatedData,
 } from "./MockData";
 
-describe("AggregateData", () => {
-  it("merges with another AggregateData", () => {
-    const m = new AggregateData(MockAggregateData1).combine(MockAggregateData2);
-    expect(m.toJSON()).toEqual(MockMergedAggregateData);
+describe("AggregatedData", () => {
+  it("merges with another AggregatedData", () => {
+    const m = new AggregatedData(MockAggregatedData1).combine(
+      MockAggregatedData2
+    );
+    expect(m.toJSON()).toEqual(MockMergedAggregatedData);
   });
 });

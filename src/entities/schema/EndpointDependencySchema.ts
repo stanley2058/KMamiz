@@ -17,14 +17,14 @@ export const EndpointInfoSchema: SchemaDefinitionProperty<TEndpointInfo> = {
 
 export const EndpointDependencySchema = new Schema<TEndpointDependency>({
   endpoint: EndpointInfoSchema,
-  dependsOn: [
+  dependingOn: [
     {
       endpoint: EndpointInfoSchema,
       distance: { type: Number, required: true },
       type: { type: String, required: true },
     },
   ],
-  dependBy: [
+  dependingBy: [
     {
       endpoint: EndpointInfoSchema,
       distance: { type: Number, required: true },

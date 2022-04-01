@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import { THistoryData } from "../THistoryData";
+import { THistoricalData } from "../THistoricalData";
 
-export const HistoryDataSchema = new Schema<THistoryData>({
+export const HistoricalDataSchema = new Schema<THistoricalData>({
   date: { type: Date, required: true },
   services: [
     {
@@ -30,7 +30,7 @@ export const HistoryDataSchema = new Schema<THistoryData>({
   ],
 });
 
-export const HistoryDataModel = model<THistoryData>(
-  "HistoryData",
-  HistoryDataSchema
+export const HistoricalDataModel = model<THistoricalData>(
+  "HistoricalData",
+  HistoricalDataSchema
 );

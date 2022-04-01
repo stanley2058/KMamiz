@@ -100,22 +100,22 @@ describe("EndpointDependencies", () => {
       {
         uniqueServiceName: "user-service\tpdas\tlatest",
         name: "user-service.pdas (latest)",
-        dependBy: 1,
-        dependsOn: 0,
+        dependingBy: 1,
+        dependingOn: 0,
         instability: 0,
       },
       {
         uniqueServiceName: "contract-service\tpdas\tlatest",
         name: "contract-service.pdas (latest)",
-        dependBy: 1,
-        dependsOn: 0,
+        dependingBy: 1,
+        dependingOn: 0,
         instability: 0,
       },
       {
         uniqueServiceName: "external-service\tpdas\tlatest",
         name: "external-service.pdas (latest)",
-        dependBy: 0,
-        dependsOn: 1,
+        dependingBy: 0,
+        dependingOn: 1,
         instability: 1,
       },
     ]);
