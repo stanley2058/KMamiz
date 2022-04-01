@@ -18,6 +18,7 @@ import MongoOperator from "../services/MongoOperator";
 import { CacheableNames } from "../classes/Cacheable";
 import { tgz } from "compressing";
 import Logger from "../utils/Logger";
+import DispatchStorage from "../services/DispatchStorage";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -86,6 +87,11 @@ export default class DataService extends IRequestHandler {
       if (!uniqueLabelName || !userLabel) return res.sendStatus(400);
       const result = this.deleteTaggedInterface(uniqueLabelName, userLabel);
       res.sendStatus(result ? 204 : 400);
+    });
+
+    this.addRoute("post", "/sync", async (_, res) => {
+      await DispatchStorage.getInstance().syncAll();
+      res.sendStatus(200);
     });
 
     if (GlobalSettings.EnableTestingEndpoints) {
