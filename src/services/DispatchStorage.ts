@@ -10,13 +10,7 @@ export default class DispatchStorage {
     [];
 
   private constructor() {
-    this.loadSyncs();
-  }
-
-  loadSyncs() {
-    DispatchStorage.getInstance().syncStrategies = [
-      ...DataCache.getInstance().getAll().entries(),
-    ]
+    this.syncStrategies = [...DataCache.getInstance().getAll().entries()]
       .filter(([, cache]) => !!cache.sync)
       .sort(([aName], [bName]) => aName.localeCompare(bName))
       .map(([name, cache]) => {
