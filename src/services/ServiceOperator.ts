@@ -17,6 +17,7 @@ import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySc
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
 import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
+import ServiceUtils from "./ServiceUtils";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -111,7 +112,7 @@ export default class ServiceOperator {
     data: CombinedRealtimeDataList
   ) {
     const existingDep = DataCache.getInstance()
-      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .get<CEndpointDependencies>("EndpointDependencies")
       .getData();
     const newDep = traces.toEndpointDependencies();
     const dep = existingDep ? existingDep.combineWith(newDep) : newDep;
@@ -137,5 +138,10 @@ export default class ServiceOperator {
     DataCache.getInstance()
       .get<CEndpointDataType>("EndpointDataType")
       .setData(data.extractEndpointDataType());
+
+    ServiceUtils.getInstance().updateLabel();
+    DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .setData(dep);
   }
 }
