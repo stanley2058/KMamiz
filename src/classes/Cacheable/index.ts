@@ -33,4 +33,4 @@ const names = [
 ] as const;
 
 export type CacheableNames = typeof names[number];
-export { classes };
+export { classes, names as nameList };

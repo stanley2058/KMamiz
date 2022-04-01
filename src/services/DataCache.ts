@@ -1,4 +1,4 @@
-import { CacheableNames, classes } from "../classes/Cacheable";
+import { CacheableNames, classes, nameList } from "../classes/Cacheable";
 import { Cacheable } from "../classes/Cacheable/Cacheable";
 import Logger from "../utils/Logger";
 
@@ -49,9 +49,15 @@ export default class DataCache {
     this._cacheMap.clear();
   }
 
-  import(caches: [CacheableNames, any][]) {
+  import(caches: [string, any][]) {
     this.clear();
-    this.register(caches.map(([name, init]) => new classes[name](init)));
+    this.register(
+      (
+        caches.filter(([name]) =>
+          nameList.includes(name as CacheableNames)
+        ) as [CacheableNames, any][]
+      ).map(([name, init]) => new classes[name](init))
+    );
   }
 
   export(): [CacheableNames, any][] {

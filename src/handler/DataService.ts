@@ -19,6 +19,10 @@ import { CacheableNames } from "../classes/Cacheable";
 import { tgz } from "compressing";
 import Logger from "../utils/Logger";
 import DispatchStorage from "../services/DispatchStorage";
+import { TAggregatedData } from "../entities/TAggregatedData";
+import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
+import { THistoricalData } from "../entities/THistoricalData";
+import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -113,7 +117,7 @@ export default class DataService extends IRequestHandler {
       });
       this.addRoute("get", "/export", async (_, res) => {
         res.contentType("application/tar+gzip");
-        const json = JSON.stringify(DataCache.getInstance().export());
+        const json = await this.exportData();
         const stream = new tgz.Stream();
         stream.addEntry(Buffer.from(json, "utf8"), {
           relativePath: "KMamiz.cache.json",
@@ -127,13 +131,12 @@ export default class DataService extends IRequestHandler {
           const stream = new tgz.UncompressStream();
           stream.on("entry", (_, s) => {
             s.on("data", (chunk: any) => chunks.push(chunk));
-            s.on("end", () => {
+            s.on("end", async () => {
               const caches = JSON.parse(
                 Buffer.concat(chunks).toString("utf8")
-              ) as [CacheableNames, any][];
-              if (!caches) return res.sendStatus(400);
-              DataCache.getInstance().import(caches);
-              res.sendStatus(201);
+              ) as [string, any][];
+              const result = await this.importData(caches);
+              res.sendStatus(result ? 201 : 400);
             });
           });
           req.pipe(stream);
@@ -237,6 +240,45 @@ export default class DataService extends IRequestHandler {
     DataCache.getInstance()
       .get<CTaggedInterfaces>("TaggedInterfaces")
       .delete(uniqueLabelName, userLabel);
+    return true;
+  }
+
+  async exportData() {
+    const caches = DataCache.getInstance().export();
+    const aggregatedData =
+      await MongoOperator.getInstance().getAggregatedData();
+    const historicalData =
+      await MongoOperator.getInstance().getHistoricalData();
+    const json = JSON.stringify([
+      ...caches,
+      ["AggregatedData", aggregatedData],
+      ["HistoricalData", historicalData],
+    ]);
+    return json;
+  }
+
+  async importData(importData: [string, any][]) {
+    if (!importData) return false;
+
+    await MongoOperator.getInstance().clearDatabase();
+
+    DataCache.getInstance().import(importData);
+
+    const [, aggregatedData] =
+      importData.find(([name]) => name === "AggregatedData") || [];
+    const [, historicalData] =
+      importData.find(([name]) => name === "HistoricalData") || [];
+
+    await MongoOperator.getInstance().insertMany(
+      [aggregatedData as TAggregatedData],
+      AggregatedDataModel
+    );
+    await MongoOperator.getInstance().insertMany(
+      historicalData as THistoricalData[],
+      HistoricalDataModel
+    );
+
+    await DispatchStorage.getInstance().syncAll();
     return true;
   }
 }
