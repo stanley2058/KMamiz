@@ -95,10 +95,15 @@ export default class GraphService extends IRequestHandler {
       .getData(namespace);
     if (!dependencies) return [];
     const dep = dependencies.toJSON();
-    dep.forEach((ep) => {
-      ep.dependingOn = ep.dependingOn.filter((d) => d.distance === 1);
-    });
-    return new EndpointDependencies(dep).toChordData();
+    return new EndpointDependencies(
+      dep.map((ep) => {
+        const dependingOn = ep.dependingOn.filter((d) => d.distance === 1);
+        return {
+          ...ep,
+          dependingOn,
+        };
+      })
+    ).toChordData();
   }
 
   async getInDirectServiceChord(namespace?: string) {
