@@ -94,6 +94,8 @@ export default class EndpointDataType {
     );
   }
   private isInterfaceMatched(interfaceA?: string, interfaceB?: string) {
+    if (interfaceA === undefined) interfaceA = "interface Root {\n}";
+    if (interfaceB === undefined) interfaceB = "interface Root {\n}";
     if (interfaceA && interfaceB) {
       const breakA = this.breakdownInterface(interfaceA);
       const breakB = this.breakdownInterface(interfaceB);
