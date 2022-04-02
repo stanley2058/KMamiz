@@ -74,7 +74,7 @@ export default class ServiceOperator {
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         lookBack,
         Date.now(),
-        25000
+        2500
       )
     );
 

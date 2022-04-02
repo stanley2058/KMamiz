@@ -15,7 +15,7 @@ export default class KubernetesService {
   private static instance?: KubernetesService;
   static getInstance = () => this.instance || (this.instance = new this());
 
-  private DEFAULT_LOG_LIMIT = 100000;
+  private DEFAULT_LOG_LIMIT = 10000;
 
   private kubeApiHost: string;
   private logClient!: Axios;
