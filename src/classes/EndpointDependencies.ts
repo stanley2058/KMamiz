@@ -351,15 +351,23 @@ export class EndpointDependencies {
       dependencyMap.set(d.endpoint.labelName!, d);
     });
 
-    const serviceMap = new Map<string, Map<string, number>>();
+    const serviceMap = new Map<string, Map<string, Set<string>>>();
     [...dependencyMap.values()].forEach((ep) => {
       const service = ep.endpoint.uniqueServiceName!;
       if (!serviceMap.has(service)) serviceMap.set(service, new Map());
       ep.dependingOn.forEach((s) => {
         const dependName = s.endpoint.uniqueServiceName!;
+        const uniqueLabelName = `${s.endpoint.uniqueServiceName}\t${
+          s.endpoint.method
+        }\t${s.endpoint.labelName!}`;
         serviceMap
           .get(service)!
-          .set(dependName, (serviceMap.get(service)!.get(dependName) || 0) + 1);
+          .set(
+            dependName,
+            (serviceMap.get(service)!.get(dependName) || new Set()).add(
+              uniqueLabelName
+            )
+          );
       });
     });
 
@@ -380,7 +388,7 @@ export class EndpointDependencies {
           return {
             from: neoId,
             to: neoDId,
-            value: val,
+            value: val.size,
           };
         });
       })
