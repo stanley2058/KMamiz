@@ -139,7 +139,8 @@ export default class ServiceUtils {
         replicas.getData(),
         labelMapping.getData()
       ).aggregatedData;
-    if (!aggregatedData) return rlAggregatedData;
+    if (!aggregatedData)
+      return labelMapping.labelAggregatedData(rlAggregatedData);
 
     return labelMapping.labelAggregatedData(
       new AggregatedData(labelMapping.labelAggregatedData(aggregatedData))
