@@ -20,15 +20,8 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
     userDefinedLabels?: TEndpointLabel,
     endpointDependencies?: EndpointDependencies
   ): void {
-    const nameRemoved = new Set<string>();
+    const uniqueNames = new Set<string>();
     if (userDefinedLabels) {
-      userDefinedLabels.labels.forEach((l) => {
-        if (l.block) return;
-        l.samples.forEach((s) => {
-          update.set(s, l.label);
-        });
-      });
-
       const reversedMap = new Map<string, Set<string>>();
       update.forEach((v, k) =>
         reversedMap.set(v, (reversedMap.get(v) || new Set()).add(k))
@@ -37,31 +30,26 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
         .filter((l) => l.block)
         .flatMap((l) => {
           const endpoints = [...(reversedMap.get(l.label) || new Set())];
-          const toDelete = endpoints.filter((e) =>
+          return endpoints.filter((e) =>
             e.startsWith(`${l.uniqueServiceName}\t${l.method}`)
           );
-          toDelete.forEach((e) => nameRemoved.add(e));
-          return toDelete;
         })
-        .forEach((l) => update.delete(l));
+        .forEach((l) => {
+          uniqueNames.add(l);
+          update.delete(l);
+        });
     }
 
     if (endpointDependencies) {
-      const uniqueNames = [
-        ...nameRemoved,
-        ...new Set(
-          endpointDependencies
-            .toJSON()
-            .flatMap((d) =>
-              [...d.dependingBy, ...d.dependingOn, d].map(
-                (dep) => dep.endpoint.uniqueEndpointName
-              )
-            )
-        ),
-      ];
-      update = EndpointUtils.GuessAndMergeEndpoints(uniqueNames, update);
+      endpointDependencies
+        .toJSON()
+        .flatMap((d) => [...d.dependingBy, ...d.dependingOn, d])
+        .forEach((e) => uniqueNames.add(e.endpoint.uniqueEndpointName));
     }
 
+    if (uniqueNames.size > 0) {
+      update = EndpointUtils.GuessAndMergeEndpoints([...uniqueNames], update);
+    }
     super.setData(update);
   }
 

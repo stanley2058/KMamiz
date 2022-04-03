@@ -56,10 +56,33 @@ export default class ServiceUtils {
       labeledDependencies,
     } = this.getCaches();
 
+    const userDefinedLabels = userDefinedLabel.getData();
     const dataTypeData = dataType.getData();
     if (dataTypeData) {
+      let preprocessedMapping = new Map<string, string>();
+      if (userDefinedLabels) {
+        userDefinedLabels.labels.forEach((l) => {
+          if (l.block) return;
+          l.samples.forEach((s) => preprocessedMapping.set(s, l.label));
+        });
+      }
+      preprocessedMapping = EndpointUtils.GuessAndMergeEndpoints(
+        dataTypeData.map((dt) => dt.toJSON().uniqueEndpointName),
+        preprocessedMapping
+      );
+
+      const labelMap = EndpointUtils.CreateEndpointLabelMapping(
+        dataTypeData.filter(
+          (d) => !preprocessedMapping.has(d.toJSON().uniqueEndpointName)
+        )
+      );
+
+      [...preprocessedMapping.entries()].forEach(([ep, label]) =>
+        labelMap.set(ep, label)
+      );
+
       labelMapping.setData(
-        EndpointUtils.CreateEndpointLabelMapping(dataTypeData),
+        labelMap,
         userDefinedLabel.getData(),
         dependencies.getData()
       );
