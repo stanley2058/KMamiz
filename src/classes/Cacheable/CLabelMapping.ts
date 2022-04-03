@@ -20,6 +20,7 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
     userDefinedLabels?: TEndpointLabel,
     endpointDependencies?: EndpointDependencies
   ): void {
+    const nameRemoved = new Set<string>();
     if (userDefinedLabels) {
       userDefinedLabels.labels.forEach((l) => {
         if (l.block) return;
@@ -32,19 +33,22 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
       update.forEach((v, k) =>
         reversedMap.set(v, (reversedMap.get(v) || new Set()).add(k))
       );
-      userDefinedLabels?.labels
+      userDefinedLabels.labels
         .filter((l) => l.block)
         .flatMap((l) => {
           const endpoints = [...(reversedMap.get(l.label) || new Set())];
-          return endpoints.filter((e) =>
+          const toDelete = endpoints.filter((e) =>
             e.startsWith(`${l.uniqueServiceName}\t${l.method}`)
           );
+          toDelete.forEach((e) => nameRemoved.add(e));
+          return toDelete;
         })
         .forEach((l) => update.delete(l));
     }
 
     if (endpointDependencies) {
       const uniqueNames = [
+        ...nameRemoved,
         ...new Set(
           endpointDependencies
             .toJSON()
