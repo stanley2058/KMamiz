@@ -19,7 +19,18 @@ export class EndpointDependencies {
   }
 
   toJSON() {
-    return this._dependencies;
+    return this._dependencies.map((dep) => {
+      if (dep._id) dep._id = undefined;
+      dep.dependingBy = dep.dependingBy.map((d) => {
+        delete (d as any)["_id"];
+        return d;
+      });
+      dep.dependingOn = dep.dependingOn.map((d) => {
+        delete (d as any)["_id"];
+        return d;
+      });
+      return dep;
+    });
   }
 
   trim() {
