@@ -129,7 +129,8 @@ export default class Initializer {
       Scheduler.getInstance().register(
         "realtime",
         GlobalSettings.RealtimeInterval,
-        () => ServiceOperator.getInstance().retrieveRealtimeDataExpr()
+        () => ServiceOperator.getInstance().retrieveRealtimeDataExpr(),
+        () => {}
       );
       Scheduler.getInstance().register(
         "dispatch",

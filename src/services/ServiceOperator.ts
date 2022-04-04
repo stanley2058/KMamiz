@@ -27,7 +27,21 @@ import Logger from "../utils/Logger";
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
   static getInstance = () => this.instance || (this.instance = new this());
-  private constructor() {}
+
+  private realtimeWorker: Worker;
+  private constructor() {
+    this.realtimeWorker = new Worker(
+      path.resolve(__dirname, "./worker/RealtimeWorker.js")
+    );
+    this.realtimeWorker.on("message", (res) => {
+      const { rlDataList, dependencies, dataType } = res;
+      ServiceOperator.getInstance().realtimeUpdateCache(
+        new CombinedRealtimeDataList(rlDataList),
+        new EndpointDependencies(dependencies),
+        (dataType as TEndpointDataType[]).map((dt) => new EndpointDataType(dt))
+      );
+    });
+  }
 
   private previousRealtimeTime = Date.now();
 
@@ -70,117 +84,19 @@ export default class ServiceOperator {
       .reset();
   }
 
-  retrieveRealtimeDataExpr() {
-    return new Promise<void>((resolve) => {
-      Logger.verbose("Running Realtime schedule in worker");
-      const lookBack =
-        Date.now() - ServiceOperator.getInstance().previousRealtimeTime;
-      ServiceOperator.getInstance().previousRealtimeTime = Date.now();
-      const existingDep = DataCache.getInstance()
-        .get<CEndpointDependencies>("EndpointDependencies")
-        .getData();
-
-      const worker = new Worker(
-        path.resolve(__dirname, "./worker/RealtimeWorker.js"),
-        {
-          workerData: {
-            lookBack,
-            existingDep: existingDep?.toJSON(),
-          },
-        } as any
-      );
-      worker.on("message", (res) => {
-        const { rlDataList, dependencies, dataType } = res;
-        ServiceOperator.getInstance().realtimeUpdateCache(
-          new CombinedRealtimeDataList(rlDataList),
-          new EndpointDependencies(dependencies),
-          (dataType as TEndpointDataType[]).map(
-            (dt) => new EndpointDataType(dt)
-          )
-        );
-        resolve();
-      });
-    });
-  }
-
-  async retrieveRealtimeData() {
-    // query traces from last job time to now
+  async retrieveRealtimeDataExpr() {
+    Logger.verbose("Running Realtime schedule in worker");
     const lookBack =
       Date.now() - ServiceOperator.getInstance().previousRealtimeTime;
     ServiceOperator.getInstance().previousRealtimeTime = Date.now();
-    const traces = new Traces(
-      await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-        lookBack,
-        Date.now(),
-        2500
-      )
-    );
-
-    // get namespaces from traces for querying envoy logs
-    const namespaces = traces.toRealTimeData().getContainingNamespaces();
-
-    // get all necessary envoy logs
-    const envoyLogs: EnvoyLogs[] = [];
-    const replicas: TReplicaCount[] =
-      await KubernetesService.getInstance().getReplicas(namespaces);
-    for (const ns of namespaces) {
-      for (const podName of await KubernetesService.getInstance().getPodNames(
-        ns
-      )) {
-        envoyLogs.push(
-          await KubernetesService.getInstance().getEnvoyLogs(ns, podName)
-        );
-      }
-    }
-
-    const data = traces.combineLogsToRealtimeData(
-      EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs),
-      replicas
-    );
-
-    // dispatch data aggregation asynchronously
-    ServiceOperator.getInstance().doBackgroundDataAggregation(
-      traces,
-      data.toCombinedRealtimeData()
-    );
-  }
-
-  private async doBackgroundDataAggregation(
-    traces: Traces,
-    data: CombinedRealtimeDataList
-  ) {
     const existingDep = DataCache.getInstance()
       .get<CEndpointDependencies>("EndpointDependencies")
       .getData();
-    const newDep = traces.toEndpointDependencies();
-    const dep = existingDep ? existingDep.combineWith(newDep) : newDep;
 
-    DataCache.getInstance()
-      .get<CCombinedRealtimeData>("CombinedRealtimeData")
-      .setData(data);
-    DataCache.getInstance()
-      .get<CEndpointDependencies>("EndpointDependencies")
-      .setData(dep);
-
-    KubernetesService.getInstance()
-      .getReplicas(
-        DataCache.getInstance()
-          .get<CCombinedRealtimeData>("CombinedRealtimeData")
-          .getData()
-          ?.getContainingNamespaces()
-      )
-      .then((r) =>
-        DataCache.getInstance().get<CReplicas>("ReplicaCounts").setData(r)
-      );
-
-    DataCache.getInstance()
-      .get<CEndpointDataType>("EndpointDataType")
-      .setData(data.extractEndpointDataType());
-
-    ServiceUtils.getInstance().updateLabel();
-    DataCache.getInstance()
-      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
-      .setData(dep);
+    ServiceOperator.getInstance().realtimeWorker.postMessage({
+      lookBack,
+      existingDep: existingDep?.toJSON(),
+    });
   }
 
   private realtimeUpdateCache(

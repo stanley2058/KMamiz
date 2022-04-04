@@ -1,4 +1,4 @@
-import { parentPort, workerData } from "worker_threads";
+import { parentPort } from "worker_threads";
 import { EndpointDependencies } from "../../classes/EndpointDependencies";
 import { EnvoyLogs } from "../../classes/EnvoyLog";
 import { Traces } from "../../classes/Traces";
@@ -6,10 +6,10 @@ import { TReplicaCount } from "../../entities/TReplicaCount";
 import KubernetesService from "../KubernetesService";
 import ZipkinService from "../ZipkinService";
 
-async function CreateRealtimeData() {
+parentPort?.on("message", async ({ lookBack, existingDep }) => {
   const traces = new Traces(
     await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
-      workerData.lookBack,
+      lookBack,
       Date.now(),
       2500
     )
@@ -37,7 +37,6 @@ async function CreateRealtimeData() {
     replicas
   );
 
-  const { existingDep } = workerData;
   const newDep = traces.toEndpointDependencies();
   const dep: EndpointDependencies = existingDep
     ? new EndpointDependencies(existingDep).combineWith(newDep)
@@ -45,13 +44,10 @@ async function CreateRealtimeData() {
   const cbData = data.toCombinedRealtimeData();
   const dataType = cbData.extractEndpointDataType();
 
-  return {
+  const res = {
     rlDataList: cbData.toJSON(),
     dependencies: dep.toJSON(),
     dataType: dataType.map((d) => d.toJSON()),
   };
-}
-
-CreateRealtimeData().then((res) => {
   parentPort?.postMessage(res);
 });
