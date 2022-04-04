@@ -39,7 +39,7 @@ export default class CombinedRealtimeDataList {
     return [...dateMapping.entries()].map(
       ([time, dailyData]): THistoricalData => {
         const risks = RiskAnalyzer.RealtimeRisk(
-          new CombinedRealtimeDataList(dailyData).toRealtimeDataForm(),
+          new CombinedRealtimeDataList(dailyData).toJSON(),
           serviceDependencies,
           replicas
         );
@@ -88,9 +88,9 @@ export default class CombinedRealtimeDataList {
         }, 0);
 
         return {
-          latencyCV: RiskAnalyzer.CoefficientOfVariation(
-            r.flatMap((rl) => rl.latencies)
-          ),
+          latencyCV: r.reduce((prev, curr) =>
+            prev.latency.cv > curr.latency.cv ? prev : curr
+          ).latency.cv,
           method: method as TRequestTypeUpper,
           requestErrors,
           requests,
@@ -131,9 +131,9 @@ export default class CombinedRealtimeDataList {
           requests,
           requestErrors,
           serverErrors,
-          latencyCV: RiskAnalyzer.CoefficientOfVariation(
-            r.flatMap((r) => r.latencies)
-          ),
+          latencyCV: r.reduce((prev, curr) =>
+            prev.latency.cv > curr.latency.cv ? prev : curr
+          ).latency.cv,
           uniqueServiceName,
           risk: risks.find(
             (rsk) => rsk.uniqueServiceName === uniqueServiceName
@@ -294,29 +294,6 @@ export default class CombinedRealtimeDataList {
       .map((e) => new EndpointDataType(e));
   }
 
-  toRealtimeDataForm() {
-    return this._combinedRealtimeData.flatMap((r): TRealtimeData[] => {
-      return r.latencies.map((l): TRealtimeData => {
-        return {
-          uniqueServiceName: r.uniqueServiceName,
-          uniqueEndpointName: r.uniqueEndpointName,
-          service: r.service,
-          namespace: r.namespace,
-          version: r.version,
-          latency: l,
-          method: r.method,
-          status: r.status,
-          timestamp: r.latestTimestamp,
-          replica: r.avgReplica,
-          requestBody: JSON.stringify(r.requestBody),
-          requestContentType: r.requestContentType,
-          responseBody: JSON.stringify(r.responseBody),
-          responseContentType: r.responseContentType,
-        };
-      });
-    });
-  }
-
   combineWith(rlData: CombinedRealtimeDataList) {
     const uniqueNameMap = new Map<string, TCombinedRealtimeData[]>();
     this._combinedRealtimeData
@@ -345,7 +322,6 @@ export default class CombinedRealtimeDataList {
         const combined = group.reduce((prev, curr) => {
           if (prev.avgReplica && curr.avgReplica)
             prev.avgReplica += curr.avgReplica;
-          prev.avgLatency += curr.avgLatency;
           prev.latestTimestamp =
             prev.latestTimestamp > curr.latestTimestamp
               ? prev.latestTimestamp
@@ -362,15 +338,31 @@ export default class CombinedRealtimeDataList {
           return prev;
         });
 
+        let { latencyMean, latencyDivBase } = group.reduce(
+          (prev, curr) => {
+            prev.latencyMean += curr.latency.mean * curr.combined;
+            prev.latencyDivBase += curr.latency.divBase;
+            return prev;
+          },
+          { latencyMean: 0, latencyDivBase: 0 }
+        );
+        latencyMean /= baseSample.combined;
+
         return {
           ...baseSample,
-          avgLatency: combined.avgLatency / group.length,
           latestTimestamp: combined.latestTimestamp,
           requestBody: combined.requestBody,
           requestSchema: combined.requestSchema,
           responseBody: combined.responseBody,
           responseSchema: combined.responseSchema,
-          latencies: group.flatMap((r) => r.latencies),
+          latency: {
+            mean: latencyMean,
+            divBase: latencyDivBase,
+            cv:
+              Math.sqrt(
+                latencyDivBase / baseSample.combined - Math.pow(latencyMean, 2)
+              ) / latencyMean,
+          },
         };
       }
     );

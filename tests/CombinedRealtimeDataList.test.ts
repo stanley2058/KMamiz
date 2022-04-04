@@ -34,12 +34,6 @@ describe("CombinedRealtimeDataList", () => {
     expect(dataType).toEqual(MockEndpointDataType);
   });
 
-  it("converts back into RealtimeData", () => {
-    const data = new CombinedRealtimeDataList(MockBaseCrlData1);
-    const rlData = data.toRealtimeDataForm();
-    expect(rlData).toEqual(MockBaseRlData1);
-  });
-
   it("combines with another list", () => {
     const data1 = new CombinedRealtimeDataList(MockBaseCrlData1);
     const data2 = new CombinedRealtimeDataList(MockBaseCrlData2);

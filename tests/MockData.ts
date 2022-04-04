@@ -4437,6 +4437,10 @@ const MockBaseRlData1: TRealtimeData[] = [
   },
 ];
 
+const divBaseData1 = [100, 120, 80, 100, 120, 80, 120, 80, 120, 80].reduce(
+  (prev, curr) => prev + Math.pow(curr, 2),
+  0
+);
 const MockBaseCrlData1: TCombinedRealtimeData[] = [
   {
     service: Service,
@@ -4444,8 +4448,11 @@ const MockBaseCrlData1: TCombinedRealtimeData[] = [
     version: Version,
     latestTimestamp: Yesterday * 1000,
     combined: 10,
-    latencies: [100, 120, 80, 100, 120, 80, 120, 80, 120, 80],
-    avgLatency: 100,
+    latency: {
+      mean: 100,
+      divBase: divBaseData1,
+      cv: Math.sqrt(divBaseData1 / 10 - Math.pow(100, 2)) / 100,
+    },
     method: Method,
     status: Status,
     uniqueServiceName: UniqueServiceName,
@@ -4459,6 +4466,10 @@ const MockBaseCrlData1: TCombinedRealtimeData[] = [
     responseSchema: Utils.ObjectToInterfaceString({ name: "string" }),
   },
 ];
+const divBaseData2 = [150, 170, 130, 130, 170, 150, 120, 180, 120, 180].reduce(
+  (prev, curr) => prev + Math.pow(curr, 2),
+  0
+);
 const MockBaseCrlData2: TCombinedRealtimeData[] = [
   {
     service: Service,
@@ -4466,8 +4477,11 @@ const MockBaseCrlData2: TCombinedRealtimeData[] = [
     version: Version,
     latestTimestamp: Today * 1000,
     combined: 10,
-    latencies: [150, 170, 130, 130, 170, 150, 120, 180, 120, 180],
-    avgLatency: 150,
+    latency: {
+      mean: 150,
+      divBase: divBaseData2,
+      cv: Math.sqrt(divBaseData2 / 10 - Math.pow(150, 2)) / 150,
+    },
     method: Method,
     status: Status,
     uniqueServiceName: UniqueServiceName,
@@ -4481,6 +4495,10 @@ const MockBaseCrlData2: TCombinedRealtimeData[] = [
     responseSchema: Utils.ObjectToInterfaceString({ name: "string" }),
   },
 ];
+const divBaseBaseData = [
+  100, 120, 80, 100, 120, 80, 120, 80, 120, 80, 150, 170, 130, 130, 170, 150,
+  120, 180, 120, 180,
+].reduce((prev, curr) => prev + Math.pow(curr, 2), 0);
 const MockCombinedBaseData: TCombinedRealtimeData[] = [
   {
     uniqueEndpointName: UniqueEndpointName,
@@ -4493,16 +4511,16 @@ const MockCombinedBaseData: TCombinedRealtimeData[] = [
     combined: 20,
     requestContentType: "application/json",
     responseContentType: "application/json",
-    avgLatency: 125,
     latestTimestamp: Today * 1000,
     requestBody: { name: "test request" },
     requestSchema: Utils.ObjectToInterfaceString({ name: "string" }),
     responseBody: { name: "test response" },
     responseSchema: Utils.ObjectToInterfaceString({ name: "string" }),
-    latencies: [
-      100, 120, 80, 100, 120, 80, 120, 80, 120, 80, 150, 170, 130, 130, 170,
-      150, 120, 180, 120, 180,
-    ],
+    latency: {
+      mean: 125,
+      divBase: divBaseBaseData,
+      cv: Math.sqrt(divBaseBaseData / 20 - Math.pow(125, 2)) / 125,
+    },
   },
 ];
 const MockReplicas: TReplicaCount[] = [

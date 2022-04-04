@@ -9,8 +9,11 @@ export const CombinedRealtimeDataSchema = new Schema<TCombinedRealtimeData>({
   service: { type: String, required: true },
   namespace: { type: String, required: true },
   version: { type: String, required: true },
-  avgLatency: { type: Number, required: true },
-  latencies: [{ type: Number, required: true }],
+  latency: {
+    mean: { type: Number, required: true },
+    divBase: { type: Number, required: true },
+    cv: { type: Number, required: true },
+  },
   status: { type: String, required: true },
   combined: { type: Number, required: true },
   responseBody: { type: Schema.Types.Mixed },

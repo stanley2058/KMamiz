@@ -1,4 +1,4 @@
-import { TRealtimeData } from "../entities/TRealtimeData";
+import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import { TRiskResult } from "../entities/TRiskResult";
 import { TServiceDependency } from "../entities/TServiceDependency";
@@ -8,7 +8,7 @@ export default class RiskAnalyzer {
   private static readonly MINIMUM_PROB = 0.01;
 
   static RealtimeRisk(
-    data: TRealtimeData[],
+    data: TCombinedRealtimeData[],
     dependencies: TServiceDependency[],
     replicas: TReplicaCount[]
   ): TRiskResult[] {
@@ -84,7 +84,7 @@ export default class RiskAnalyzer {
     return rawImpact.map((i, iIndex) => ({ ...i, impact: normImpact[iIndex] }));
   }
 
-  static Probability(data: TRealtimeData[]) {
+  static Probability(data: TCombinedRealtimeData[]) {
     const reliabilityMetric = this.ReliabilityMetric(data);
     const rawInvokeProbabilityAndErrorRate =
       this.InvokeProbabilityAndErrorRate(data);
@@ -172,7 +172,7 @@ export default class RiskAnalyzer {
   }
 
   static InvokeProbabilityAndErrorRate(
-    data: TRealtimeData[],
+    data: TCombinedRealtimeData[],
     includeRequestError: boolean = false
   ) {
     const invokedCounts = data
@@ -212,7 +212,7 @@ export default class RiskAnalyzer {
     return invokeProbability;
   }
 
-  static ReliabilityMetric(data: TRealtimeData[]) {
+  static ReliabilityMetric(data: TCombinedRealtimeData[]) {
     const reliabilityMetric = this.GetWorseLatencyCVOfServices(data);
 
     const normalizedMetrics = Normalizer.Numbers(
@@ -226,35 +226,19 @@ export default class RiskAnalyzer {
     }));
   }
 
-  static GetWorseLatencyCVOfServices(serviceData: TRealtimeData[]) {
-    const latencyMap = serviceData.reduce((acc, cur) => {
-      const uniqueName = cur.uniqueEndpointName;
-      acc.set(uniqueName, (acc.get(uniqueName) || []).concat(cur.latency));
-      return acc;
-    }, new Map<string, number[]>());
-
-    const serviceLatencyMap = [...latencyMap.entries()].reduce(
-      (acc, [uniqueName, latencies]) => {
-        const [service, namespace, version] = uniqueName.split("\t");
-        const serviceName = `${service}\t${namespace}\t${version}`;
-        acc.set(
-          serviceName,
-          Math.max(
-            acc.get(serviceName) || 0,
-            this.CoefficientOfVariation(latencies)
-          )
-        );
-        return acc;
-      },
-      new Map<string, number>()
-    );
-
-    return [...serviceLatencyMap.entries()].map(
-      ([uniqueServiceName, metric]) => ({
-        uniqueServiceName,
-        metric,
-      })
-    );
+  static GetWorseLatencyCVOfServices(serviceData: TCombinedRealtimeData[]) {
+    const latencyMap = new Map<string, number>();
+    serviceData.forEach((rl) => {
+      const existing = latencyMap.get(rl.uniqueServiceName) || 0;
+      latencyMap.set(
+        rl.uniqueServiceName,
+        existing > rl.latency.cv ? existing : rl.latency.cv
+      );
+    });
+    return [...latencyMap.entries()].map(([uniqueServiceName, metric]) => ({
+      uniqueServiceName,
+      metric,
+    }));
   }
 
   static CoefficientOfVariation(input: number[]) {

@@ -15,7 +15,6 @@ import { CReplicas } from "../classes/Cacheable/CReplicas";
 import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
 import GlobalSettings from "../GlobalSettings";
 import MongoOperator from "../services/MongoOperator";
-import { CacheableNames } from "../classes/Cacheable";
 import { tgz } from "compressing";
 import Logger from "../utils/Logger";
 import DispatchStorage from "../services/DispatchStorage";

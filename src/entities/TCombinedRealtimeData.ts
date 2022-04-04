@@ -10,8 +10,11 @@ export type TCombinedRealtimeData = {
   service: string;
   namespace: string;
   version: string;
-  avgLatency: number;
-  latencies: number[];
+  latency: {
+    mean: number;
+    divBase: number;
+    cv: number;
+  };
   status: string;
   combined: number;
   responseBody?: any;
