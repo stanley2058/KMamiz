@@ -18,6 +18,11 @@ import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
 import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 import ServiceUtils from "./ServiceUtils";
+import EndpointDataType from "../classes/EndpointDataType";
+import { Worker } from "worker_threads";
+import path from "path";
+import { TEndpointDataType } from "../entities/TEndpointDataType";
+import Logger from "../utils/Logger";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -63,6 +68,39 @@ export default class ServiceOperator {
     DataCache.getInstance()
       .get<CCombinedRealtimeData>("CombinedRealtimeData")
       .reset();
+  }
+
+  retrieveRealtimeDataExpr() {
+    return new Promise<void>((resolve) => {
+      Logger.verbose("Running Realtime schedule in worker");
+      const lookBack =
+        Date.now() - ServiceOperator.getInstance().previousRealtimeTime;
+      ServiceOperator.getInstance().previousRealtimeTime = Date.now();
+      const existingDep = DataCache.getInstance()
+        .get<CEndpointDependencies>("EndpointDependencies")
+        .getData();
+
+      const worker = new Worker(
+        path.resolve(__dirname, "./worker/RealtimeWorker.js"),
+        {
+          workerData: {
+            lookBack,
+            existingDep: existingDep?.toJSON(),
+          },
+        } as any
+      );
+      worker.on("message", (res) => {
+        const { rlDataList, dependencies, dataType } = res;
+        ServiceOperator.getInstance().realtimeUpdateCache(
+          new CombinedRealtimeDataList(rlDataList),
+          new EndpointDependencies(dependencies),
+          (dataType as TEndpointDataType[]).map(
+            (dt) => new EndpointDataType(dt)
+          )
+        );
+        resolve();
+      });
+    });
   }
 
   async retrieveRealtimeData() {
@@ -138,6 +176,38 @@ export default class ServiceOperator {
     DataCache.getInstance()
       .get<CEndpointDataType>("EndpointDataType")
       .setData(data.extractEndpointDataType());
+
+    ServiceUtils.getInstance().updateLabel();
+    DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .setData(dep);
+  }
+
+  private realtimeUpdateCache(
+    data: CombinedRealtimeDataList,
+    dep: EndpointDependencies,
+    dataType: EndpointDataType[]
+  ) {
+    DataCache.getInstance()
+      .get<CCombinedRealtimeData>("CombinedRealtimeData")
+      .setData(data);
+    DataCache.getInstance()
+      .get<CEndpointDependencies>("EndpointDependencies")
+      .setData(dep);
+
+    const namespaces = DataCache.getInstance()
+      .get<CCombinedRealtimeData>("CombinedRealtimeData")
+      .getData()
+      ?.getContainingNamespaces();
+    KubernetesService.getInstance()
+      .getReplicas(namespaces)
+      .then((r) =>
+        DataCache.getInstance().get<CReplicas>("ReplicaCounts").setData(r)
+      );
+
+    DataCache.getInstance()
+      .get<CEndpointDataType>("EndpointDataType")
+      .setData(dataType);
 
     ServiceUtils.getInstance().updateLabel();
     DataCache.getInstance()

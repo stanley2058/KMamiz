@@ -24,4 +24,5 @@ ENV NODE_ENV=production
 RUN ["npm", "i"]
 COPY --from=build /kmamiz/dist .
 COPY --from=web /kmamiz-web/dist dist
+COPY ./src/services/worker/*.js ./src/services/worker/
 CMD ["node", "index.js"]
