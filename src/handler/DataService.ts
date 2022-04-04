@@ -261,6 +261,14 @@ export default class DataService extends IRequestHandler {
 
     await MongoOperator.getInstance().clearDatabase();
 
+    // fix Date being converted into string
+    const dataType = importData.find(
+      ([name]) => name === "EndpointDataType"
+    )![1];
+    dataType.forEach((dt: any) =>
+      dt.schemas.forEach((s: any) => (s.time = new Date(s.time)))
+    );
+
     DataCache.getInstance().import(importData);
 
     const [, aggregatedData] =
