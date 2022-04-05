@@ -39,6 +39,7 @@ export default class DispatchStorage {
   async syncAll() {
     await DispatchStorage.getInstance().waitUntilUnlock();
     DispatchStorage.getInstance()._lock = true;
+    Logger.info("Syncing all caches to database");
 
     for (const sync of DispatchStorage.getInstance().syncStrategies) {
       await sync.syncFunc();

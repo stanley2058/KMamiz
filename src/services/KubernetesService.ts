@@ -139,13 +139,14 @@ export default class KubernetesService {
   }
 
   async forceKMamizSync() {
-    const client = new Axios();
+    const client = new Axios({
+      baseURL: `http://kmamiz.${this.currentNamespace}.svc:${GlobalSettings.ServicePort}`,
+    });
     try {
-      const res = await client.post(
-        `http://kmamiz.${this.currentNamespace}:${GlobalSettings.ServicePort}/api/v${GlobalSettings.ApiVersion}/data/sync`
-      );
+      const syncPath = `/api/v${GlobalSettings.ApiVersion}/data/sync`;
+      const res = await client.post(syncPath);
       if (res.status === 200) {
-        Logger.verbose("Signaled existing instance to sync to database.");
+        Logger.verbose("Notified existing instance to sync.");
       }
     } catch (err) {}
   }

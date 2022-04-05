@@ -47,7 +47,7 @@ export default class ServiceUtils {
   }
 
   updateLabel() {
-    Logger.verbose("Updating label mapping.");
+    Logger.verbose("Updating label mapping");
     const {
       dataType,
       labelMapping,

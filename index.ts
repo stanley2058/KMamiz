@@ -75,7 +75,6 @@ app.get("*", (_, res) =>
       Logger.info("Received termination signal, execute teardown procedures.");
 
       if (!GlobalSettings.ReadOnlyMode) {
-        Logger.info("Syncing to database.");
         await DispatchStorage.getInstance().syncAll();
       } else {
         Logger.info("Readonly mode enabled, skipping teardown.");
