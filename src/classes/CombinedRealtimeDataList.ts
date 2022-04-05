@@ -137,7 +137,7 @@ export default class CombinedRealtimeDataList {
           uniqueServiceName,
           risk: risks.find(
             (rsk) => rsk.uniqueServiceName === uniqueServiceName
-          )!.risk,
+          )!.norm,
         };
       }
     );
