@@ -11,6 +11,7 @@ import exitHook from "async-exit-hook";
 import DispatchStorage from "./src/services/DispatchStorage";
 import { CCombinedRealtimeData } from "./src/classes/Cacheable/CCombinedRealtimeData";
 import path from "path";
+import KubernetesService from "./src/services/KubernetesService";
 
 Logger.setGlobalLogLevel(GlobalSettings.LogLevel);
 Logger.verbose("Configuration loaded:");
@@ -39,6 +40,10 @@ app.get("*", (_, res) =>
 );
 
 (async () => {
+  if (GlobalSettings.IsRunningInKubernetes) {
+    await KubernetesService.getInstance().forceKMamizSync();
+  }
+
   const aggregatedData = await MongoOperator.getInstance().getAggregatedData();
 
   if (GlobalSettings.ResetEndpointDependencies) {

@@ -19,6 +19,8 @@ spec:
           env:
             - name: PORT
               value: "3000"
+            - name: SERVICE_PORT # this needs to match port set in Service
+              value: "80"
             - name: MONGODB_URI
               value: "{your-mongodb-uri}"
             - name: ZIPKIN_URL

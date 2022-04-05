@@ -17,24 +17,27 @@ export default class KubernetesService {
 
   private DEFAULT_LOG_LIMIT = 10000;
 
+  private readonly serviceAccount =
+    "/var/run/secrets/kubernetes.io/serviceaccount";
   private kubeApiHost: string;
   private logClient!: Axios;
+  private currentNamespace: string = "";
   private constructor() {
     const config: AxiosRequestConfig<any> = {};
     if (GlobalSettings.IsRunningInKubernetes) {
       try {
-        const token = readFileSync(
-          "/var/run/secrets/kubernetes.io/serviceaccount/token"
-        ).toString();
+        const token = readFileSync(`${this.serviceAccount}/token`).toString();
         if (!token) throw new Error("token is empty");
         config.headers = {
           Authorization: `Bearer ${token}`,
         };
         config.httpsAgent = new Agent({
-          ca: readFileSync(
-            "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-          ),
+          ca: readFileSync(`${this.serviceAccount}/ca.crt`),
         });
+
+        this.currentNamespace = readFileSync(
+          `${this.serviceAccount}/namespace`
+        ).toString();
       } catch (err) {
         Logger.fatal(
           "Cannot retrieve authorization token for Kubernetes API server.",
@@ -133,6 +136,18 @@ export default class KubernetesService {
     return data.items.map(
       (namespace: any) => namespace.metadata.name
     ) as string[];
+  }
+
+  async forceKMamizSync() {
+    const client = new Axios();
+    try {
+      const res = await client.post(
+        `http://kmamiz.${this.currentNamespace}:${GlobalSettings.ServicePort}/api/v${GlobalSettings.ApiVersion}/data/sync`
+      );
+      if (res.status === 200) {
+        Logger.verbose("Signaled existing instance to sync to database.");
+      }
+    } catch (err) {}
   }
 
   async getEnvoyLogs(

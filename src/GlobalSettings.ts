@@ -17,6 +17,7 @@ type Settings = {
   ResetEndpointDependencies: boolean;
   ReadOnlyMode: boolean;
   EnableTestingEndpoints: boolean;
+  ServicePort: string;
 };
 
 const {
@@ -37,6 +38,7 @@ const {
   RESET_ENDPOINT_DEPENDENCIES,
   READ_ONLY_MODE,
   ENABLE_TESTING_ENDPOINTS,
+  SERVICE_PORT,
 } = process.env;
 
 const GlobalSettings: Settings = {
@@ -60,6 +62,7 @@ const GlobalSettings: Settings = {
   ResetEndpointDependencies: RESET_ENDPOINT_DEPENDENCIES === "true",
   ReadOnlyMode: READ_ONLY_MODE === "true",
   EnableTestingEndpoints: ENABLE_TESTING_ENDPOINTS === "true",
+  ServicePort: SERVICE_PORT || PORT || "3000",
 };
 
 if (
