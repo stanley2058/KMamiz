@@ -5,4 +5,4 @@ docker run --rm \
   -e "GOPATH=/go" \
   tinygo/tinygo:0.22.0 sh -c "cd /src && tinygo build -o KMamizEnvoyFilter.wasm -scheduler=none -target=wasi ./main.go"
 
-docker build . -t kmamiz-wasm
+docker build . -t kmamiz-wasm-envoyfilter

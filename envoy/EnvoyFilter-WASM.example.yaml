@@ -26,11 +26,11 @@ spec:
 apiVersion: extensions.istio.io/v1alpha1
 kind: WasmPlugin
 metadata:
-  name: kmamiz-wasm
+  name: kmamiz-wasm-envoyfilter
   namespace: istio-system
 spec:
   selector:
     matchLabels:
       istio: ingressgateway
-  url: oci://{YOUR_REGISTRY}/kmamiz-wasm:latest
+  url: oci://{YOUR_REGISTRY}/kmamiz-wasm-envoyfilter:latest
   phase: AUTHN
