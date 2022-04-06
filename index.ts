@@ -34,6 +34,7 @@ app.use(compression());
 app.use(Routes.getInstance().getRoutes());
 
 // serve SPA webpage
+app.use("/wasm", express.static("wasm"));
 app.use(express.static("dist"));
 app.get("*", (_, res) =>
   res.sendFile(path.resolve(__dirname, "dist/index.html"))

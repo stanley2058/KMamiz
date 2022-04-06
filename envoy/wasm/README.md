@@ -4,14 +4,7 @@
 
 ## Deployment
 
-1. Run the `build.sh`, the script will build a docker image named `kmamiz-wasm-envoyfilter`.
-2. Tag it and push to your registry.
-
-```bash
-YOUR_REGISTRY=
-docker tag kmamiz-wasm-envoyfilter $YOUR_REGISTRY/kmamiz-wasm-envoyfilter
-docker push $YOUR_REGISTRY/kmamiz-wasm-envoyfilter
-```
+1. Run the `build.sh` first then build KMamiz, the `KMamizEnvoyFilter.wasm` file will be exposed on `/wasm/KMamizEnvoyFilter.wasm`.
 
 ## Development
 

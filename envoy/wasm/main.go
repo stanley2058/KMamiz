@@ -49,32 +49,48 @@ type kMamizFilterContext struct {
 	isResJson             bool
 }
 
+func (ctx *kMamizFilterContext) OnHttpStreamDone() {
+	if ctx.reqOutput != "" {
+		proxywasm.LogWarn(ctx.reqOutput)
+		proxywasm.LogInfo(ctx.reqOutput)
+	}
+	if ctx.resOutput != "" {
+		proxywasm.LogWarn(ctx.resOutput)
+		proxywasm.LogInfo(ctx.resOutput)
+	}
+}
+
 func (ctx *kMamizFilterContext) OnHttpRequestHeaders(numHeaders int, _ bool) types.Action {
 	headers, err := proxywasm.GetHttpRequestHeaders()
 	if err != nil {
+		proxywasm.LogError("no request headers")
 		return types.ActionContinue
 	}
-	output, isJson := createLogInfo("Request", headers)
-	ctx.reqOutput = output
-	ctx.isReqJson = isJson
-
+	output, isJson, isTarget := createLogInfo(0, &headers)
+	if isTarget {
+		ctx.reqOutput = output
+		ctx.isReqJson = isJson
+	}
 	return types.ActionContinue
 }
 
 func (ctx *kMamizFilterContext) OnHttpResponseHeaders(numHeaders int, _ bool) types.Action {
 	headers, err := proxywasm.GetHttpResponseHeaders()
 	if err != nil {
+		proxywasm.LogError("no response headers")
 		return types.ActionContinue
 	}
-	output, isJson := createLogInfo("Response", headers)
-	ctx.resOutput = output
-	ctx.isResJson = isJson
-
+	output, isJson, isTarget := createLogInfo(1, &headers)
+	if isTarget {
+		ctx.resOutput = output
+		ctx.isResJson = isJson
+	}
 	return types.ActionContinue
 }
 
 func (ctx *kMamizFilterContext) OnHttpRequestBody(bodySize int, endOfStream bool) types.Action {
 	if ctx.reqOutput == "" {
+		proxywasm.LogError("no request output")
 		return types.ActionContinue
 	}
 
@@ -94,13 +110,14 @@ func (ctx *kMamizFilterContext) OnHttpRequestBody(bodySize int, endOfStream bool
 
 		ctx.reqOutput += " [Body] " + parseObject(gjson.ParseBytes(originalBody))
 	}
-
-	proxywasm.LogInfo(ctx.reqOutput)
-	proxywasm.LogWarn(ctx.reqOutput)
 	return types.ActionContinue
 }
 
 func (ctx *kMamizFilterContext) OnHttpResponseBody(bodySize int, endOfStream bool) types.Action {
+	if ctx.resOutput == "" {
+		return types.ActionContinue
+	}
+
 	ctx.totalResponseBodySize += bodySize
 	if !endOfStream {
 		// Wait until we see the entire body to replace.
@@ -117,32 +134,30 @@ func (ctx *kMamizFilterContext) OnHttpResponseBody(bodySize int, endOfStream boo
 
 		ctx.resOutput += " [Body] " + parseObject(gjson.ParseBytes(originalBody))
 	}
-
-	proxywasm.LogInfo(ctx.resOutput)
-	proxywasm.LogWarn(ctx.resOutput)
 	return types.ActionContinue
 }
 
-func createLogInfo(direction string, headers [][2]string) (string, bool) {
-	headerMap := map[string]string{}
-	headerMap["content-type"] = ""
-	headerMap["host"] = ""
-	headerMap[":path"] = ""
-	headerMap[":status"] = ""
-	headerMap[":method"] = ""
-	headerMap["x-request-id"] = "NO_ID"
-	headerMap["x-b3-traceid"] = "NO_ID"
-	headerMap["x-b3-spanid"] = "NO_ID"
-	headerMap["x-b3-parentspanid"] = "NO_ID"
+func createLogInfo(direction int, headers *[][2]string) (string, bool, bool) {
+	headerMap := map[string]string{
+		"content-type":      "",
+		"host":              "",
+		":path":             "",
+		":status":           "",
+		":method":           "",
+		"x-request-id":      "NO_ID",
+		"x-b3-traceid":      "NO_ID",
+		"x-b3-spanid":       "NO_ID",
+		"x-b3-parentspanid": "NO_ID",
+	}
 
-	for _, header := range headers {
+	for _, header := range *headers {
 		headerMap[header[0]] = header[1]
 	}
 
 	output := ""
-	if direction == "Request" {
+	if direction == 0 {
 		output = fmt.Sprintf("[%s %s/%s/%s/%s] [%s %s%s]",
-			direction,
+			"Request",
 			headerMap["x-request-id"],
 			headerMap["x-b3-traceid"],
 			headerMap["x-b3-spanid"],
@@ -154,19 +169,19 @@ func createLogInfo(direction string, headers [][2]string) (string, bool) {
 	} else {
 		output = fmt.Sprintf(
 			"[%s %s/%s/%s/%s] [Status] %s",
-			direction,
+			"Response",
 			headerMap["x-request-id"],
 			headerMap["x-b3-traceid"],
 			headerMap["x-b3-spanid"],
 			headerMap["x-b3-parentspanid"],
-			headerMap["status"],
+			headerMap[":status"],
 		)
 	}
 
 	if headerMap["content-type"] != "" {
 		output += " [ContentType " + headerMap["content-type"] + "]"
 	}
-	return output, headerMap["content-type"] == "application/json"
+	return output, headerMap["content-type"] == "application/json", headerMap["x-b3-traceid"] != "NO_ID"
 }
 
 func parseObject(object gjson.Result) string {

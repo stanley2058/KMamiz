@@ -6,6 +6,45 @@ metadata:
     sidecar.istio.io/logLevel: info
 spec:
   configPatches:
+    - applyTo: EXTENSION_CONFIG
+      patch:
+        operation: ADD # REPLACE is also supported, and would override a cluster level resource with the same name.
+        value:
+          name: kmamiz-wasm-envoyfilter
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+            config:
+              root_id: kmamiz-wasm-envoyfilter
+              vm_config:
+                vm_id: kmamiz-wasm-envoyfilter
+                runtime: envoy.wasm.runtime.v8
+                code:
+                  remote:
+                    http_uri:
+                      # <-- change this if your configuration is different -->
+                      uri: http://kmamiz.kmamiz-system.svc:80/wasm/KMamizEnvoyFilter.wasm
+              configuration:
+                "@type": "type.googleapis.com/google.protobuf.StringValue"
+                value: |
+                  {}
+    # The second patch instructs to apply the above Wasm filter to the listener/http connection manager.
+    - applyTo: HTTP_FILTER
+      match:
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: kmamiz-wasm-envoyfilter # This must match the name above
+          config_discovery:
+            config_source:
+              ads: {}
+            type_urls:
+              ["type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm"]
     - applyTo: NETWORK_FILTER
       match:
         # context omitted so that this applies to both sidecars and gateways
@@ -20,15 +59,3 @@ spec:
           typed_config:
             "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager"
             always_set_request_id_in_response: true
----
-apiVersion: extensions.istio.io/v1alpha1
-kind: WasmPlugin
-metadata:
-  name: kmamiz-wasm-envoyfilter
-  namespace: istio-system
-spec:
-  selector:
-    matchLabels:
-      istio: ingressgateway
-  url: oci://{YOUR_REGISTRY}/kmamiz-wasm-envoyfilter:latest
-  phase: AUTHN

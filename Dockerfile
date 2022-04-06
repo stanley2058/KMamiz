@@ -25,4 +25,5 @@ RUN ["npm", "i"]
 COPY --from=build /kmamiz/dist .
 COPY --from=web /kmamiz-web/dist dist
 COPY ./src/services/worker/*.js ./src/services/worker/
+COPY ./envoy/wasm/*.wasm ./wasm/
 CMD ["node", "index.js"]

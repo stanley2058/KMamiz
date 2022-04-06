@@ -163,10 +163,12 @@ export default class KubernetesService {
     );
     const logs = data
       .split("\n")
-      .filter((line) => line.includes("script log: "))
+      .filter(
+        (line) => line.includes("script log: ") || line.includes("wasm log ")
+      )
       .map((line) =>
         line.replace(
-          /\twarning\tenvoy (lua|wasm)\t(script|wasm) log[^:]*:/,
+          /\twarning\tenvoy (lua|wasm)\t(script|wasm) log[^:]*: /,
           "\t"
         )
       );
