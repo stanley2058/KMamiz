@@ -6,22 +6,20 @@ metadata:
     sidecar.istio.io/logLevel: info
 spec:
   configPatches:
-    # The second patch instructs to apply the above Wasm filter to the listener/http connection manager.
-    - applyTo: HTTP_FILTER
+    - applyTo: NETWORK_FILTER
       match:
+        # context omitted so that this applies to both sidecars and gateways
         listener:
           filterChain:
             filter:
               name: "envoy.filters.network.http_connection_manager"
       patch:
-        operation: INSERT_BEFORE
-        value:
-          name: kmamiz-wasm-filter # This must match the name above
-          config_discovery:
-            config_source:
-              ads: {}
-            type_urls:
-              ["type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm"]
+        operation: MERGE
+        value: # lua filter specification
+          name: envoy.filters.network.http_connection_manager
+          typed_config:
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager"
+            always_set_request_id_in_response: true
 ---
 apiVersion: extensions.istio.io/v1alpha1
 kind: WasmPlugin
