@@ -166,7 +166,7 @@ export default class KubernetesService {
       .filter((line) => line.includes("script log: "))
       .map((line) =>
         line.replace(
-          `\t${GlobalSettings.EnvoyLogLevel}\tenvoy lua\tscript log: `,
+          /\twarning\tenvoy (lua|wasm)\t(script|wasm) log[^:]*:/,
           "\t"
         )
       );
