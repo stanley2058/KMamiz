@@ -2,7 +2,10 @@ import EndpointDataType from "../classes/EndpointDataType";
 import Utils from "./Utils";
 
 export default class EndpointUtils {
-  static CreateEndpointLabelMapping(dataTypes: EndpointDataType[]) {
+  static CreateEndpointLabelMapping(
+    dataTypes: EndpointDataType[],
+    matchingThreshold = 0.5
+  ) {
     const serviceMapping = new Map<string, EndpointDataType[]>();
     dataTypes.forEach((d) => {
       const s = d.toJSON().uniqueServiceName;
@@ -24,7 +27,14 @@ export default class EndpointUtils {
           const [, , basePath] = Utils.ExplodeUrl(baseUrl);
           const [, , cmpPath] = Utils.ExplodeUrl(cmpUrl);
 
-          if (!EndpointUtils.hasExactAmountOfToken(basePath, cmpPath)) {
+          if (
+            !EndpointUtils.hasExactAmountOfToken(basePath, cmpPath) ||
+            !EndpointUtils.hasMatchingTokenOf(
+              basePath,
+              cmpPath,
+              matchingThreshold
+            )
+          ) {
             return false;
           }
 
@@ -131,5 +141,21 @@ export default class EndpointUtils {
 
   private static hasExactAmountOfToken(pathA: string, pathB: string) {
     return pathA.split("/").length === pathB.split("/").length;
+  }
+
+  private static hasMatchingTokenOf(
+    pathA: string,
+    pathB: string,
+    percentage: number
+  ) {
+    const tokA = pathA.split("/");
+    const tokB = pathB.split("/");
+    const len = (tokA.length > tokB.length ? tokB : tokA).length;
+
+    let equalTokCount = 0;
+    for (let i = 0; i < len; i++) {
+      if (tokA[i] === tokB[i]) equalTokCount++;
+    }
+    return equalTokCount / len > percentage;
   }
 }
