@@ -110,7 +110,7 @@ export default class ServiceUtils {
     const dep = labeledDependencies.getData();
 
     if (!rlData || !dep) {
-      return this.polyfillHistoricalData(historicalData);
+      return this.fillInHistoricalData(historicalData);
     }
 
     const rlHistory = rlData.toHistoricalData(
@@ -118,7 +118,7 @@ export default class ServiceUtils {
       replicas.getData(),
       labelMapping.getData()
     );
-    return this.polyfillHistoricalData(historicalData.concat(rlHistory));
+    return this.fillInHistoricalData(historicalData.concat(rlHistory));
   }
 
   async getRealtimeAggregatedData(namespace?: string) {
@@ -153,8 +153,8 @@ export default class ServiceUtils {
     );
   }
 
-  private polyfillHistoricalData(historicalData: THistoricalData[]) {
-    const polyfill = (to: THistoricalData, from: THistoricalData) => {
+  private fillInHistoricalData(historicalData: THistoricalData[]) {
+    const fillIn = (to: THistoricalData, from: THistoricalData) => {
       const serviceSet = new Set<string>();
       to.services.forEach((s) => serviceSet.add(s.uniqueServiceName));
       const toAdd = from.services
@@ -166,10 +166,10 @@ export default class ServiceUtils {
     historicalData.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     for (let i = 1; i < historicalData.length; i++) {
-      polyfill(historicalData[i], historicalData[i - 1]);
+      fillIn(historicalData[i], historicalData[i - 1]);
     }
     for (let i = historicalData.length - 2; i >= 0; i--) {
-      polyfill(historicalData[i], historicalData[i + 1]);
+      fillIn(historicalData[i], historicalData[i + 1]);
     }
 
     return historicalData;
