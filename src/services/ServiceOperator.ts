@@ -29,12 +29,23 @@ export default class ServiceOperator {
   static getInstance = () => this.instance || (this.instance = new this());
 
   private realtimeWorker: Worker;
+  private workerLatencyMap: Map<string, number>;
   private constructor() {
+    this.workerLatencyMap = new Map();
     this.realtimeWorker = new Worker(
       path.resolve(__dirname, "./worker/RealtimeWorker.js")
     );
     this.realtimeWorker.on("message", (res) => {
-      const { rlDataList, dependencies, dataType } = res;
+      const { uniqueId, rlDataList, dependencies, dataType } = res;
+
+      const startTime = this.workerLatencyMap.get(uniqueId);
+      if (startTime) {
+        Logger.verbose(
+          `Realtime schedule [${uniqueId}] done, in ${Date.now() - startTime}ms`
+        );
+        this.workerLatencyMap.delete(uniqueId);
+      }
+
       ServiceOperator.getInstance().realtimeUpdateCache(
         new CombinedRealtimeDataList(rlDataList),
         new EndpointDependencies(dependencies),
@@ -85,7 +96,12 @@ export default class ServiceOperator {
   }
 
   async retrieveRealtimeDataExpr() {
-    Logger.verbose("Running Realtime schedule in worker");
+    const uniqueId = Math.floor(Math.random() * Math.pow(16, 4))
+      .toString(16)
+      .padStart(4, "0");
+    this.workerLatencyMap.set(uniqueId, Date.now());
+    Logger.verbose(`Running Realtime schedule in worker, [${uniqueId}]`);
+
     const lookBack =
       Date.now() - ServiceOperator.getInstance().previousRealtimeTime;
     ServiceOperator.getInstance().previousRealtimeTime = Date.now();
@@ -94,6 +110,7 @@ export default class ServiceOperator {
       .getData();
 
     ServiceOperator.getInstance().realtimeWorker.postMessage({
+      uniqueId,
       lookBack,
       existingDep: existingDep?.toJSON(),
     });

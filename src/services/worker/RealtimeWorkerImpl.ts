@@ -6,7 +6,7 @@ import { TReplicaCount } from "../../entities/TReplicaCount";
 import KubernetesService from "../KubernetesService";
 import ZipkinService from "../ZipkinService";
 
-parentPort?.on("message", async ({ lookBack, existingDep }) => {
+parentPort?.on("message", async ({ uniqueId, lookBack, existingDep }) => {
   const traces = new Traces(
     await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
       lookBack,
@@ -45,6 +45,7 @@ parentPort?.on("message", async ({ lookBack, existingDep }) => {
   const dataType = cbData.extractEndpointDataType();
 
   const res = {
+    uniqueId,
     rlDataList: cbData.toJSON(),
     dependencies: dep.toJSON(),
     dataType: dataType.map((d) => d.toJSON()),
