@@ -6,6 +6,10 @@ import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpo
 import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
 import { CReplicas } from "../classes/Cacheable/CReplicas";
 import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
+import {
+  THistoricalData,
+  THistoricalServiceInfo,
+} from "../entities/THistoricalData";
 import DataCache from "../services/DataCache";
 import MongoOperator from "../services/MongoOperator";
 import EndpointUtils from "../utils/EndpointUtils";
@@ -106,7 +110,7 @@ export default class ServiceUtils {
     const dep = labeledDependencies.getData();
 
     if (!rlData || !dep) {
-      return historicalData;
+      return this.polyfillHistoricalData(historicalData);
     }
 
     const rlHistory = rlData.toHistoricalData(
@@ -114,7 +118,7 @@ export default class ServiceUtils {
       replicas.getData(),
       labelMapping.getData()
     );
-    return historicalData.concat(rlHistory);
+    return this.polyfillHistoricalData(historicalData.concat(rlHistory));
   }
 
   async getRealtimeAggregatedData(namespace?: string) {
@@ -147,5 +151,52 @@ export default class ServiceUtils {
         .combine(rlAggregatedData)
         .toJSON()
     );
+  }
+
+  private polyfillHistoricalData(historicalData: THistoricalData[]) {
+    const polyfill = (to: THistoricalData, from: THistoricalData) => {
+      const serviceSet = new Set<string>();
+      to.services.forEach((s) => serviceSet.add(s.uniqueServiceName));
+      const toAdd = from.services
+        .filter((s) => !serviceSet.has(s.uniqueServiceName))
+        .map((s) => this.cleanHistoricalServiceInfo(to.date, s));
+      to.services = to.services.concat(toAdd);
+    };
+
+    historicalData.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    for (let i = 1; i < historicalData.length; i++) {
+      polyfill(historicalData[i], historicalData[i - 1]);
+    }
+    for (let i = historicalData.length - 2; i >= 0; i--) {
+      polyfill(historicalData[i], historicalData[i + 1]);
+    }
+
+    return historicalData;
+  }
+  private cleanHistoricalServiceInfo(
+    date: Date,
+    serviceInfo: THistoricalServiceInfo
+  ): THistoricalServiceInfo {
+    const endpoints = serviceInfo.endpoints.map((e) => {
+      return {
+        ...e,
+        latencyCV: 0,
+        requests: 0,
+        requestErrors: 0,
+        serverErrors: 0,
+      };
+    });
+
+    return {
+      ...serviceInfo,
+      date,
+      endpoints,
+      latencyCV: 0,
+      requestErrors: 0,
+      serverErrors: 0,
+      requests: 0,
+      risk: 0,
+    };
   }
 }
