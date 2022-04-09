@@ -99,6 +99,10 @@ export class Traces {
     return new RealtimeDataList(raw);
   }
 
+  extractContainingNamespaces() {
+    return new Set(this._traces.flat().map((t) => t.tags["istio.namespace"]));
+  }
+
   toEndpointDependencies() {
     const spanDependencyMap = new Map<
       string,

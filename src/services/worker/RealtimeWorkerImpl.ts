@@ -16,7 +16,7 @@ parentPort?.on("message", async ({ uniqueId, lookBack, existingDep }) => {
   );
 
   // get namespaces from traces for querying envoy logs
-  const namespaces = traces.toRealTimeData().getContainingNamespaces();
+  const namespaces = traces.extractContainingNamespaces();
 
   // get all necessary envoy logs
   const envoyLogs: EnvoyLogs[] = [];

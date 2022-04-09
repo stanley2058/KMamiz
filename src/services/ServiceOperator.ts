@@ -1,19 +1,14 @@
 import { AggregatedData } from "../classes/AggregatedData";
-import { EnvoyLogs } from "../classes/EnvoyLog";
-import { Traces } from "../classes/Traces";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 import DataCache from "./DataCache";
-import ZipkinService from "./ZipkinService";
 import CombinedRealtimeDataList from "../classes/CombinedRealtimeDataList";
 import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
 import { CCombinedRealtimeData } from "../classes/Cacheable/CCombinedRealtimeData";
 import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
 import { CReplicas } from "../classes/Cacheable/CReplicas";
 import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
-import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
-import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
 import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
@@ -57,12 +52,20 @@ export default class ServiceOperator {
   private previousRealtimeTime = Date.now();
 
   async aggregateDailyData() {
-    const combinedRealtimeData = new CombinedRealtimeDataList(
-      await MongoOperator.getInstance().findAll(CombinedRealtimeDataModel)
-    );
-    const endpointDependencies = new EndpointDependencies(
-      await MongoOperator.getInstance().findAll(EndpointDependencyModel)
-    );
+    const combinedRealtimeData = DataCache.getInstance()
+      .get<CCombinedRealtimeData>("CombinedRealtimeData")
+      .getData();
+    const endpointDependencies = DataCache.getInstance()
+      .get<CEndpointDependencies>("EndpointDependencies")
+      .getData();
+
+    if (!combinedRealtimeData || !endpointDependencies) {
+      Logger.warn(
+        "Cannot create AggregatedData from empty cache, skipping daily data aggregation"
+      );
+      return;
+    }
+
     const namespaces = combinedRealtimeData.getContainingNamespaces();
 
     const replicas: TReplicaCount[] =
