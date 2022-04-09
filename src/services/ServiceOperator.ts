@@ -98,7 +98,7 @@ export default class ServiceOperator {
       .reset();
   }
 
-  async retrieveRealtimeDataExpr() {
+  async retrieveRealtimeData() {
     const uniqueId = Math.floor(Math.random() * Math.pow(16, 4))
       .toString(16)
       .padStart(4, "0");
