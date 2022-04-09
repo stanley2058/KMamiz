@@ -22,15 +22,21 @@ parentPort?.on("message", async ({ uniqueId, lookBack, existingDep }) => {
   const envoyLogs: EnvoyLogs[] = [];
   const replicas: TReplicaCount[] =
     await KubernetesService.getInstance().getReplicas(namespaces);
-  for (const ns of namespaces) {
-    for (const podName of await KubernetesService.getInstance().getPodNames(
-      ns
-    )) {
-      envoyLogs.push(
-        await KubernetesService.getInstance().getEnvoyLogs(ns, podName)
+
+  // send requests in parallel
+  const podsInNamespaces$ = [...namespaces].map((ns) => ({
+    ns,
+    pods$: KubernetesService.getInstance().getPodNames(ns),
+  }));
+  const logs$: Promise<EnvoyLogs>[] = [];
+  for (const pods of podsInNamespaces$) {
+    for (const podName of await pods.pods$) {
+      logs$.push(
+        KubernetesService.getInstance().getEnvoyLogs(pods.ns, podName)
       );
     }
   }
+  for (const log$ of logs$) envoyLogs.push(await log$);
 
   const data = traces.combineLogsToRealtimeData(
     EnvoyLogs.CombineToStructuredEnvoyLogs(envoyLogs),
