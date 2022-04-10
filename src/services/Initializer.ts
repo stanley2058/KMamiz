@@ -10,7 +10,6 @@ import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
 import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
 import { Traces } from "../classes/Traces";
 import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
-import { CombinedRealtimeDataModel } from "../entities/schema/CombinedRealtimeDateSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
 import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 import { TReplicaCount } from "../entities/TReplicaCount";
@@ -69,21 +68,26 @@ export default class Initializer {
       );
     }
 
-    // get traces from 00:00 today local time to now, and save it to database as realtime data
+    // get traces from 00:00 today local time to now, and save to cache
     const todayTraces = new Traces(
       await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
         Date.now() - todayTime
       )
     );
-    await MongoOperator.getInstance().insertMany(
-      todayTraces.toRealTimeData(replicas).toCombinedRealtimeData().toJSON(),
-      CombinedRealtimeDataModel
-    );
+    DataCache.getInstance()
+      .get<CCombinedRealtimeData>("CombinedRealtimeData")
+      .setData(todayTraces.toRealTimeData(replicas).toCombinedRealtimeData());
 
-    // merge endpoint dependencies and save to database
-    await MongoOperator.getInstance().saveEndpointDependencies(
-      endpointDependencies.combineWith(todayTraces.toEndpointDependencies())
+    // merge endpoint dependencies and save to cache
+    const dependencies = endpointDependencies.combineWith(
+      todayTraces.toEndpointDependencies()
     );
+    DataCache.getInstance()
+      .get<CEndpointDependencies>("EndpointDependencies")
+      .setData(dependencies);
+    DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .setData(dependencies);
   }
 
   async forceRecreateEndpointDependencies() {
@@ -99,6 +103,13 @@ export default class Initializer {
       dependencies.toJSON(),
       EndpointDependencyModel
     );
+
+    DataCache.getInstance()
+      .get<CEndpointDependencies>("EndpointDependencies")
+      .setData(dependencies);
+    DataCache.getInstance()
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
+      .setData(dependencies);
   }
 
   async serverStartUp() {
