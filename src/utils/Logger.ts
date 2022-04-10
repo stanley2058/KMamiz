@@ -1,5 +1,4 @@
 import log from "npmlog";
-import exitHook from "async-exit-hook";
 
 const LogLevelList = ["verbose", "info", "warn", "error"] as const;
 export type LogLevels = typeof LogLevelList[number];

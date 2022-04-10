@@ -1,6 +1,5 @@
 import { EndpointDependencies } from "../src/classes/EndpointDependencies";
 import { TEndpointDependency } from "../src/entities/TEndpointDependency";
-import Utils from "../src/utils/Utils";
 import { MockEndpointDependenciesPDAS } from "./MockData";
 
 describe("EndpointDependencies", () => {

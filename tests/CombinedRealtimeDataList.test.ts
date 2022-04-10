@@ -6,7 +6,6 @@ import {
   MockHistoricalData,
   MockAggregatedData,
   MockEndpointDataType,
-  MockBaseRlData1,
   MockBaseCrlData2,
   MockCombinedBaseData,
   Namespace,

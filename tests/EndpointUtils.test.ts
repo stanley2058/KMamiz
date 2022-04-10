@@ -4,7 +4,6 @@ import Utils from "../src/utils/Utils";
 import {
   Method,
   MockEndpointDataType,
-  Service,
   UniversalEndpointBaseData,
 } from "./MockData";
 

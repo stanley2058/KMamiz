@@ -13,10 +13,12 @@ export abstract class Cacheable<T> {
     return this._name;
   }
 
+  // @ts-ignore
   getData(...arg: any[]) {
     return this._data;
   }
 
+  // @ts-ignore
   setData(update: T, ...arg: any[]) {
     this._data = update;
   }

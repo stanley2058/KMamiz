@@ -54,13 +54,13 @@ export default class CombinedRealtimeDataList {
             (serviceMap.get(r.uniqueServiceName) || []).concat([r])
           );
         });
-        const allEndpoints = this.createHistoryEndpointInfo(
+        const allEndpoints = this.createHistoricalEndpointInfo(
           endpointMap,
           labelMap
         );
         return {
           date: new Date(time),
-          services: this.createHistoryServiceInfo(
+          services: this.createHistoricalServiceInfo(
             time,
             serviceMap,
             allEndpoints,
@@ -70,7 +70,7 @@ export default class CombinedRealtimeDataList {
       }
     );
   }
-  private createHistoryEndpointInfo(
+  private createHistoricalEndpointInfo(
     endpointMap: Map<string, TCombinedRealtimeData[]>,
     labelMap?: Map<string, string>
   ) {
@@ -101,7 +101,7 @@ export default class CombinedRealtimeDataList {
       }
     );
   }
-  private createHistoryServiceInfo(
+  private createHistoricalServiceInfo(
     time: number,
     serviceMap: Map<string, TCombinedRealtimeData[]>,
     allEndpoints: THistoricalEndpointInfo[],
@@ -172,11 +172,11 @@ export default class CombinedRealtimeDataList {
     const aggregatedData = {
       fromDate: new Date(minDate),
       toDate: new Date(maxDate),
-      services: this.createAggregateServiceInfo(serviceMap, labelMap),
+      services: this.createAggregatedServiceInfo(serviceMap, labelMap),
     };
     return { aggregatedData, historicalData };
   }
-  private createAggregateServiceInfo(
+  private createAggregatedServiceInfo(
     serviceMap: Map<string, THistoricalServiceInfo[]>,
     labelMap?: Map<string, string>
   ) {
@@ -192,24 +192,25 @@ export default class CombinedRealtimeDataList {
               (endpointMap.get(e.uniqueEndpointName) || []).concat([e])
             );
           });
-        const endpoints = this.createAggregateEndpointInfo(
+        const endpoints = this.createAggregatedEndpointInfo(
           uniqueServiceName,
           endpointMap,
           labelMap
         );
 
-        let totalRequests = 0;
-        let totalServerErrors = 0;
-        let totalRequestErrors = 0;
         let avgRisk = 0;
         let avgLatencyCV = 0;
-        serviceGroup.forEach((s) => {
-          totalRequests += s.requests;
-          totalServerErrors += s.serverErrors;
-          totalRequestErrors += s.requestErrors;
-          avgRisk += s.risk || 0;
-          avgLatencyCV += s.latencyCV;
-        });
+        const sumResult = serviceGroup.reduce(
+          (prev, curr) => {
+            prev.totalRequests += curr.requests;
+            prev.totalServerErrors += curr.serverErrors;
+            prev.totalRequestErrors += curr.requestErrors;
+            avgRisk += curr.risk || 0;
+            avgLatencyCV += curr.latencyCV;
+            return prev;
+          },
+          { totalRequests: 0, totalServerErrors: 0, totalRequestErrors: 0 }
+        );
         avgRisk /= serviceGroup.length;
         avgLatencyCV /= serviceGroup.length;
 
@@ -218,9 +219,7 @@ export default class CombinedRealtimeDataList {
           service,
           namespace,
           version,
-          totalRequests,
-          totalServerErrors,
-          totalRequestErrors,
+          ...sumResult,
           avgRisk,
           avgLatencyCV,
           endpoints,
@@ -228,7 +227,7 @@ export default class CombinedRealtimeDataList {
       }
     );
   }
-  private createAggregateEndpointInfo(
+  private createAggregatedEndpointInfo(
     uniqueServiceName: string,
     endpointMap: Map<string, THistoricalEndpointInfo[]>,
     labelMap?: Map<string, string>
@@ -236,27 +235,30 @@ export default class CombinedRealtimeDataList {
     return [...endpointMap.entries()].map(
       ([uniqueEndpointName, endpointGroup]): TAggregatedEndpointInfo => {
         const [, , , method] = uniqueEndpointName.split("\t");
-        let totalRequests = 0;
-        let totalServerErrors = 0;
-        let totalRequestErrors = 0;
-        let avgLatencyCV = 0;
-        endpointGroup.forEach((e) => {
-          totalRequests += e.requests;
-          totalServerErrors += e.serverErrors;
-          totalRequestErrors += e.requestErrors;
-          avgLatencyCV += e.latencyCV;
-        });
-        avgLatencyCV /= endpointGroup.length;
+
+        let latencySum = 0;
+        const sumResult = endpointGroup.reduce(
+          (prev, curr) => {
+            prev.totalRequests += curr.requests;
+            prev.totalServerErrors += curr.serverErrors;
+            prev.totalRequestErrors += curr.requestErrors;
+            latencySum += curr.latencyCV;
+            return prev;
+          },
+          {
+            totalRequests: 0,
+            totalServerErrors: 0,
+            totalRequestErrors: 0,
+          }
+        );
 
         return {
           uniqueServiceName,
           uniqueEndpointName,
           labelName: labelMap?.get(uniqueEndpointName),
           method: method as TRequestTypeUpper,
-          totalRequests,
-          totalServerErrors,
-          totalRequestErrors,
-          avgLatencyCV,
+          ...sumResult,
+          avgLatencyCV: latencySum / endpointGroup.length,
         };
       }
     );
@@ -321,19 +323,24 @@ export default class CombinedRealtimeDataList {
         const combined = group.reduce((prev, curr) => {
           if (prev.avgReplica && curr.avgReplica)
             prev.avgReplica += curr.avgReplica;
-          prev.latestTimestamp =
-            prev.latestTimestamp > curr.latestTimestamp
-              ? prev.latestTimestamp
-              : curr.latestTimestamp;
+          prev.latestTimestamp = Math.max(
+            prev.latestTimestamp,
+            curr.latestTimestamp
+          );
 
           prev.requestBody = Utils.Merge(prev.requestBody, curr.requestBody);
           prev.responseBody = Utils.Merge(prev.responseBody, curr.responseBody);
-          prev.requestSchema = prev.requestBody
-            ? Utils.ObjectToInterfaceString(prev.requestBody)
-            : prev.requestSchema;
-          prev.responseSchema = prev.responseBody
-            ? Utils.ObjectToInterfaceString(prev.responseBody)
-            : prev.responseSchema;
+
+          if (prev.requestBody) {
+            prev.requestSchema = Utils.ObjectToInterfaceString(
+              prev.requestBody
+            );
+          }
+          if (prev.responseBody) {
+            prev.responseSchema = Utils.ObjectToInterfaceString(
+              prev.responseBody
+            );
+          }
           return prev;
         });
 

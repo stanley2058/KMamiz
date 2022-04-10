@@ -7,7 +7,6 @@ import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
 import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
 import { OpenAPIV3_1 } from "openapi-types";
 import { TTaggedSwagger } from "../entities/TTaggedSwagger";
-import { TTaggedInterface } from "../entities/TTaggedInterface";
 import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
 import { TEndpointDataSchema } from "../entities/TEndpointDataType";
 import EndpointDataType from "../classes/EndpointDataType";
@@ -107,7 +106,6 @@ export default class SwaggerService extends IRequestHandler {
       .getData()
       .filter((d) => d.toJSON().uniqueServiceName === tagged.uniqueServiceName);
 
-    const schemaMap = new Map<string, TTaggedInterface>();
     const mergedDataTypeMap = new Map<string, EndpointDataType>();
     dataTypes.forEach((d) => {
       const name = d.toJSON().labelName!;
