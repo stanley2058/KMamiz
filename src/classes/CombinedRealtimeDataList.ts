@@ -6,7 +6,6 @@ import {
   THistoricalEndpointInfo,
   THistoricalServiceInfo,
 } from "../entities/THistoricalData";
-import { TRealtimeData } from "../entities/TRealtimeData";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import { TRequestTypeUpper } from "../entities/TRequestType";
 import { TRiskResult } from "../entities/TRiskResult";
