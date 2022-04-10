@@ -165,7 +165,7 @@ export default class CombinedRealtimeDataList {
 
         serviceMap.set(
           s.uniqueServiceName,
-          (serviceMap.get(s.uniqueServiceName) || []).concat([s])
+          (serviceMap.get(s.uniqueServiceName) || []).concat([{ ...s }])
         );
       });
 
