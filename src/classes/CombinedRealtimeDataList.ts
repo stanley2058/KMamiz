@@ -79,18 +79,18 @@ export default class CombinedRealtimeDataList {
       ([uniqueEndpointName, r]): THistoricalEndpointInfo => {
         const [service, namespace, version, method] =
           uniqueEndpointName.split("\t");
-        let requestErrors = 0;
-        let serverErrors = 0;
-        const requests = r.reduce((prev, curr) => {
-          if (curr.status.startsWith("4")) requestErrors++;
-          if (curr.status.startsWith("5")) serverErrors++;
-          return prev + curr.combined;
-        }, 0);
+        const { requests, requestErrors, serverErrors } = r.reduce(
+          (prev, curr) => {
+            prev.requests += curr.combined;
+            if (curr.status.startsWith("4")) prev.requestErrors++;
+            if (curr.status.startsWith("5")) prev.serverErrors++;
+            return prev;
+          },
+          { requests: 0, requestErrors: 0, serverErrors: 0 }
+        );
 
         return {
-          latencyCV: r.reduce((prev, curr) =>
-            prev.latency.cv > curr.latency.cv ? prev : curr
-          ).latency.cv,
+          latencyCV: Math.max(...r.map((rl) => rl.latency.cv)),
           method: method as TRequestTypeUpper,
           requestErrors,
           requests,
@@ -114,13 +114,15 @@ export default class CombinedRealtimeDataList {
         const endpoints = allEndpoints.filter(
           (e) => e.uniqueServiceName === uniqueServiceName
         );
-        let requestErrors = 0;
-        let serverErrors = 0;
-        const requests = endpoints.reduce((prev, curr) => {
-          requestErrors += curr.requestErrors;
-          serverErrors += curr.serverErrors;
-          return prev + curr.requests;
-        }, 0);
+        const { requests, requestErrors, serverErrors } = endpoints.reduce(
+          (prev, curr) => {
+            prev.requestErrors += curr.requestErrors;
+            prev.serverErrors += curr.serverErrors;
+            prev.requests += curr.requests;
+            return prev;
+          },
+          { requests: 0, requestErrors: 0, serverErrors: 0 }
+        );
 
         return {
           date: new Date(time),
@@ -131,9 +133,7 @@ export default class CombinedRealtimeDataList {
           requests,
           requestErrors,
           serverErrors,
-          latencyCV: r.reduce((prev, curr) =>
-            prev.latency.cv > curr.latency.cv ? prev : curr
-          ).latency.cv,
+          latencyCV: Math.max(...r.map((rl) => rl.latency.cv)),
           uniqueServiceName,
           risk: risks.find(
             (rsk) => rsk.uniqueServiceName === uniqueServiceName
