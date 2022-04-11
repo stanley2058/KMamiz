@@ -99,7 +99,8 @@ export default class Utils {
    * @returns the timestamp of the day in microseconds
    */
   static BelongsToDateTimestamp(timestamp: number) {
-    return new Date(new Date(timestamp).toLocaleDateString()).getTime();
+    const dateStr = new Date(timestamp).toISOString().split("T")[0];
+    return new Date(`${dateStr}T00:00:00.000Z`).getTime();
   }
 
   /**
