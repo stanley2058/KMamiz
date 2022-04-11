@@ -162,7 +162,7 @@ export default class GraphService extends IRequestHandler {
 
     const usageCohesions = dependencies.toServiceEndpointCohesion();
 
-    return usageCohesions.map((u): TTotalServiceInterfaceCohesion => {
+    const results = usageCohesions.map((u): TTotalServiceInterfaceCohesion => {
       const uniqueServiceName = u.uniqueServiceName;
       const [service, namespace, version] = uniqueServiceName.split("\t");
       const dCohesion = dataCohesion.get(uniqueServiceName)!;
@@ -178,6 +178,7 @@ export default class GraphService extends IRequestHandler {
         consumers: u.consumers,
       };
     });
+    return results.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   getServiceInstability(namespace?: string) {
@@ -185,7 +186,9 @@ export default class GraphService extends IRequestHandler {
       .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
       .getData(namespace);
     if (!dependencies) return [];
-    return dependencies.toServiceInstability();
+    return dependencies
+      .toServiceInstability()
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   getServiceCoupling(namespace?: string) {
@@ -193,6 +196,8 @@ export default class GraphService extends IRequestHandler {
       .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
       .getData(namespace);
     if (!dependencies) return [];
-    return dependencies.toServiceCoupling();
+    return dependencies
+      .toServiceCoupling()
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 }
