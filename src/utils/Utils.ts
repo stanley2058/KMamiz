@@ -79,7 +79,7 @@ export default class Utils {
     returnArray.push(host, port, path);
     if (isServiceUrl) {
       const [, serviceFullName, clusterName] =
-        host.match(/(.*).svc.(.*)/) || [];
+        host.match(/(.*).svc[\.]*(.*)/) || [];
       if (!serviceFullName) {
         Logger.verbose("Could not parse service url: [", url, "], skipping.");
         Logger.plain.verbose("With trace:", new Error().stack);
