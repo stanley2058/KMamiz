@@ -20,11 +20,11 @@ describe("CombinedRealtimeDataList", () => {
 
   it("converts to AggregatedData and HistoricalData", () => {
     const data = new CombinedRealtimeDataList(MockBaseCrlData1);
-    const { aggregatedData: a, historicalData: h } =
-      data.toAggregatedDataAndHistoricalData(MockDependencies, MockReplicas);
-
-    expect(h).toEqual(MockHistoricalData);
-    expect(a).toEqual(MockAggregatedData);
+    const aggregatedData = data.toAggregatedData(
+      MockDependencies,
+      MockReplicas
+    );
+    expect(aggregatedData).toEqual(MockAggregatedData);
   });
 
   it("extracts EndpointDataType", () => {

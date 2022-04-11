@@ -22,6 +22,7 @@ import { TAggregatedData } from "../entities/TAggregatedData";
 import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
 import { THistoricalData } from "../entities/THistoricalData";
 import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
+import ServiceOperator from "../services/ServiceOperator";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -144,6 +145,10 @@ export default class DataService extends IRequestHandler {
           Logger.plain.verbose("", err);
           res.sendStatus(400);
         }
+      });
+      this.addRoute("post", "/aggregate", async (_, res) => {
+        await ServiceOperator.getInstance().aggregateDailyData();
+        res.sendStatus(204);
       });
     }
   }

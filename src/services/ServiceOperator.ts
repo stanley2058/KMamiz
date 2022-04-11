@@ -1,5 +1,4 @@
 import { AggregatedData } from "../classes/AggregatedData";
-import { TReplicaCount } from "../entities/TReplicaCount";
 import KubernetesService from "./KubernetesService";
 import MongoOperator from "./MongoOperator";
 import DataCache from "./DataCache";
@@ -56,7 +55,7 @@ export default class ServiceOperator {
       .get<CCombinedRealtimeData>("CombinedRealtimeData")
       .getData();
     const endpointDependencies = DataCache.getInstance()
-      .get<CEndpointDependencies>("EndpointDependencies")
+      .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
       .getData();
 
     if (!combinedRealtimeData || !endpointDependencies) {
@@ -66,15 +65,22 @@ export default class ServiceOperator {
       return;
     }
 
-    const namespaces = combinedRealtimeData.getContainingNamespaces();
+    const replicas =
+      DataCache.getInstance().get<CReplicas>("ReplicaCounts").getData() || [];
 
-    const replicas: TReplicaCount[] =
-      await KubernetesService.getInstance().getReplicas(namespaces);
-    const { historicalData, aggregatedData } =
-      combinedRealtimeData.toAggregatedDataAndHistoricalData(
-        endpointDependencies.toServiceDependencies(),
-        replicas
-      );
+    const historicalData = combinedRealtimeData.toHistoricalData(
+      endpointDependencies.toServiceDependencies(),
+      replicas
+    );
+    await MongoOperator.getInstance().insertMany(
+      historicalData,
+      HistoricalDataModel
+    );
+
+    const aggregatedData = combinedRealtimeData.toAggregatedData(
+      endpointDependencies.toServiceDependencies(),
+      replicas
+    );
 
     const prevAggRaw = await MongoOperator.getInstance().getAggregatedData();
     let newAggData = new AggregatedData(aggregatedData);
@@ -88,10 +94,6 @@ export default class ServiceOperator {
     await MongoOperator.getInstance().save(
       newAggData.toJSON(),
       AggregatedDataModel
-    );
-    await MongoOperator.getInstance().insertMany(
-      historicalData,
-      HistoricalDataModel
     );
     DataCache.getInstance()
       .get<CCombinedRealtimeData>("CombinedRealtimeData")

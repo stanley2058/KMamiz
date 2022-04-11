@@ -53,11 +53,14 @@ export default class Initializer {
       .toRealTimeData(replicas)
       .toCombinedRealtimeData();
     if (realtimeData.toJSON().length !== 0) {
-      const { aggregatedData, historicalData } =
-        realtimeData.toAggregatedDataAndHistoricalData(
-          endpointDependencies.toServiceDependencies(),
-          replicas
-        );
+      const historicalData = realtimeData.toHistoricalData(
+        endpointDependencies.toServiceDependencies(),
+        replicas
+      );
+      const aggregatedData = realtimeData.toAggregatedData(
+        endpointDependencies.toServiceDependencies(),
+        replicas
+      );
       await MongoOperator.getInstance().save(
         new AggregatedData(aggregatedData).toJSON(),
         AggregatedDataModel

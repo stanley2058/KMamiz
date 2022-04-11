@@ -138,11 +138,11 @@ export default class ServiceUtils {
 
     const rlAggregatedData = cRlData
       .getData(namespace)!
-      .toAggregatedDataAndHistoricalData(
+      .toAggregatedData(
         dep.toServiceDependencies(),
         replicas.getData(),
         labelMapping.getData()
-      ).aggregatedData;
+      );
     if (!aggregatedData)
       return labelMapping.labelAggregatedData(rlAggregatedData);
 

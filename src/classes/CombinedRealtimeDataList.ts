@@ -1,4 +1,7 @@
-import { TAggregatedEndpointInfo } from "../entities/TAggregatedData";
+import {
+  TAggregatedData,
+  TAggregatedEndpointInfo,
+} from "../entities/TAggregatedData";
 import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 import { TEndpointDataType } from "../entities/TEndpointDataType";
 import {
@@ -38,7 +41,7 @@ export default class CombinedRealtimeDataList {
     return [...dateMapping.entries()].map(
       ([time, dailyData]): THistoricalData => {
         const risks = RiskAnalyzer.RealtimeRisk(
-          new CombinedRealtimeDataList(dailyData).toJSON(),
+          dailyData,
           serviceDependencies,
           replicas
         );
@@ -80,9 +83,10 @@ export default class CombinedRealtimeDataList {
           uniqueEndpointName.split("\t");
         const { requests, requestErrors, serverErrors } = r.reduce(
           (prev, curr) => {
-            prev.requests += curr.combined;
-            if (curr.status.startsWith("4")) prev.requestErrors++;
-            if (curr.status.startsWith("5")) prev.serverErrors++;
+            const add = curr.combined;
+            prev.requests += add;
+            if (curr.status.startsWith("4")) prev.requestErrors += add;
+            if (curr.status.startsWith("5")) prev.serverErrors += add;
             return prev;
           },
           { requests: 0, requestErrors: 0, serverErrors: 0 }
@@ -142,11 +146,11 @@ export default class CombinedRealtimeDataList {
     );
   }
 
-  toAggregatedDataAndHistoricalData(
+  toAggregatedData(
     serviceDependencies: TServiceDependency[],
     replicas: TReplicaCount[] = [],
     labelMap?: Map<string, string>
-  ) {
+  ): TAggregatedData {
     const historicalData = this.toHistoricalData(
       serviceDependencies,
       replicas,
@@ -174,7 +178,7 @@ export default class CombinedRealtimeDataList {
       toDate: new Date(maxDate),
       services: this.createAggregatedServiceInfo(serviceMap, labelMap),
     };
-    return { aggregatedData, historicalData };
+    return aggregatedData;
   }
   private createAggregatedServiceInfo(
     serviceMap: Map<string, THistoricalServiceInfo[]>,
