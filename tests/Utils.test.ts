@@ -86,8 +86,9 @@ describe("Utils", () => {
 
   it("get timestamp of 00:00 of the same day as the given timestamp", () => {
     const timestamp = new Date().getTime();
+    const dateStr = new Date(timestamp).toISOString().split("T")[0];
     expect(Utils.BelongsToDateTimestamp(timestamp)).toEqual(
-      new Date(new Date(timestamp).toLocaleDateString()).getTime()
+      new Date(`${dateStr}T00:00:00.000Z`).getTime()
     );
   });
 

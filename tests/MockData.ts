@@ -4058,7 +4058,7 @@ const MockRlDataPDAS = [
     namespace: "pdas",
     version: "latest",
     method: "GET",
-    latency: 1903,
+    latency: 1.903,
     status: "200",
     uniqueServiceName: "user-service\tpdas\tlatest",
     uniqueEndpointName:
@@ -4071,7 +4071,7 @@ const MockRlDataPDAS = [
     namespace: "pdas",
     version: "latest",
     method: "GET",
-    latency: 1094,
+    latency: 1.094,
     status: "200",
     uniqueServiceName: "user-service\tpdas\tlatest",
     uniqueEndpointName:
@@ -4084,7 +4084,7 @@ const MockRlDataPDAS = [
     namespace: "pdas",
     version: "latest",
     method: "POST",
-    latency: 1523,
+    latency: 1.523,
     status: "200",
     uniqueServiceName: "contract-service\tpdas\tlatest",
     uniqueEndpointName:
@@ -4097,7 +4097,7 @@ const MockRlDataPDAS = [
     namespace: "pdas",
     version: "latest",
     method: "POST",
-    latency: 17776,
+    latency: 17.776,
     status: "200",
     uniqueServiceName: "external-service\tpdas\tlatest",
     uniqueEndpointName:

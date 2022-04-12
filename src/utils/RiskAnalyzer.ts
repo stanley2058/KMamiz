@@ -175,27 +175,30 @@ export default class RiskAnalyzer {
     data: TCombinedRealtimeData[],
     includeRequestError: boolean = false
   ) {
-    const invokedCounts = data
-      .map(({ uniqueServiceName, status }) => ({
+    const invokedCounts = new Map<string, { count: number; error: number }>();
+    data
+      .map(({ uniqueServiceName, status, combined }) => ({
         uniqueServiceName,
         isError:
           status.startsWith("5") ||
           (includeRequestError && status.startsWith("4")),
+        combined,
       }))
-      .reduce((acc, { uniqueServiceName, isError }) => {
-        const prevVal = acc.get(uniqueServiceName) || {
+      .forEach(({ uniqueServiceName, isError, combined }) => {
+        const prevVal = invokedCounts.get(uniqueServiceName) || {
           count: 0,
           error: 0,
         };
-        acc.set(uniqueServiceName, {
-          count: prevVal.count + 1,
-          error: prevVal.error + (isError ? 1 : 0),
+        invokedCounts.set(uniqueServiceName, {
+          count: prevVal.count + combined,
+          error: prevVal.error + (isError ? combined : 0),
         });
-        return acc;
-      }, new Map<string, { count: number; error: number }>());
+      });
 
-    let total = 0;
-    invokedCounts.forEach((value) => (total += value.count));
+    const total = [...invokedCounts.values()].reduce(
+      (prev, curr) => prev + curr.count,
+      0
+    );
 
     const invokeProbability: {
       uniqueServiceName: string;
