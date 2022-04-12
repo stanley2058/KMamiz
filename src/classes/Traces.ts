@@ -77,7 +77,12 @@ export class Traces {
         const status = trace.tags["http.status_code"];
         const uniqueServiceName = `${service}\t${namespace}\t${version}`;
 
-        const log = logMap.get(trace.traceId)?.get(trace.id);
+        let log = logMap.get(trace.traceId)?.get(trace.id);
+        // fix for fallback mode
+        if (!log && trace.parentId) {
+          log = logMap.get(trace.traceId)?.get(trace.parentId);
+        }
+
         return {
           timestamp: trace.timestamp,
           service,

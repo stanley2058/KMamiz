@@ -23,8 +23,6 @@ type kMamizFilter struct {
 	// Embed the default plugin context here,
 	// so that we don't need to reimplement all the methods.
 	types.DefaultPluginContext
-	totalRequestBodySize  int
-	totalResponseBodySize int
 }
 
 func (*vmContext) NewPluginContext(contextID uint32) types.PluginContext {
@@ -47,6 +45,8 @@ type kMamizFilterContext struct {
 	resOutput             string
 	isReqJson             bool
 	isResJson             bool
+	requestId             string
+	traceId               string
 }
 
 func (ctx *kMamizFilterContext) OnHttpStreamDone() {
@@ -61,12 +61,13 @@ func (ctx *kMamizFilterContext) OnHttpStreamDone() {
 }
 
 func (ctx *kMamizFilterContext) OnHttpRequestHeaders(numHeaders int, _ bool) types.Action {
+	ctx.getRequestIds()
 	headers, err := proxywasm.GetHttpRequestHeaders()
 	if err != nil {
 		proxywasm.LogError("no request headers")
 		return types.ActionContinue
 	}
-	output, isJson, isTarget := createLogInfo(0, &headers)
+	output, isJson, isTarget := ctx.createLogInfo(0, &headers)
 	if isTarget {
 		ctx.reqOutput = output
 		ctx.isReqJson = isJson
@@ -80,7 +81,7 @@ func (ctx *kMamizFilterContext) OnHttpResponseHeaders(numHeaders int, _ bool) ty
 		proxywasm.LogError("no response headers")
 		return types.ActionContinue
 	}
-	output, isJson, isTarget := createLogInfo(1, &headers)
+	output, isJson, isTarget := ctx.createLogInfo(1, &headers)
 	if isTarget {
 		ctx.resOutput = output
 		ctx.isResJson = isJson
@@ -137,7 +138,20 @@ func (ctx *kMamizFilterContext) OnHttpResponseBody(bodySize int, endOfStream boo
 	return types.ActionContinue
 }
 
-func createLogInfo(direction int, headers *[][2]string) (string, bool, bool) {
+func (ctx *kMamizFilterContext) getRequestIds() {
+	requestId, err := proxywasm.GetHttpRequestHeader("x-request-id")
+	if err != nil {
+		requestId = "NO_ID"
+	}
+	traceId, err := proxywasm.GetHttpRequestHeader("x-b3-traceid")
+	if err != nil {
+		requestId = "NO_ID"
+	}
+	ctx.requestId = requestId
+	ctx.traceId = traceId
+}
+
+func (ctx *kMamizFilterContext) createLogInfo(direction int, headers *[][2]string) (string, bool, bool) {
 	headerMap := map[string]string{
 		"content-type":      "",
 		"host":              "",
@@ -152,6 +166,13 @@ func createLogInfo(direction int, headers *[][2]string) (string, bool, bool) {
 
 	for _, header := range *headers {
 		headerMap[header[0]] = header[1]
+	}
+
+	if headerMap["x-request-id"] == "NO_ID" {
+		headerMap["x-request-id"] = ctx.requestId
+	}
+	if headerMap["x-b3-traceid"] == "NO_ID" {
+		headerMap["x-b3-traceid"] = ctx.traceId
 	}
 
 	output := ""
