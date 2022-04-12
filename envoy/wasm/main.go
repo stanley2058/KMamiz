@@ -53,10 +53,12 @@ func (ctx *kMamizFilterContext) OnHttpStreamDone() {
 	if ctx.reqOutput != "" {
 		proxywasm.LogWarn(ctx.reqOutput)
 		proxywasm.LogInfo(ctx.reqOutput)
+		ctx.reqOutput = ""
 	}
 	if ctx.resOutput != "" {
 		proxywasm.LogWarn(ctx.resOutput)
 		proxywasm.LogInfo(ctx.resOutput)
+		ctx.resOutput = ""
 	}
 }
 
