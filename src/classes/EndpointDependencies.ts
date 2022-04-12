@@ -226,26 +226,40 @@ export class EndpointDependencies {
         default:
           // endpoint node
           // find the node and sort dependingOn & dependingBy with descending distance
-          const node = dependencyWithId.find((d) => d.uid === n.id)!;
-          const dependingOnSorted = this.sortEndpointInfoByDistanceDesc(
-            node.dependingOn
-          );
-          const dependingBySorted = this.sortEndpointInfoByDistanceDesc(
-            node.dependingBy
-          );
+          const nodes = dependencyWithId.filter((d) => d.uid === n.id);
 
-          // fill in links to highlight
+          n.linkInBetween = [];
+          n.dependencies = [];
+          nodes.forEach((node) => {
+            const dependingOnSorted = this.sortEndpointInfoByDistanceDesc(
+              node.dependingOn
+            );
+            const dependingBySorted = this.sortEndpointInfoByDistanceDesc(
+              node.dependingBy
+            );
+
+            // fill in links to highlight
+            n.linkInBetween = n.linkInBetween
+              .concat(this.mapToLinks(dependingOnSorted, n, links))
+              .concat(this.mapToLinks(dependingBySorted, n, links))
+              .filter((l) => !!l) as TLink[];
+            // fill in nodes to highlight
+            n.dependencies = n.dependencies.concat([
+              ...new Set(
+                this.remapToId(dependingOnSorted).concat(
+                  this.remapToId(dependingBySorted)
+                )
+              ),
+            ]);
+          });
           n.linkInBetween = [
-            ...this.mapToLinks(dependingOnSorted, n, links),
-            ...this.mapToLinks(dependingBySorted, n, links),
-          ].filter((l) => !!l) as TLink[];
-          // fill in nodes to highlight
-          n.dependencies = [
-            ...new Set([
-              ...this.remapToId(dependingOnSorted),
-              ...this.remapToId(dependingBySorted),
-            ]),
-          ];
+            ...new Set(
+              n.linkInBetween.map((l) => `${l.source}\t\t${l.target}`)
+            ),
+          ].map((l) => {
+            const [source, target] = l.split("\t\t");
+            return { source, target };
+          });
       }
       return n;
     });
