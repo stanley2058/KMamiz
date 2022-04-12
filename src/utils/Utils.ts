@@ -87,7 +87,11 @@ export default class Utils {
         const nameDivider = serviceFullName.lastIndexOf(".");
         const serviceName = serviceFullName.slice(0, nameDivider);
         const namespace = serviceFullName.slice(nameDivider + 1);
-        returnArray.push(serviceName, namespace, clusterName);
+        returnArray.push(
+          serviceName,
+          namespace,
+          clusterName || "cluster.local"
+        );
       }
     }
     return returnArray;

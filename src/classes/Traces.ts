@@ -39,7 +39,8 @@ export class Traces {
           namespace,
           version,
           method,
-          latency: t.duration,
+          // divide by 1000 to avoid standard deviation growing too fast causing overflow
+          latency: t.duration / 1000,
           status: t.tags["http.status_code"],
           uniqueServiceName,
           uniqueEndpointName: `${uniqueServiceName}\t${method}\t${t.tags["http.url"]}`,
