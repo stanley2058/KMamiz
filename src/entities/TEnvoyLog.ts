@@ -27,4 +27,5 @@ export type TStructuredEnvoyLogTrace = {
   parentSpanId: string;
   request: TEnvoyLog;
   response: TEnvoyLog;
+  isFallback: boolean;
 };

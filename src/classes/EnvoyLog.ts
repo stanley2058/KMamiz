@@ -42,6 +42,7 @@ export class EnvoyLogs {
             parentSpanId: log.parentSpanId,
             request: spanMap.get(log.parentSpanId)!,
             response: log,
+            isFallback: false,
           });
         }
       }
@@ -83,6 +84,7 @@ export class EnvoyLogs {
             response: log,
             spanId: req.spanId,
             parentSpanId: req.parentSpanId,
+            isFallback: true,
           });
         }
       }

@@ -79,7 +79,7 @@ export class Traces {
 
         let log = logMap.get(trace.traceId)?.get(trace.id);
         // fix for fallback mode
-        if (!log && trace.parentId) {
+        if ((!log || log.isFallback) && trace.parentId) {
           log = logMap.get(trace.traceId)?.get(trace.parentId);
         }
 
