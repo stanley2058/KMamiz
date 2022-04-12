@@ -332,26 +332,26 @@ export class EndpointDependencies {
       .flat()
       .map((dep) => {
         return {
-          uniqueName: dep.endpoint.labelName!,
+          uniqueServiceName: dep.endpoint.uniqueServiceName,
           distance: dep.distance,
           type: dep.type,
         };
       })
-      .reduce((prev, { uniqueName, distance, type }) => {
-        if (!prev[uniqueName]) {
-          prev[uniqueName] = {
+      .reduce((prev, { uniqueServiceName, distance, type }) => {
+        if (!prev[uniqueServiceName]) {
+          prev[uniqueServiceName] = {
             distance,
             count: 1,
             dependingBy: type === "CLIENT" ? 1 : 0,
             dependingOn: type === "SERVER" ? 1 : 0,
           };
         } else {
-          prev[uniqueName].count++;
-          if (type === "CLIENT") prev[uniqueName].dependingBy++;
-          else prev[uniqueName].dependingOn++;
+          prev[uniqueServiceName].count++;
+          if (type === "CLIENT") prev[uniqueServiceName].dependingBy++;
+          else prev[uniqueServiceName].dependingOn++;
         }
         return prev;
-      }, {} as { [uniqueName: string]: TServiceLinkInfo });
+      }, {} as { [uniqueServiceName: string]: TServiceLinkInfo });
     return linkMap;
   }
 
