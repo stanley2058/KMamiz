@@ -1,8 +1,6 @@
-import { Types } from "mongoose";
 import { TEndpointDependency } from "./TEndpointDependency";
 
 export type TServiceDependency = {
-  _id?: Types.ObjectId;
   uniqueServiceName: string;
   service: string;
   namespace: string;
@@ -18,6 +16,12 @@ export type TServiceLink = TServiceLinkInfo & {
   version: string;
 };
 export type TServiceLinkInfo = {
+  count: number;
+  dependingBy: number;
+  dependingOn: number;
+  details: TServiceLinkInfoDetail[];
+};
+export type TServiceLinkInfoDetail = {
   distance: number;
   count: number;
   dependingBy: number;

@@ -6,6 +6,7 @@ import { TGraphData, TLink, TNode } from "../entities/TGraphData";
 import {
   TServiceDependency,
   TServiceLinkInfo,
+  TServiceLinkInfoDetail,
 } from "../entities/TServiceDependency";
 import { TServiceEndpointCohesion } from "../entities/TServiceEndpointCohesion";
 import DataCache from "../services/DataCache";
@@ -308,7 +309,7 @@ export class EndpointDependencies {
         namespace,
         version,
         dependency,
-        links: Object.entries(linkMap).map(([uniqueServiceName, info]) => {
+        links: [...linkMap.entries()].map(([uniqueServiceName, info]) => {
           const [service, namespace, version] = uniqueServiceName.split("\t");
           return {
             service,
@@ -327,84 +328,87 @@ export class EndpointDependencies {
     dependency: TEndpointDependency[]
   ) {
     // create links info from endpointDependencies
-    const linkMap = dependency
-      .map((dep) => [...dep.dependingOn, ...dep.dependingBy])
-      .flat()
-      .map((dep) => {
-        return {
-          uniqueServiceName: dep.endpoint.uniqueServiceName,
-          distance: dep.distance,
-          type: dep.type,
-        };
-      })
-      .reduce((prev, { uniqueServiceName, distance, type }) => {
-        if (!prev[uniqueServiceName]) {
-          prev[uniqueServiceName] = {
-            distance,
-            count: 1,
-            dependingBy: type === "CLIENT" ? 1 : 0,
-            dependingOn: type === "SERVER" ? 1 : 0,
-          };
-        } else {
-          prev[uniqueServiceName].count++;
-          if (type === "CLIENT") prev[uniqueServiceName].dependingBy++;
-          else prev[uniqueServiceName].dependingOn++;
-        }
-        return prev;
-      }, {} as { [uniqueServiceName: string]: TServiceLinkInfo });
+    const distanceLinkSet = new Set<string>();
+    dependency.forEach((dep) => {
+      [...dep.dependingOn, ...dep.dependingBy].forEach((dep) => {
+        const id = `${dep.endpoint.uniqueServiceName}\t${
+          dep.endpoint.method
+        }\t${dep.endpoint.labelName!}\t${dep.type}\t${dep.distance}`;
+        distanceLinkSet.add(id);
+      });
+    });
+
+    const detailMap = new Map<string, Map<number, TServiceLinkInfoDetail>>();
+    [...distanceLinkSet].map((id) => {
+      const [service, namespace, version, , , type, distanceStr] =
+        id.split("\t");
+      const uniqueServiceName = `${service}\t${namespace}\t${version}`;
+      const distance = parseInt(distanceStr);
+
+      const existing =
+        detailMap.get(uniqueServiceName) ||
+        new Map<number, TServiceLinkInfoDetail>();
+      const existingDist = existing.get(distance) || {
+        count: 0,
+        dependingBy: 0,
+        dependingOn: 0,
+        distance: distance,
+      };
+      detailMap.set(
+        uniqueServiceName,
+        existing.set(distance, {
+          count: existingDist.count + 1,
+          dependingBy: existingDist.dependingBy + (type === "CLIENT" ? 1 : 0),
+          dependingOn: existingDist.dependingOn + (type === "SERVER" ? 1 : 0),
+          distance: distance,
+        })
+      );
+    });
+
+    const linkMap = new Map<string, TServiceLinkInfo>();
+    [...detailMap.entries()].map(([uniqueServiceName, detailMap]) => {
+      const details = [...detailMap.values()];
+      linkMap.set(uniqueServiceName, {
+        details,
+        ...details.reduce(
+          (prev, curr) => {
+            prev.count += curr.count;
+            prev.dependingBy += curr.dependingBy;
+            prev.dependingOn += curr.dependingOn;
+            return prev;
+          },
+          { count: 0, dependingBy: 0, dependingOn: 0 }
+        ),
+      });
+    });
     return linkMap;
   }
 
   toChordData() {
-    const dependencies = this._dependencies;
-    const dependencyMap = new Map<string, TEndpointDependency>();
-    dependencies.forEach((d) => {
-      dependencyMap.set(d.endpoint.labelName!, d);
-    });
-
-    const serviceMap = new Map<string, Map<string, Set<string>>>();
-    [...dependencyMap.values()].forEach((ep) => {
-      const service = ep.endpoint.uniqueServiceName!;
-      if (!serviceMap.has(service)) serviceMap.set(service, new Map());
-      ep.dependingOn.forEach((s) => {
-        const dependName = s.endpoint.uniqueServiceName!;
-        const uniqueLabelName = `${s.endpoint.uniqueServiceName}\t${
-          s.endpoint.method
-        }\t${s.endpoint.labelName!}`;
-        serviceMap
-          .get(service)!
-          .set(
-            dependName,
-            (serviceMap.get(service)!.get(dependName) || new Set()).add(
-              uniqueLabelName
-            )
-          );
-      });
-    });
-
-    const nodes = [...serviceMap.keys()].map((k) => {
-      const [service, namespace, version] = k.split("\t");
-      return {
-        id: `${service}.${namespace} (${version})`,
-        name: k,
-      };
-    });
-    const links = [...serviceMap.entries()]
-      .map(([id, dep]) => {
-        const [service, namespace, version] = id.split("\t");
-        const neoId = `${service}.${namespace} (${version})`;
-        return [...dep.entries()].map(([dId, val]) => {
-          const [dService, dNamespace, dVersion] = dId.split("\t");
-          const neoDId = `${dService}.${dNamespace} (${dVersion})`;
-          return {
-            from: neoId,
-            to: neoDId,
-            value: val.size,
-          };
-        });
+    const nameToId = (uniqueServiceName: string) => {
+      const [service, namespace, version] = uniqueServiceName.split("\t");
+      return `${service}.${namespace} (${version})`;
+    };
+    const svcDep = this.toServiceDependencies();
+    const links = svcDep
+      .flatMap((s) => {
+        return s.links.map((l) => ({
+          from: s.uniqueServiceName,
+          to: l.uniqueServiceName,
+          value: l.dependingOn,
+        }));
       })
-      .flat();
-    return { nodes, links };
+      .filter((l) => l.value > 0);
+    const nodeSet = new Set<string>();
+    links.forEach((l) => nodeSet.add(l.from).add(l.to));
+    return {
+      nodes: [...nodeSet].map((n) => ({ id: nameToId(n), name: n })),
+      links: links.map((l) => ({
+        ...l,
+        from: nameToId(l.from),
+        to: nameToId(l.to),
+      })),
+    };
   }
 
   combineWith(endpointDependencies: EndpointDependencies) {

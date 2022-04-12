@@ -127,10 +127,9 @@ export default class RiskAnalyzer {
   static RelyingFactor(dependencies: TServiceDependency[]) {
     const factorMap = new Map<string, number>();
     dependencies.forEach(({ uniqueServiceName, links, dependency }) => {
-      const factor = links.reduce(
-        (prev, curr) => prev + curr.dependingBy / curr.distance,
-        0
-      );
+      const factor = links
+        .flatMap((l) => l.details)
+        .reduce((prev, curr) => prev + curr.dependingBy / curr.distance, 0);
       const isGateway = dependency.find((d) => d.dependingBy.length === 0);
       factorMap.set(uniqueServiceName, factor + (isGateway ? 1 : 0));
     });
@@ -157,6 +156,7 @@ export default class RiskAnalyzer {
     return dependencies.map(({ uniqueServiceName, links, dependency }) => {
       const isGateway = dependency.find((d) => d.dependingBy.length === 0);
       const { ais, ads } = links
+        .flatMap((l) => l.details)
         .filter((l) => l.distance === 1)
         .reduce(
           (prev, l) => {

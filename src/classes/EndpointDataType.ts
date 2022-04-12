@@ -186,7 +186,7 @@ export default class EndpointDataType {
 
         return {
           uniqueServiceName,
-          cohesiveness,
+          cohesiveness: endpoints.size === 1 ? 1 : cohesiveness,
           endpointCohesion,
         };
       }

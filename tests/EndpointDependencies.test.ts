@@ -19,6 +19,14 @@ describe("EndpointDependencies", () => {
           id: "external-service.pdas (latest)",
           name: "external-service\tpdas\tlatest",
         },
+        {
+          id: "user-service.pdas (latest)",
+          name: "user-service\tpdas\tlatest",
+        },
+        {
+          id: "contract-service.pdas (latest)",
+          name: "contract-service\tpdas\tlatest",
+        },
       ],
       links: [
         {
@@ -89,8 +97,8 @@ describe("EndpointDependencies", () => {
         uniqueServiceName: "external-service\tpdas\tlatest",
         name: "external-service.pdas (latest)",
         ais: 1,
-        ads: 1,
-        acs: 1,
+        ads: 2,
+        acs: 2,
       },
     ]);
   });
@@ -114,7 +122,7 @@ describe("EndpointDependencies", () => {
         uniqueServiceName: "external-service\tpdas\tlatest",
         name: "external-service.pdas (latest)",
         dependingBy: 0,
-        dependingOn: 1,
+        dependingOn: 2,
         instability: 1,
       },
     ]);
