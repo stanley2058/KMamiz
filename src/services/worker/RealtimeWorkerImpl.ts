@@ -4,6 +4,7 @@ import { EnvoyLogs } from "../../classes/EnvoyLog";
 import { Traces } from "../../classes/Traces";
 import { Trace } from "../../entities/external/Trace";
 import { TReplicaCount } from "../../entities/TReplicaCount";
+import Logger from "../../utils/Logger";
 import KubernetesService from "../KubernetesService";
 import ZipkinService from "../ZipkinService";
 
@@ -33,6 +34,9 @@ parentPort?.on("message", async ({ uniqueId, lookBack, time, existingDep }) => {
       2500
     );
   const traces = new Traces(filterTraces(rawTraces));
+  Logger.prefixed("Worker").verbose(
+    `Got ${rawTraces.length} traces, ${traces.toJSON().length} new to process`
+  );
 
   // get namespaces from traces for querying envoy logs
   const namespaces = traces.extractContainingNamespaces();
