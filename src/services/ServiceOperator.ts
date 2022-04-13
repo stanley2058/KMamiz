@@ -30,7 +30,9 @@ export default class ServiceOperator {
       path.resolve(__dirname, "./worker/RealtimeWorker.js")
     );
     this.realtimeWorker.on("message", (res) => {
-      const { uniqueId, rlDataList, dependencies, dataType } = res;
+      const { uniqueId, rlDataList, dependencies, dataType, log } = res;
+
+      if (log) Logger.verbose(`Worker: ${log}`);
 
       const startTime = this.workerLatencyMap.get(uniqueId);
       if (startTime) {

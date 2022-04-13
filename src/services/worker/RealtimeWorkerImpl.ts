@@ -4,7 +4,6 @@ import { EnvoyLogs } from "../../classes/EnvoyLog";
 import { Traces } from "../../classes/Traces";
 import { Trace } from "../../entities/external/Trace";
 import { TReplicaCount } from "../../entities/TReplicaCount";
-import Logger from "../../utils/Logger";
 import KubernetesService from "../KubernetesService";
 import ZipkinService from "../ZipkinService";
 
@@ -16,6 +15,7 @@ function cleanUpMap(time: number, timeout: number) {
   });
 }
 function filterTraces(traces: Trace[][]) {
+  const beforeFilter = traces.length;
   traces = traces.filter((t) => {
     if (t.length === 0) return false;
     return !traceIdMap.has(t[0].traceId);
@@ -23,20 +23,18 @@ function filterTraces(traces: Trace[][]) {
   traces.forEach((t) => {
     traceIdMap.set(t[0].traceId, t[0].timestamp / 1000);
   });
-  return traces;
+  return { traces, beforeFilter };
 }
 
 parentPort?.on("message", async ({ uniqueId, lookBack, time, existingDep }) => {
-  const rawTraces =
+  const { traces: filtered, beforeFilter } = filterTraces(
     await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
       lookBack,
       time,
       2500
-    );
-  const traces = new Traces(filterTraces(rawTraces));
-  Logger.prefixed("Worker").verbose(
-    `Got ${rawTraces.length} traces, ${traces.toJSON().length} new to process`
+    )
   );
+  const traces = new Traces(filtered);
 
   // get namespaces from traces for querying envoy logs
   const namespaces = traces.extractContainingNamespaces();
@@ -78,6 +76,7 @@ parentPort?.on("message", async ({ uniqueId, lookBack, time, existingDep }) => {
     rlDataList: cbData.toJSON(),
     dependencies: dep.toJSON(),
     dataType: dataType.map((d) => d.toJSON()),
+    log: `Got ${beforeFilter} traces, ${filtered.length} new to process`,
   };
   parentPort?.postMessage(res);
 
