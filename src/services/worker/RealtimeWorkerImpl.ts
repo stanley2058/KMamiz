@@ -2,18 +2,37 @@ import { parentPort } from "worker_threads";
 import { EndpointDependencies } from "../../classes/EndpointDependencies";
 import { EnvoyLogs } from "../../classes/EnvoyLog";
 import { Traces } from "../../classes/Traces";
+import { Trace } from "../../entities/external/Trace";
 import { TReplicaCount } from "../../entities/TReplicaCount";
 import KubernetesService from "../KubernetesService";
 import ZipkinService from "../ZipkinService";
 
-parentPort?.on("message", async ({ uniqueId, lookBack, existingDep }) => {
-  const traces = new Traces(
+const traceIdMap = new Map<string, number>();
+
+function cleanUpMap(time: number, timeout: number) {
+  [...traceIdMap.entries()].forEach(([tId, createAt]) => {
+    if (createAt < time - timeout) traceIdMap.delete(tId);
+  });
+}
+function filterTraces(traces: Trace[][]) {
+  traces = traces.filter((t) => {
+    if (t.length === 0) return false;
+    return !traceIdMap.has(t[0].traceId);
+  });
+  traces.forEach((t) => {
+    traceIdMap.set(t[0].traceId, t[0].timestamp / 1000);
+  });
+  return traces;
+}
+
+parentPort?.on("message", async ({ uniqueId, lookBack, time, existingDep }) => {
+  const rawTraces =
     await ZipkinService.getInstance().getTraceListFromZipkinByServiceName(
       lookBack,
-      Date.now(),
+      time,
       2500
-    )
-  );
+    );
+  const traces = new Traces(filterTraces(rawTraces));
 
   // get namespaces from traces for querying envoy logs
   const namespaces = traces.extractContainingNamespaces();
@@ -57,4 +76,6 @@ parentPort?.on("message", async ({ uniqueId, lookBack, existingDep }) => {
     dataType: dataType.map((d) => d.toJSON()),
   };
   parentPort?.postMessage(res);
+
+  cleanUpMap(time, lookBack);
 });

@@ -48,8 +48,6 @@ export default class ServiceOperator {
     });
   }
 
-  private previousRealtimeTime = Date.now();
-
   async aggregateDailyData() {
     const combinedRealtimeData = DataCache.getInstance()
       .get<CCombinedRealtimeData>("CombinedRealtimeData")
@@ -101,22 +99,21 @@ export default class ServiceOperator {
   }
 
   async retrieveRealtimeData() {
+    const time = Date.now();
     const uniqueId = Math.floor(Math.random() * Math.pow(16, 4))
       .toString(16)
       .padStart(4, "0");
-    this.workerLatencyMap.set(uniqueId, Date.now());
+    this.workerLatencyMap.set(uniqueId, time);
     Logger.verbose(`Running Realtime schedule in worker, [${uniqueId}]`);
 
-    const lookBack =
-      Date.now() - ServiceOperator.getInstance().previousRealtimeTime;
-    ServiceOperator.getInstance().previousRealtimeTime = Date.now();
     const existingDep = DataCache.getInstance()
       .get<CEndpointDependencies>("EndpointDependencies")
       .getData();
 
     ServiceOperator.getInstance().realtimeWorker.postMessage({
       uniqueId,
-      lookBack,
+      lookBack: 30000,
+      time,
       existingDep: existingDep?.toJSON(),
     });
   }

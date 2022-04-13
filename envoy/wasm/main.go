@@ -147,7 +147,7 @@ func (ctx *kMamizFilterContext) getRequestIds() {
 	}
 	traceId, err := proxywasm.GetHttpRequestHeader("x-b3-traceid")
 	if err != nil {
-		requestId = "NO_ID"
+		traceId = "NO_ID"
 	}
 	ctx.requestId = requestId
 	ctx.traceId = traceId
