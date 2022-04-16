@@ -173,19 +173,18 @@ export default class Utils {
    */
   static MapObjectToOpenAPITypes(o: any): any {
     if (Array.isArray(o)) {
-      if (this.isPrimitive(o[0])) {
-        return {
-          type: "array",
-          items: {
-            type: typeof o[0],
-          },
-        };
+      let itemTypes = undefined;
+      if (o.length > 0) {
+        itemTypes = this.isPrimitive(o[0])
+          ? { type: typeof o[0] }
+          : this.MapObjectToOpenAPITypes(
+              o.reduce((prev, curr) => this.Merge(prev, curr), {})
+            );
       }
       return {
         type: "array",
-        items: this.MapObjectToOpenAPITypes(
-          o.reduce((prev, curr) => ({ ...prev, ...curr }), {})
-        ),
+        items: itemTypes || { type: "object" },
+        example: itemTypes ? undefined : [],
       };
     }
     if (!o) return { type: "object", nullable: true };
