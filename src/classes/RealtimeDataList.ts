@@ -62,11 +62,20 @@ export class RealtimeDataList {
             const { requestBody, requestSchema, responseBody, responseSchema } =
               this.parseRequestResponseBody(combined);
 
-            const latencyDivBase = subGroup.reduce(
-              (prev, curr) => prev + Math.pow(curr.latency, 2),
-              0
+            const latencyDivBase = Utils.ToPrecise(
+              subGroup.reduce(
+                (prev, curr) => prev + Math.pow(curr.latency, 2),
+                0
+              )
             );
-            const latencyMean = combined.latency / subGroup.length;
+            const latencyMean = Utils.ToPrecise(
+              combined.latency / subGroup.length
+            );
+            const cv = Utils.ToPrecise(
+              Math.sqrt(
+                latencyDivBase / subGroup.length - Math.pow(latencyMean, 2)
+              ) / latencyMean
+            );
 
             return {
               ...baseSample,
@@ -83,10 +92,7 @@ export class RealtimeDataList {
               latency: {
                 mean: latencyMean,
                 divBase: latencyDivBase,
-                cv:
-                  Math.sqrt(
-                    latencyDivBase / subGroup.length - Math.pow(latencyMean, 2)
-                  ) / latencyMean,
+                cv,
               },
               requestContentType: combined.requestContentType,
               responseContentType: combined.responseContentType,

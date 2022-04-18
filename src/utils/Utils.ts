@@ -274,4 +274,8 @@ export default class Utils {
     }
     return a || b;
   }
+
+  static ToPrecise(num: number) {
+    return Math.round((num + Number.EPSILON) * 1e14) / 1e14;
+  }
 }

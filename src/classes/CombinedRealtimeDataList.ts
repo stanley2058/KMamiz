@@ -358,6 +358,14 @@ export default class CombinedRealtimeDataList {
         );
         latencyMean /= baseSample.combined;
 
+        latencyMean = Utils.ToPrecise(latencyMean);
+        latencyDivBase = Utils.ToPrecise(latencyDivBase);
+        const cv = Utils.ToPrecise(
+          Math.sqrt(
+            latencyDivBase / baseSample.combined - Math.pow(latencyMean, 2)
+          ) / latencyMean
+        );
+
         return {
           ...baseSample,
           latestTimestamp: combined.latestTimestamp,
@@ -368,10 +376,7 @@ export default class CombinedRealtimeDataList {
           latency: {
             mean: latencyMean,
             divBase: latencyDivBase,
-            cv:
-              Math.sqrt(
-                latencyDivBase / baseSample.combined - Math.pow(latencyMean, 2)
-              ) / latencyMean,
+            cv,
           },
         };
       }
