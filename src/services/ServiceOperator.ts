@@ -17,7 +17,6 @@ import { Worker } from "worker_threads";
 import path from "path";
 import { TEndpointDataType } from "../entities/TEndpointDataType";
 import Logger from "../utils/Logger";
-import Utils from "../utils/Utils";
 
 export default class ServiceOperator {
   private static instance?: ServiceOperator;
@@ -68,7 +67,7 @@ export default class ServiceOperator {
     return { combinedRealtimeData, endpointDependencies };
   }
 
-  async aggregateDailyData() {
+  async createHistoricalAndAggregatedData() {
     const info = this.getDataForAggregate();
     if (!info) return;
     const { combinedRealtimeData, endpointDependencies } = info;
@@ -106,33 +105,6 @@ export default class ServiceOperator {
     DataCache.getInstance()
       .get<CCombinedRealtimeData>("CombinedRealtimeData")
       .reset();
-  }
-
-  async createHistoricalDataSnapshot() {
-    const ts = Date.now();
-    // prevents running alongside with daily aggregate schedule
-    if (Utils.BelongsToDateTimestamp(ts) === Utils.BelongsToHourTimestamp(ts)) {
-      return;
-    }
-
-    const info = this.getDataForAggregate();
-    if (!info) return;
-    const { combinedRealtimeData, endpointDependencies } = info;
-
-    const replicas =
-      DataCache.getInstance().get<CReplicas>("ReplicaCounts").getData() || [];
-
-    const historicalData = combinedRealtimeData.toHistoricalData(
-      endpointDependencies.toServiceDependencies(),
-      replicas
-    );
-    const current = historicalData.find(
-      (h) => h.date.getTime() === Utils.BelongsToDateTimestamp(ts)
-    );
-    if (!current) return;
-    current.date = new Date(Utils.BelongsToHourTimestamp(ts) - 3600000);
-
-    await MongoOperator.getInstance().save(current, HistoricalDataModel);
   }
 
   async retrieveRealtimeData() {

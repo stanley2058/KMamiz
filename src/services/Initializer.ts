@@ -15,6 +15,7 @@ import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
+import Utils from "../utils/Utils";
 import DataCache from "./DataCache";
 import DispatchStorage from "./DispatchStorage";
 import KubernetesService from "./KubernetesService";
@@ -55,11 +56,15 @@ export default class Initializer {
     if (realtimeData.toJSON().length !== 0) {
       const historicalData = realtimeData.toHistoricalData(
         endpointDependencies.toServiceDependencies(),
-        replicas
+        replicas,
+        undefined,
+        Utils.BelongsToDateTimestamp
       );
       const aggregatedData = realtimeData.toAggregatedData(
         endpointDependencies.toServiceDependencies(),
-        replicas
+        replicas,
+        undefined,
+        Utils.BelongsToDateTimestamp
       );
       await MongoOperator.getInstance().save(
         new AggregatedData(aggregatedData).toJSON(),
@@ -138,12 +143,7 @@ export default class Initializer {
       Scheduler.getInstance().register(
         "aggregation",
         GlobalSettings.AggregateInterval,
-        () => ServiceOperator.getInstance().aggregateDailyData()
-      );
-      Scheduler.getInstance().register(
-        "snapshot",
-        GlobalSettings.MetricsGranularityInterval,
-        () => ServiceOperator.getInstance().createHistoricalDataSnapshot()
+        () => ServiceOperator.getInstance().createHistoricalAndAggregatedData()
       );
       Scheduler.getInstance().register(
         "realtime",

@@ -30,11 +30,12 @@ export default class CombinedRealtimeDataList {
   toHistoricalData(
     serviceDependencies: TServiceDependency[],
     replicas: TReplicaCount[] = [],
-    labelMap?: Map<string, string>
+    labelMap?: Map<string, string>,
+    belongsToFunc = (ts: number) => Utils.BelongsToHourTimestamp(ts)
   ) {
     const dateMapping = new Map<number, TCombinedRealtimeData[]>();
     this._combinedRealtimeData.forEach((r) => {
-      const time = Utils.BelongsToDateTimestamp(r.latestTimestamp / 1000);
+      const time = belongsToFunc(r.latestTimestamp / 1000);
       dateMapping.set(time, (dateMapping.get(time) || []).concat([r]));
     });
 
@@ -149,12 +150,14 @@ export default class CombinedRealtimeDataList {
   toAggregatedData(
     serviceDependencies: TServiceDependency[],
     replicas: TReplicaCount[] = [],
-    labelMap?: Map<string, string>
+    labelMap?: Map<string, string>,
+    belongsToFunc = (ts: number) => Utils.BelongsToHourTimestamp(ts)
   ): TAggregatedData {
     const historicalData = this.toHistoricalData(
       serviceDependencies,
       replicas,
-      labelMap
+      labelMap,
+      belongsToFunc
     );
     let minDate = Number.MAX_SAFE_INTEGER;
     let maxDate = Number.MIN_SAFE_INTEGER;

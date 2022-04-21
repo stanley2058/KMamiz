@@ -147,7 +147,7 @@ export default class DataService extends IRequestHandler {
         }
       });
       this.addRoute("post", "/aggregate", async (_, res) => {
-        await ServiceOperator.getInstance().aggregateDailyData();
+        await ServiceOperator.getInstance().createHistoricalAndAggregatedData();
         res.sendStatus(204);
       });
     }

@@ -27,7 +27,7 @@ export default class RiskAnalyzer {
           ?.impact || 0;
       const probability =
         probabilities.find(({ uniqueServiceName }) => uniqueServiceName === s)
-          ?.probability || 0;
+          ?.probability || RiskAnalyzer.MINIMUM_PROB;
 
       return {
         uniqueServiceName: s,
