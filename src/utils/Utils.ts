@@ -108,6 +108,18 @@ export default class Utils {
   }
 
   /**
+   * Get timestamp of the hour as the given timestamp
+   * @param timestamp timestamp in microseconds
+   * @returns the timestamp of the hour in microseconds
+   */
+  static BelongsToHourTimestamp(timestamp: number) {
+    const tokens = new Date(timestamp).toISOString().split("T");
+    return new Date(
+      `${tokens[0]}T${tokens[1].split(":")[0]}:00:00.000Z`
+    ).getTime();
+  }
+
+  /**
    * Calculate the score of Cosine Similarity between two interface string
    * @param interfaceA An interface string
    * @param interfaceB An interface string

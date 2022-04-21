@@ -11,6 +11,7 @@ type Settings = {
   ZipkinUrl: string;
   MongoDBUri: string;
   AggregateInterval: string; // cron expression
+  MetricsGranularityInterval: string; // cron expression
   RealtimeInterval: string; // cron expression
   DispatchInterval: string; // cron expression
   EnvoyLogLevel: "info" | "warning" | "error";
@@ -29,6 +30,7 @@ const {
   ZIPKIN_URL,
   MONGODB_URI,
   AGGREGATE_INTERVAL,
+  METRICS_GRANULARITY_INTERVAL,
   REALTIME_INTERVAL,
   DISPATCH_INTERVAL,
   ENVOY_LOG_LEVEL,
@@ -53,6 +55,8 @@ const GlobalSettings: Settings = {
     MONGODB_URI || "mongodb://admin:admin@localhost:27017/?authSource=admin",
   // default: 00:00 everyday
   AggregateInterval: AGGREGATE_INTERVAL || "0 0 * * *",
+  // default: every hour
+  MetricsGranularityInterval: METRICS_GRANULARITY_INTERVAL || "0 * * * *",
   // default: every 5 seconds
   RealtimeInterval: REALTIME_INTERVAL || "0/5 * * * *",
   // default: every 30 seconds

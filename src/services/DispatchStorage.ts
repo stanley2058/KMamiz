@@ -22,42 +22,41 @@ export default class DispatchStorage {
   }
 
   async sync() {
-    if (DispatchStorage.getInstance()._lock)
-      return await DispatchStorage.getInstance().waitUntilUnlock();
-    DispatchStorage.getInstance()._lock = true;
-    DispatchStorage.getInstance().nextSyncType();
+    if (this._lock) return await this.waitUntilUnlock();
+    this._lock = true;
+    this.nextSyncType();
 
-    const index = DispatchStorage.getInstance().syncType;
-    const sync = DispatchStorage.getInstance().syncStrategies[index];
+    const index = this.syncType;
+    const sync = this.syncStrategies[index];
 
     Logger.verbose(`Dispatch syncing type: ${sync.name}`);
     await sync.syncFunc();
 
-    DispatchStorage.getInstance()._lock = false;
+    this._lock = false;
   }
 
   async syncAll() {
-    await DispatchStorage.getInstance().waitUntilUnlock();
-    DispatchStorage.getInstance()._lock = true;
+    await this.waitUntilUnlock();
+    this._lock = true;
     Logger.info("Syncing all caches to database");
 
-    for (const sync of DispatchStorage.getInstance().syncStrategies) {
+    for (const sync of this.syncStrategies) {
       await sync.syncFunc();
     }
 
-    DispatchStorage.getInstance()._lock = false;
+    this._lock = false;
   }
 
   private nextSyncType() {
-    const current = DispatchStorage.getInstance().syncType;
-    const total = DispatchStorage.getInstance().syncStrategies.length;
-    DispatchStorage.getInstance().syncType = (current + 1) % total;
+    const current = this.syncType;
+    const total = this.syncStrategies.length;
+    this.syncType = (current + 1) % total;
   }
 
   waitUntilUnlock() {
     return new Promise<void>((res) => {
       const timer = setInterval(() => {
-        if (!DispatchStorage.getInstance()._lock) {
+        if (!this._lock) {
           clearInterval(timer);
           res();
         }

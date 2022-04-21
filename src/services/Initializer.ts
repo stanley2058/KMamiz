@@ -138,7 +138,12 @@ export default class Initializer {
       Scheduler.getInstance().register(
         "aggregation",
         GlobalSettings.AggregateInterval,
-        ServiceOperator.getInstance().aggregateDailyData
+        () => ServiceOperator.getInstance().aggregateDailyData()
+      );
+      Scheduler.getInstance().register(
+        "snapshot",
+        GlobalSettings.MetricsGranularityInterval,
+        () => ServiceOperator.getInstance().createHistoricalDataSnapshot()
       );
       Scheduler.getInstance().register(
         "realtime",
@@ -149,7 +154,7 @@ export default class Initializer {
       Scheduler.getInstance().register(
         "dispatch",
         GlobalSettings.DispatchInterval,
-        DispatchStorage.getInstance().sync
+        () => DispatchStorage.getInstance().sync()
       );
       Scheduler.getInstance().start();
     } else {
