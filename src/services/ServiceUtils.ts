@@ -14,7 +14,6 @@ import DataCache from "../services/DataCache";
 import MongoOperator from "../services/MongoOperator";
 import EndpointUtils from "../utils/EndpointUtils";
 import Logger from "../utils/Logger";
-import Utils from "../utils/Utils";
 
 export default class ServiceUtils {
   private static instance?: ServiceUtils;
@@ -119,10 +118,6 @@ export default class ServiceUtils {
       replicas.getData(),
       labelMapping.getData()
     );
-    const today = rlHistory.find(
-      (h) => h.date.getTime() === Utils.BelongsToDateTimestamp(Date.now())
-    );
-    if (today) today.date = new Date();
     return this.fillInHistoricalData(historicalData.concat(rlHistory));
   }
 

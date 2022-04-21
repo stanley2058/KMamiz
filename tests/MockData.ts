@@ -4451,7 +4451,7 @@ const MockBaseCrlData1: TCombinedRealtimeData[] = [
     latency: {
       mean: 100,
       divBase: divBaseData1,
-      cv: Math.sqrt(divBaseData1 / 10 - Math.pow(100, 2)) / 100,
+      cv: 0.17888543819998,
     },
     method: Method,
     status: Status,
@@ -4519,7 +4519,7 @@ const MockCombinedBaseData: TCombinedRealtimeData[] = [
     latency: {
       mean: 125,
       divBase: divBaseBaseData,
-      cv: Math.sqrt(divBaseBaseData / 20 - Math.pow(125, 2)) / 125,
+      cv: 0.25861167800391,
     },
   },
 ];
@@ -4544,13 +4544,13 @@ const MockDependencies: TServiceDependency[] = [
 ];
 const MockHistoricalData: THistoricalData[] = [
   {
-    date: new Date(Utils.BelongsToDateTimestamp(Date.now() - 86400000)),
+    date: new Date(Utils.BelongsToHourTimestamp(Date.now() - 86400000)),
     services: [
       {
-        date: new Date(Utils.BelongsToDateTimestamp(Date.now() - 86400000)),
+        date: new Date(Utils.BelongsToHourTimestamp(Date.now() - 86400000)),
         endpoints: [
           {
-            latencyCV: 0.17888543819998318,
+            latencyCV: 0.17888543819998,
             method: Method,
             requestErrors: 0,
             requests: 10,
@@ -4565,7 +4565,7 @@ const MockHistoricalData: THistoricalData[] = [
         requests: 10,
         requestErrors: 0,
         serverErrors: 0,
-        latencyCV: 0.17888543819998318,
+        latencyCV: 0.17888543819998,
         uniqueServiceName: UniqueServiceName,
         risk: 0.1,
       },
@@ -4573,8 +4573,8 @@ const MockHistoricalData: THistoricalData[] = [
   },
 ];
 const MockAggregatedData: TAggregatedData = {
-  fromDate: new Date(Utils.BelongsToDateTimestamp(Yesterday)),
-  toDate: new Date(Utils.BelongsToDateTimestamp(Yesterday)),
+  fromDate: new Date(Utils.BelongsToHourTimestamp(Yesterday)),
+  toDate: new Date(Utils.BelongsToHourTimestamp(Yesterday)),
   services: [
     {
       uniqueServiceName: UniqueServiceName,
@@ -4585,7 +4585,7 @@ const MockAggregatedData: TAggregatedData = {
       totalServerErrors: 0,
       totalRequestErrors: 0,
       avgRisk: 0.1,
-      avgLatencyCV: 0.17888543819998318,
+      avgLatencyCV: 0.17888543819998,
       endpoints: [
         {
           uniqueServiceName: UniqueServiceName,
@@ -4594,7 +4594,7 @@ const MockAggregatedData: TAggregatedData = {
           totalRequests: 10,
           totalServerErrors: 0,
           totalRequestErrors: 0,
-          avgLatencyCV: 0.17888543819998318,
+          avgLatencyCV: 0.17888543819998,
         },
       ],
     },
