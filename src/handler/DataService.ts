@@ -291,6 +291,7 @@ export default class DataService extends IRequestHandler {
     );
 
     await DispatchStorage.getInstance().syncAll();
+    ServiceUtils.getInstance().updateLabel();
     return true;
   }
 }
