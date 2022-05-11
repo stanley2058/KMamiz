@@ -94,7 +94,7 @@ export default class CombinedRealtimeDataList {
         );
 
         return {
-          latencyCV: Math.max(...r.map((rl) => rl.latency.cv)),
+          latencyCV: Math.max(...r.map((rl) => rl.latency.cv || 0)),
           method: method as TRequestTypeUpper,
           requestErrors,
           requests,
@@ -137,7 +137,7 @@ export default class CombinedRealtimeDataList {
           requests,
           requestErrors,
           serverErrors,
-          latencyCV: Math.max(...r.map((rl) => rl.latency.cv)),
+          latencyCV: Math.max(...r.map((rl) => rl.latency.cv || 0)),
           uniqueServiceName,
           risk: risks.find(
             (rsk) => rsk.uniqueServiceName === uniqueServiceName
@@ -363,11 +363,12 @@ export default class CombinedRealtimeDataList {
 
         latencyMean = Utils.ToPrecise(latencyMean);
         latencyDivBase = Utils.ToPrecise(latencyDivBase);
-        const cv = Utils.ToPrecise(
-          Math.sqrt(
-            latencyDivBase / baseSample.combined - Math.pow(latencyMean, 2)
-          ) / latencyMean
-        );
+        const cv =
+          Utils.ToPrecise(
+            Math.sqrt(
+              latencyDivBase / baseSample.combined - Math.pow(latencyMean, 2)
+            ) / latencyMean
+          ) || 0;
 
         return {
           ...baseSample,

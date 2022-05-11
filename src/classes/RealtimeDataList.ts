@@ -71,11 +71,12 @@ export class RealtimeDataList {
             const latencyMean = Utils.ToPrecise(
               combined.latency / subGroup.length
             );
-            const cv = Utils.ToPrecise(
-              Math.sqrt(
-                latencyDivBase / subGroup.length - Math.pow(latencyMean, 2)
-              ) / latencyMean
-            );
+            const cv =
+              Utils.ToPrecise(
+                Math.sqrt(
+                  latencyDivBase / subGroup.length - Math.pow(latencyMean, 2)
+                ) / latencyMean
+              ) || 0;
 
             return {
               ...baseSample,

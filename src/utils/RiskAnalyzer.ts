@@ -233,10 +233,8 @@ export default class RiskAnalyzer {
     const latencyMap = new Map<string, number>();
     serviceData.forEach((rl) => {
       const existing = latencyMap.get(rl.uniqueServiceName) || 0;
-      latencyMap.set(
-        rl.uniqueServiceName,
-        existing > rl.latency.cv ? existing : rl.latency.cv
-      );
+      const current = rl.latency.cv || 0;
+      latencyMap.set(rl.uniqueServiceName, Math.max(existing, current));
     });
     return [...latencyMap.entries()].map(([uniqueServiceName, metric]) => ({
       uniqueServiceName,
