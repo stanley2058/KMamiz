@@ -4544,10 +4544,10 @@ const MockDependencies: TServiceDependency[] = [
 ];
 const MockHistoricalData: THistoricalData[] = [
   {
-    date: new Date(Utils.BelongsToHourTimestamp(Date.now() - 86400000)),
+    date: new Date(Utils.BelongsToMinuteTimestamp(Date.now() - 86400000)),
     services: [
       {
-        date: new Date(Utils.BelongsToHourTimestamp(Date.now() - 86400000)),
+        date: new Date(Utils.BelongsToMinuteTimestamp(Date.now() - 86400000)),
         endpoints: [
           {
             latencyCV: 0.17888543819998,
@@ -4573,8 +4573,8 @@ const MockHistoricalData: THistoricalData[] = [
   },
 ];
 const MockAggregatedData: TAggregatedData = {
-  fromDate: new Date(Utils.BelongsToHourTimestamp(Yesterday)),
-  toDate: new Date(Utils.BelongsToHourTimestamp(Yesterday)),
+  fromDate: new Date(Utils.BelongsToMinuteTimestamp(Yesterday)),
+  toDate: new Date(Utils.BelongsToMinuteTimestamp(Yesterday)),
   services: [
     {
       uniqueServiceName: UniqueServiceName,
