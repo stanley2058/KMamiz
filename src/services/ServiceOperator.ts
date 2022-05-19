@@ -67,7 +67,7 @@ export default class ServiceOperator {
 
     if (!combinedRealtimeData || !endpointDependencies) {
       Logger.warn(
-        "Cannot create AggregatedData from empty cache, skipping daily data aggregation"
+        "Cannot create AggregatedData from empty cache, skipping data aggregation"
       );
       return null;
     }

@@ -101,7 +101,7 @@ export default class DataService extends IRequestHandler {
 
     if (GlobalSettings.EnableTestingEndpoints) {
       this.addRoute("delete", "/clear", async (_, res) => {
-        this.clearData();
+        await this.clearData();
         res.sendStatus(200);
       });
       this.addRoute("get", "/export", async (_, res) => {
@@ -250,7 +250,7 @@ export default class DataService extends IRequestHandler {
     return json;
   }
 
-  clearData() {
+  async clearData() {
     DataCache.getInstance().clear();
     DataCache.getInstance().register([
       new CLabelMapping(),
@@ -264,13 +264,13 @@ export default class DataService extends IRequestHandler {
       new CUserDefinedLabel(),
       new CLookBackRealtimeData(),
     ]);
-    MongoOperator.getInstance().clearDatabase();
+    await MongoOperator.getInstance().clearDatabase();
   }
 
   async importData(importData: [string, any][]) {
     if (!importData) return false;
 
-    this.clearData();
+    await MongoOperator.getInstance().clearDatabase();
 
     // fix Date being converted into string
     const dataType = importData.find(
@@ -281,6 +281,7 @@ export default class DataService extends IRequestHandler {
     );
 
     DataCache.getInstance().import(importData);
+    DataCache.getInstance().register([new CLookBackRealtimeData()]);
 
     const [, aggregatedData] =
       importData.find(([name]) => name === "AggregatedData") || [];

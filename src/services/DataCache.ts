@@ -19,10 +19,10 @@ export default class DataCache {
    * @param caches A list of Cacheable, order matters
    */
   register(caches: Cacheable<any>[]) {
-    this._caches = caches;
     caches.forEach((c) => {
       this._cacheMap.set(c.name as CacheableNames, c);
     });
+    this._caches = [...this._cacheMap.values()];
   }
 
   getAll(): Map<CacheableNames, Cacheable<any>> {
