@@ -93,6 +93,8 @@ export default class ServiceOperator {
       replicas
     );
 
+    if (!historicalData) return;
+
     const aggregatedData = historicalData.toAggregatedData();
 
     const prevAggRaw = await MongoOperator.getInstance().getAggregatedData();
@@ -123,6 +125,7 @@ export default class ServiceOperator {
       serviceDependencies,
       replicas
     )[0];
+    if (!historicalData) return;
 
     const lookBackCache = DataCache.getInstance().get<CLookBackRealtimeData>(
       "LookBackRealtimeData"
