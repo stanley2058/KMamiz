@@ -1,4 +1,4 @@
-import { connect, Model, Types } from "mongoose";
+import { connect, Model, Types, FilterQuery } from "mongoose";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { TAggregatedData } from "../entities/TAggregatedData";
 import { THistoricalData } from "../entities/THistoricalData";
@@ -88,6 +88,10 @@ export default class MongoOperator {
 
   async delete<T>(ids: Types.ObjectId[], model: Model<T>) {
     return await model.deleteMany({ _id: { $in: ids } }).exec();
+  }
+
+  async deleteBy<T>(selector: FilterQuery<T>, model: Model<T>) {
+    return await model.deleteMany(selector).exec();
   }
 
   async deleteAll<T>(model: Model<T>) {
