@@ -41,7 +41,9 @@ export default class GraphService extends IRequestHandler {
       res.json(await this.getInDirectServiceChord(req.params["namespace"]));
     });
     this.addRoute("get", "/line/:namespace?", async (req, res) => {
-      res.json(await this.getAreaLineData(req.params["namespace"]));
+      const notBeforeQuery = req.query["notBefore"] as string;
+      const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
+      res.json(await this.getAreaLineData(req.params["namespace"], notBefore));
     });
     this.addRoute("get", "/cohesion/:namespace?", async (req, res) => {
       res.json(this.getServiceCohesion(req.params["namespace"]));
@@ -115,9 +117,15 @@ export default class GraphService extends IRequestHandler {
     );
   }
 
-  async getAreaLineData(namespace?: string): Promise<TAreaLineChartData[]> {
+  async getAreaLineData(
+    namespace?: string,
+    notBefore?: number
+  ): Promise<TAreaLineChartData[]> {
     const historicalData =
-      await ServiceUtils.getInstance().getRealtimeHistoricalData(namespace);
+      await ServiceUtils.getInstance().getRealtimeHistoricalData(
+        namespace,
+        notBefore
+      );
     return historicalData
       .map((h) => {
         return h.services.map((s) => {
