@@ -1,7 +1,3 @@
-import {
-  TAggregatedData,
-  TAggregatedEndpointInfo,
-} from "../entities/TAggregatedData";
 import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 import { TEndpointDataType } from "../entities/TEndpointDataType";
 import {
@@ -31,7 +27,7 @@ export default class CombinedRealtimeDataList {
     serviceDependencies: TServiceDependency[],
     replicas: TReplicaCount[] = [],
     labelMap?: Map<string, string>,
-    belongsToFunc = (ts: number) => Utils.BelongsToHourTimestamp(ts)
+    belongsToFunc = (ts: number) => Utils.BelongsToMinuteTimestamp(ts)
   ) {
     const dateMapping = new Map<number, TCombinedRealtimeData[]>();
     this._combinedRealtimeData.forEach((r) => {
@@ -142,130 +138,6 @@ export default class CombinedRealtimeDataList {
           risk: risks.find(
             (rsk) => rsk.uniqueServiceName === uniqueServiceName
           )!.norm,
-        };
-      }
-    );
-  }
-
-  toAggregatedData(
-    serviceDependencies: TServiceDependency[],
-    replicas: TReplicaCount[] = [],
-    labelMap?: Map<string, string>,
-    belongsToFunc = (ts: number) => Utils.BelongsToHourTimestamp(ts)
-  ): TAggregatedData {
-    const historicalData = this.toHistoricalData(
-      serviceDependencies,
-      replicas,
-      labelMap,
-      belongsToFunc
-    );
-    let minDate = Number.MAX_SAFE_INTEGER;
-    let maxDate = Number.MIN_SAFE_INTEGER;
-
-    const serviceMap = new Map<string, THistoricalServiceInfo[]>();
-    historicalData
-      .flatMap((h) => h.services)
-      .forEach((s) => {
-        const time = s.date.getTime();
-        if (time > maxDate) maxDate = time;
-        if (time < minDate) minDate = time;
-
-        serviceMap.set(
-          s.uniqueServiceName,
-          (serviceMap.get(s.uniqueServiceName) || []).concat([{ ...s }])
-        );
-      });
-
-    const aggregatedData = {
-      fromDate: new Date(minDate),
-      toDate: new Date(maxDate),
-      services: this.createAggregatedServiceInfo(serviceMap, labelMap),
-    };
-    return aggregatedData;
-  }
-  private createAggregatedServiceInfo(
-    serviceMap: Map<string, THistoricalServiceInfo[]>,
-    labelMap?: Map<string, string>
-  ) {
-    return [...serviceMap.entries()].map(
-      ([uniqueServiceName, serviceGroup]) => {
-        const [service, namespace, version] = uniqueServiceName.split("\t");
-        const endpointMap = new Map<string, THistoricalEndpointInfo[]>();
-        serviceGroup
-          .flatMap((s) => s.endpoints)
-          .forEach((e) => {
-            endpointMap.set(
-              e.uniqueEndpointName,
-              (endpointMap.get(e.uniqueEndpointName) || []).concat([e])
-            );
-          });
-        const endpoints = this.createAggregatedEndpointInfo(
-          uniqueServiceName,
-          endpointMap,
-          labelMap
-        );
-
-        let avgRisk = 0;
-        let avgLatencyCV = 0;
-        const sumResult = serviceGroup.reduce(
-          (prev, curr) => {
-            prev.totalRequests += curr.requests;
-            prev.totalServerErrors += curr.serverErrors;
-            prev.totalRequestErrors += curr.requestErrors;
-            avgRisk += curr.risk || 0;
-            avgLatencyCV += curr.latencyCV;
-            return prev;
-          },
-          { totalRequests: 0, totalServerErrors: 0, totalRequestErrors: 0 }
-        );
-        avgRisk /= serviceGroup.length;
-        avgLatencyCV /= serviceGroup.length;
-
-        return {
-          uniqueServiceName,
-          service,
-          namespace,
-          version,
-          ...sumResult,
-          avgRisk,
-          avgLatencyCV,
-          endpoints,
-        };
-      }
-    );
-  }
-  private createAggregatedEndpointInfo(
-    uniqueServiceName: string,
-    endpointMap: Map<string, THistoricalEndpointInfo[]>,
-    labelMap?: Map<string, string>
-  ) {
-    return [...endpointMap.entries()].map(
-      ([uniqueEndpointName, endpointGroup]): TAggregatedEndpointInfo => {
-        const [, , , method] = uniqueEndpointName.split("\t");
-
-        let latencySum = 0;
-        const sumResult = endpointGroup.reduce(
-          (prev, curr) => {
-            prev.totalRequests += curr.requests;
-            prev.totalServerErrors += curr.serverErrors;
-            prev.totalRequestErrors += curr.requestErrors;
-            latencySum += curr.latencyCV;
-            return prev;
-          },
-          {
-            totalRequests: 0,
-            totalServerErrors: 0,
-            totalRequestErrors: 0,
-          }
-        );
-
-        return {
-          uniqueServiceName,
-          uniqueEndpointName,
-          labelName: labelMap?.get(uniqueEndpointName),
-          method: method as TRequestTypeUpper,
-          ...sumResult,
-          avgLatencyCV: latencySum / endpointGroup.length,
         };
       }
     );
@@ -391,5 +263,14 @@ export default class CombinedRealtimeDataList {
 
   getContainingNamespaces() {
     return new Set(this._combinedRealtimeData.map((r) => r.namespace));
+  }
+
+  adjustTimestamp(to: number) {
+    return new CombinedRealtimeDataList(
+      this._combinedRealtimeData.map((rl) => ({
+        ...rl,
+        latestTimestamp: to * 1000,
+      }))
+    );
   }
 }

@@ -120,6 +120,19 @@ export default class Utils {
   }
 
   /**
+   * Get timestamp of the minute as the given timestamp
+   * @param timestamp timestamp in microseconds
+   * @returns the timestamp of the minute in microseconds
+   */
+  static BelongsToMinuteTimestamp(timestamp: number) {
+    const tokens = new Date(timestamp).toISOString().split("T");
+    const timeTok = tokens[1].split(":");
+    return new Date(
+      `${tokens[0]}T${timeTok[0]}:${timeTok[1]}:00.000Z`
+    ).getTime();
+  }
+
+  /**
    * Calculate the score of Cosine Similarity between two interface string
    * @param interfaceA An interface string
    * @param interfaceB An interface string

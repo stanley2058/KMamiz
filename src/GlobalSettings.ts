@@ -51,8 +51,8 @@ const GlobalSettings: Settings = {
   ZipkinUrl: ZIPKIN_URL || "http://localhost:9411",
   MongoDBUri:
     MONGODB_URI || "mongodb://admin:admin@localhost:27017/?authSource=admin",
-  // default: every hour
-  AggregateInterval: AGGREGATE_INTERVAL || "0 * * * *",
+  // default: every 5 minutes
+  AggregateInterval: AGGREGATE_INTERVAL || "*/5 * * * *",
   // default: every 5 seconds
   RealtimeInterval: REALTIME_INTERVAL || "0/5 * * * *",
   // default: every 30 seconds

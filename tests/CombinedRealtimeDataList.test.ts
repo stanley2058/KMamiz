@@ -4,7 +4,6 @@ import {
   MockDependencies,
   MockReplicas,
   MockHistoricalData,
-  MockAggregatedData,
   MockEndpointDataType,
   MockBaseCrlData2,
   MockCombinedBaseData,
@@ -16,15 +15,6 @@ describe("CombinedRealtimeDataList", () => {
     const data = new CombinedRealtimeDataList(MockBaseCrlData1);
     const h = data.toHistoricalData(MockDependencies, MockReplicas);
     expect(h).toEqual(MockHistoricalData);
-  });
-
-  it("converts to AggregatedData and HistoricalData", () => {
-    const data = new CombinedRealtimeDataList(MockBaseCrlData1);
-    const aggregatedData = data.toAggregatedData(
-      MockDependencies,
-      MockReplicas
-    );
-    expect(aggregatedData).toEqual(MockAggregatedData);
   });
 
   it("extracts EndpointDataType", () => {

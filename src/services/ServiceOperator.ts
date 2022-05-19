@@ -17,8 +17,15 @@ import { Worker } from "worker_threads";
 import path from "path";
 import { TEndpointDataType } from "../entities/TEndpointDataType";
 import Logger from "../utils/Logger";
+import Utils from "../utils/Utils";
+import { HistoricalData } from "../classes/HistoricalData";
+import RiskAnalyzer from "../utils/RiskAnalyzer";
+import { TReplicaCount } from "../entities/TReplicaCount";
+import { TServiceDependency } from "../entities/TServiceDependency";
+import { CLookBackRealtimeData } from "../classes/Cacheable/CLookBackRealtimeData";
 
 export default class ServiceOperator {
+  static RISK_LOOK_BACK_TIME = 1800000;
   private static instance?: ServiceOperator;
   static getInstance = () => this.instance || (this.instance = new this());
 
@@ -68,26 +75,25 @@ export default class ServiceOperator {
   }
 
   async createHistoricalAndAggregatedData() {
+    const now = Utils.BelongsToMinuteTimestamp(Date.now());
+
     const info = this.getDataForAggregate();
     if (!info) return;
-    const { combinedRealtimeData, endpointDependencies } = info;
 
+    const { combinedRealtimeData, endpointDependencies } = info;
+    const serviceDependencies = endpointDependencies.toServiceDependencies();
     const replicas =
       DataCache.getInstance().get<CReplicas>("ReplicaCounts").getData() || [];
+    const rlData = combinedRealtimeData.adjustTimestamp(now);
 
-    const historicalData = combinedRealtimeData.toHistoricalData(
-      endpointDependencies.toServiceDependencies(),
+    const historicalData = await this.createHistoricalData(
+      now,
+      rlData,
+      serviceDependencies,
       replicas
     );
-    await MongoOperator.getInstance().insertMany(
-      historicalData,
-      HistoricalDataModel
-    );
 
-    const aggregatedData = combinedRealtimeData.toAggregatedData(
-      endpointDependencies.toServiceDependencies(),
-      replicas
-    );
+    const aggregatedData = historicalData.toAggregatedData();
 
     const prevAggRaw = await MongoOperator.getInstance().getAggregatedData();
     let newAggData = new AggregatedData(aggregatedData);
@@ -105,6 +111,43 @@ export default class ServiceOperator {
     DataCache.getInstance()
       .get<CCombinedRealtimeData>("CombinedRealtimeData")
       .reset();
+  }
+
+  private async createHistoricalData(
+    nowTs: number,
+    rlData: CombinedRealtimeDataList,
+    serviceDependencies: TServiceDependency[],
+    replicas: TReplicaCount[]
+  ) {
+    const historicalData = rlData.toHistoricalData(
+      serviceDependencies,
+      replicas
+    )[0];
+
+    const lookBackCache = DataCache.getInstance().get<CLookBackRealtimeData>(
+      "LookBackRealtimeData"
+    );
+    const lookBackRlData = lookBackCache.getData();
+    let mergedRlData = rlData;
+    if (lookBackRlData.size > 0) {
+      mergedRlData = [...lookBackRlData.values()]
+        .reduce((prev, curr) => prev.combineWith(curr))
+        .combineWith(rlData);
+    }
+    lookBackCache.setData(new Map([[nowTs, rlData]]));
+
+    const result = new HistoricalData(historicalData).updateRiskValue(
+      RiskAnalyzer.RealtimeRisk(
+        mergedRlData.toJSON(),
+        serviceDependencies,
+        replicas
+      )
+    );
+    await MongoOperator.getInstance().insertMany(
+      [result.toJSON()],
+      HistoricalDataModel
+    );
+    return result;
   }
 
   async retrieveRealtimeData() {
