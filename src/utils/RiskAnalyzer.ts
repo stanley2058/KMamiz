@@ -119,7 +119,8 @@ export default class RiskAnalyzer {
 
     const normProb = Normalizer.Numbers(
       rawProb.map(({ probability }) => probability),
-      Normalizer.Strategy.Linear
+      Normalizer.Strategy.Linear,
+      this.MINIMUM_PROB
     );
     return rawProb.map((p, i) => ({ ...p, probability: normProb[i] }));
   }
