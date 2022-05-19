@@ -101,20 +101,7 @@ export default class DataService extends IRequestHandler {
 
     if (GlobalSettings.EnableTestingEndpoints) {
       this.addRoute("delete", "/clear", async (_, res) => {
-        DataCache.getInstance().clear();
-        DataCache.getInstance().register([
-          new CLabelMapping(),
-          new CEndpointDataType(),
-          new CCombinedRealtimeData(),
-          new CEndpointDependencies(),
-          new CReplicas(),
-          new CTaggedInterfaces(),
-          new CTaggedSwaggers(),
-          new CLabeledEndpointDependencies(),
-          new CUserDefinedLabel(),
-          new CLookBackRealtimeData(),
-        ]);
-        MongoOperator.getInstance().clearDatabase();
+        this.clearData();
         res.sendStatus(200);
       });
       this.addRoute("get", "/export", async (_, res) => {
@@ -263,10 +250,27 @@ export default class DataService extends IRequestHandler {
     return json;
   }
 
+  clearData() {
+    DataCache.getInstance().clear();
+    DataCache.getInstance().register([
+      new CLabelMapping(),
+      new CEndpointDataType(),
+      new CCombinedRealtimeData(),
+      new CEndpointDependencies(),
+      new CReplicas(),
+      new CTaggedInterfaces(),
+      new CTaggedSwaggers(),
+      new CLabeledEndpointDependencies(),
+      new CUserDefinedLabel(),
+      new CLookBackRealtimeData(),
+    ]);
+    MongoOperator.getInstance().clearDatabase();
+  }
+
   async importData(importData: [string, any][]) {
     if (!importData) return false;
 
-    await MongoOperator.getInstance().clearDatabase();
+    this.clearData();
 
     // fix Date being converted into string
     const dataType = importData.find(
