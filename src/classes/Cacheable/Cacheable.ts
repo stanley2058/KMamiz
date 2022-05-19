@@ -3,6 +3,7 @@ export abstract class Cacheable<T> {
   private _data?: T;
   private _init?: () => Promise<void>;
   private _sync?: () => Promise<void>;
+  readonly canExport: boolean = true;
 
   constructor(name: string, initData?: T) {
     this._name = name;

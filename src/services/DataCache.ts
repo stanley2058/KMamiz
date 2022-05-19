@@ -61,6 +61,8 @@ export default class DataCache {
   }
 
   export(): [CacheableNames, any][] {
-    return this._caches.map((c) => [c.name as CacheableNames, c.toJSON()]);
+    return this._caches
+      .filter((c) => c.canExport)
+      .map((c) => [c.name as CacheableNames, c.toJSON()]);
   }
 }

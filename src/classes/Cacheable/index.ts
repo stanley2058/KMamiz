@@ -3,6 +3,7 @@ import { CEndpointDataType } from "./CEndpointDataType";
 import { CEndpointDependencies } from "./CEndpointDependencies";
 import { CLabeledEndpointDependencies } from "./CLabeledEndpointDependencies";
 import { CLabelMapping } from "./CLabelMapping";
+import { CLookBackRealtimeData } from "./CLookBackRealtimeData";
 import { CReplicas } from "./CReplicas";
 import { CTaggedInterfaces } from "./CTaggedInterfaces";
 import { CTaggedSwaggers } from "./CTaggedSwaggers";
@@ -18,6 +19,7 @@ const classes = {
   [CUserDefinedLabel.uniqueName]: CUserDefinedLabel,
   [CTaggedInterfaces.uniqueName]: CTaggedInterfaces,
   [CTaggedSwaggers.uniqueName]: CTaggedSwaggers,
+  [CLookBackRealtimeData.uniqueName]: CLookBackRealtimeData,
 };
 
 const names = [
@@ -30,6 +32,7 @@ const names = [
   CUserDefinedLabel.uniqueName,
   CTaggedInterfaces.uniqueName,
   CTaggedSwaggers.uniqueName,
+  CLookBackRealtimeData.uniqueName,
 ] as const;
 
 export type CacheableNames = typeof names[number];

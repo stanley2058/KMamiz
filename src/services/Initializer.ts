@@ -4,10 +4,12 @@ import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
 import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
 import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
 import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
+import { CLookBackRealtimeData } from "../classes/Cacheable/CLookBackRealtimeData";
 import { CReplicas } from "../classes/Cacheable/CReplicas";
 import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
 import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
 import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
+import { HistoricalData } from "../classes/HistoricalData";
 import { Traces } from "../classes/Traces";
 import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
 import { EndpointDependencyModel } from "../entities/schema/EndpointDependencySchema";
@@ -15,7 +17,6 @@ import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import GlobalSettings from "../GlobalSettings";
 import Logger from "../utils/Logger";
-import Utils from "../utils/Utils";
 import DataCache from "./DataCache";
 import DispatchStorage from "./DispatchStorage";
 import KubernetesService from "./KubernetesService";
@@ -56,16 +57,12 @@ export default class Initializer {
     if (realtimeData.toJSON().length !== 0) {
       const historicalData = realtimeData.toHistoricalData(
         endpointDependencies.toServiceDependencies(),
-        replicas,
-        undefined,
-        Utils.BelongsToDateTimestamp
+        replicas
       );
-      const aggregatedData = realtimeData.toAggregatedData(
-        endpointDependencies.toServiceDependencies(),
-        replicas,
-        undefined,
-        Utils.BelongsToDateTimestamp
-      );
+      const aggregatedData = new HistoricalData({
+        date: new Date(),
+        services: historicalData.flatMap((h) => h.services),
+      }).toAggregatedData();
       await MongoOperator.getInstance().save(
         new AggregatedData(aggregatedData).toJSON(),
         AggregatedDataModel
@@ -132,6 +129,7 @@ export default class Initializer {
       new CTaggedSwaggers(),
       new CLabeledEndpointDependencies(),
       new CUserDefinedLabel(),
+      new CLookBackRealtimeData(),
     ]);
 
     Logger.info("Loading data into cache.");
