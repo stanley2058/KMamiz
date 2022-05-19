@@ -23,6 +23,7 @@ import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
 import { THistoricalData } from "../entities/THistoricalData";
 import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 import ServiceOperator from "../services/ServiceOperator";
+import { CLookBackRealtimeData } from "../classes/Cacheable/CLookBackRealtimeData";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -111,6 +112,7 @@ export default class DataService extends IRequestHandler {
           new CTaggedSwaggers(),
           new CLabeledEndpointDependencies(),
           new CUserDefinedLabel(),
+          new CLookBackRealtimeData(),
         ]);
         MongoOperator.getInstance().clearDatabase();
         res.sendStatus(200);
