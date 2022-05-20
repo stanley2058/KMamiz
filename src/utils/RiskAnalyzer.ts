@@ -100,18 +100,16 @@ export default class RiskAnalyzer {
       normPro.map((p, i) => p * normErr[i]),
       Normalizer.Strategy.Linear,
       this.MINIMUM_PROB
-    ).map((prob, i) => ({
-      uniqueServiceName: rawInvokeProbabilityAndErrorRate[i].uniqueServiceName,
+    ).map((prob, i): [string, number] => [
+      rawInvokeProbabilityAndErrorRate[i].uniqueServiceName,
       prob,
-    }));
+    ]);
 
-    const rawProb = reliabilityMetric.map(({ uniqueServiceName: name }) => {
-      const { norm } = reliabilityMetric.find(
-        (m) => m.uniqueServiceName === name
-      )!;
-      const { prob } = baseProb.find((m) => m.uniqueServiceName === name)!;
+    const baseProbMap = new Map(baseProb);
+    const rawProb = reliabilityMetric.map(({ uniqueServiceName, norm }) => {
+      const prob = baseProbMap.get(uniqueServiceName)!;
       return {
-        uniqueServiceName: name,
+        uniqueServiceName,
         probability:
           norm * (prob < this.MINIMUM_PROB ? this.MINIMUM_PROB : prob),
       };
@@ -217,12 +215,11 @@ export default class RiskAnalyzer {
   }
 
   static ReliabilityMetric(data: TCombinedRealtimeData[]) {
-    const reliabilityMetric = this.GetWorseLatencyCVOfServices(data);
+    const reliabilityMetric = this.GetLatencyCVOfServices(data);
 
     const normalizedMetrics = Normalizer.Numbers(
       reliabilityMetric.map(({ metric }) => metric),
-      Normalizer.Strategy.Linear,
-      this.MINIMUM_PROB
+      Normalizer.Strategy.SigmoidAdj
     );
     return reliabilityMetric.map((m, i) => ({
       ...m,
@@ -230,17 +227,26 @@ export default class RiskAnalyzer {
     }));
   }
 
-  static GetWorseLatencyCVOfServices(serviceData: TCombinedRealtimeData[]) {
-    const latencyMap = new Map<string, number>();
-    serviceData.forEach((rl) => {
-      const existing = latencyMap.get(rl.uniqueServiceName) || 0;
-      const current = rl.latency.cv || 0;
-      latencyMap.set(rl.uniqueServiceName, Math.max(existing, current));
+  static GetLatencyCVOfServices(serviceData: TCombinedRealtimeData[]) {
+    const dataMap = new Map<string, TCombinedRealtimeData[]>();
+    serviceData.forEach((s) => {
+      const key = s.uniqueServiceName;
+      dataMap.set(key, (dataMap.get(key) || []).concat([s]));
     });
-    return [...latencyMap.entries()].map(([uniqueServiceName, metric]) => ({
-      uniqueServiceName,
-      metric,
-    }));
+
+    return [...dataMap.entries()].map(([uniqueServiceName, data]) => {
+      let total = 0;
+      let sum = 0;
+      data.forEach((d) => {
+        sum += d.latency.cv * d.combined;
+        total += d.combined;
+      });
+
+      return {
+        uniqueServiceName,
+        metric: sum / total,
+      };
+    });
   }
 
   static CoefficientOfVariation(input: number[]) {

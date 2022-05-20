@@ -31,6 +31,16 @@ export default class Normalizer {
       return input.map((value) => 1 / (1 + Math.exp(-value)));
     },
     /**
+     * Adjusted sigmoid function, scales [0-Inf] into [0-1]
+     *
+     * y = 2 / (1+e^(-x)) - 1
+     * @param input
+     * @returns Array of number between 0 and 1
+     */
+    SigmoidAdj(input: number[]) {
+      return input.map((value) => 2 / (1 + Math.exp(-value)) - 1);
+    },
+    /**
      * Divide by max value
      * @param input
      * @returns Array of number between 0 and 1
