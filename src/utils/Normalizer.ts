@@ -1,3 +1,5 @@
+import Utils from "./Utils";
+
 export default class Normalizer {
   static Numbers(
     input: number[],
@@ -33,12 +35,16 @@ export default class Normalizer {
     /**
      * Adjusted sigmoid function, scales [0-Inf] into [0-1]
      *
-     * y = 2 / (1+e^(-x)) - 1
+     * y = 1 / (1 + e^(-z*(x - 1.5)))
      * @param input
      * @returns Array of number between 0 and 1
      */
     SigmoidAdj(input: number[]) {
-      return input.map((value) => 2 / (1 + Math.exp(-value)) - 1);
+      // e^(0.5*z) = 3; z ~= 2.19722457733621935
+      const z = 2.19722457733621935;
+      return input.map((value) =>
+        Utils.ToPrecise(1 / (1 + Math.exp(-z * (value - 1.5))))
+      );
     },
     /**
      * Divide by max value
