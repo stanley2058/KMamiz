@@ -19,7 +19,7 @@ export default class Normalizer {
       const ratio = 1 - baseLine;
       const max = Math.max(...input);
       const min = Math.min(...input);
-      if (max - min === 0) return input;
+      if (max - min === 0) return [0.1];
       return input.map(
         (value) => ((value - min) / (max - min)) * ratio + baseLine
       );
