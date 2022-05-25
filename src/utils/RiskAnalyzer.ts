@@ -115,12 +115,10 @@ export default class RiskAnalyzer {
       };
     });
 
-    const normProb = Normalizer.Numbers(
-      rawProb.map(({ probability }) => probability),
-      Normalizer.Strategy.Linear,
-      this.MINIMUM_PROB
-    );
-    return rawProb.map((p, i) => ({ ...p, probability: normProb[i] }));
+    return rawProb.map((p) => ({
+      ...p,
+      probability: p.probability * (1 - this.MINIMUM_PROB) + this.MINIMUM_PROB,
+    }));
   }
 
   static RelyingFactor(dependencies: TServiceDependency[]) {
