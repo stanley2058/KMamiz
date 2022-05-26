@@ -36,12 +36,12 @@ export default class Normalizer {
      * Adjusted sigmoid function, scales [0-Inf] into [0-1]
      *
      * y = 1 / (1 + e^(-z*(x - 1.5)))
+     * z = 2*ln(3)
      * @param input
      * @returns Array of number between 0 and 1
      */
     SigmoidAdj(input: number[]) {
-      // e^(0.5*z) = 3; z ~= 2.19722457733621935
-      const z = 2.19722457733621935;
+      const z = 2 * Math.log(3);
       return input.map((value) =>
         Utils.ToPrecise(1 / (1 + Math.exp(-z * (value - 1.5))))
       );
