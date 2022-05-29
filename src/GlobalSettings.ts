@@ -18,6 +18,7 @@ type Settings = {
   ReadOnlyMode: boolean;
   EnableTestingEndpoints: boolean;
   ServicePort: string;
+  ServeOnly: boolean;
 };
 
 const {
@@ -39,6 +40,7 @@ const {
   READ_ONLY_MODE,
   ENABLE_TESTING_ENDPOINTS,
   SERVICE_PORT,
+  SERVE_ONLY,
 } = process.env;
 
 const GlobalSettings: Settings = {
@@ -63,6 +65,7 @@ const GlobalSettings: Settings = {
   ReadOnlyMode: READ_ONLY_MODE === "true",
   EnableTestingEndpoints: ENABLE_TESTING_ENDPOINTS === "true",
   ServicePort: SERVICE_PORT || PORT || "3000",
+  ServeOnly: SERVE_ONLY === "true",
 };
 
 if (

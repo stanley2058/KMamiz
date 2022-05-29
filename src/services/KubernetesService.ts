@@ -176,6 +176,7 @@ export default class KubernetesService {
   }
 
   static ParseEnvoyLogs(logs: string[], namespace: string, podName: string) {
+    const idMap = new Map<string, string>();
     const envoyLogs = logs
       .map((l): TEnvoyLog | null => {
         const [time, log] = l.split("\t");
@@ -183,12 +184,17 @@ export default class KubernetesService {
           log.match(
             /\[(Request|Response) ([\w-_]+)\/([\w_]+)\/([\w_]+)\/([\w_]+)\]/
           ) || [];
-        if (traceId === "NO_ID") return null;
+        if (!requestId) return null;
         const [, status] = log.match(/\[Status\] ([0-9]+)/) || [];
         const [, method, path] =
           log.match(/(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) ([^\]]+)/) || [];
         const [, contentType] = log.match(/\[ContentType\ ([^\]]*)]/) || [];
         const [, body] = log.match(/\[Body\] (.*)/) || [];
+
+        if (!idMap.has(requestId) && traceId !== "NO_ID") {
+          idMap.set(requestId, traceId);
+        }
+
         return {
           timestamp: new Date(time),
           type: type as "Request" | "Response",
@@ -206,6 +212,9 @@ export default class KubernetesService {
         };
       })
       .filter((l) => !!l) as TEnvoyLog[];
+    envoyLogs.forEach((e) => {
+      e.traceId = idMap.get(e.requestId) || "NO_ID";
+    });
     return new EnvoyLogs(envoyLogs);
   }
 }

@@ -76,9 +76,13 @@ spec:
                   local spanId = response_handle:headers():get("x-b3-spanid")
                   local parentSpanId = response_handle:headers():get("x-b3-parentspanid")
                   
-                  if(requestId == nil or requestId == "" or traceId == nil or traceId == "") then
+                  if(requestId == nil or requestId == "") then
                       return
                   end
+
+                  if(spanId == nil or spanId == "") then
+                      spanId = "NO_ID"
+                  end                  
                   if(spanId == nil or spanId == "") then
                       spanId = "NO_ID"
                   end

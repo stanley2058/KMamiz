@@ -109,15 +109,19 @@ export default class ServiceUtils {
     return this.fillInHistoricalData(historicalData);
   }
 
-  async getRealtimeAggregatedData(namespace?: string) {
+  async getRealtimeAggregatedData(namespace?: string, notBefore?: number) {
     const { labelMapping } = this.getCaches();
 
     const aggregatedData = await MongoOperator.getInstance().getAggregatedData(
       namespace
     );
 
-    const historicalData = await this.getRealtimeHistoricalData(namespace);
+    const historicalData = await this.getRealtimeHistoricalData(
+      namespace,
+      notBefore
+    );
     if (historicalData.length === 0) {
+      if (notBefore) return undefined;
       return aggregatedData && labelMapping.labelAggregatedData(aggregatedData);
     }
     const rlHistoricalData = historicalData[historicalData.length - 1];

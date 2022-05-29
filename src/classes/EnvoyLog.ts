@@ -99,9 +99,10 @@ export class EnvoyLogs {
   }
 
   static CombineToStructuredEnvoyLogs(logs: EnvoyLogs[]) {
-    return this.FillMissingId(
-      this.CombineStructuredEnvoyLogs(logs.map((l) => l.toStructured()))
+    const combined = this.CombineStructuredEnvoyLogs(
+      logs.map((l) => l.toStructured())
     );
+    return this.FillMissingId(combined);
   }
 
   static CombineStructuredEnvoyLogs(logs: TStructuredEnvoyLog[][]) {

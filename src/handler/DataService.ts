@@ -29,10 +29,18 @@ export default class DataService extends IRequestHandler {
   constructor() {
     super("data");
     this.addRoute("get", "/aggregate/:namespace?", async (req, res) => {
-      res.json(await this.getAggregatedData(req.params["namespace"]));
+      const notBeforeQuery = req.query["notBefore"] as string;
+      const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
+      res.json(
+        await this.getAggregatedData(req.params["namespace"], notBefore)
+      );
     });
     this.addRoute("get", "/history/:namespace?", async (req, res) => {
-      res.json(await this.getHistoricalData(req.params["namespace"]));
+      const notBeforeQuery = req.query["notBefore"] as string;
+      const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
+      res.json(
+        await this.getHistoricalData(req.params["namespace"], notBefore)
+      );
     });
     this.addRoute("get", "/datatype/:uniqueLabelName", async (req, res) => {
       const labelName = decodeURIComponent(req.params["uniqueLabelName"]);
@@ -142,15 +150,17 @@ export default class DataService extends IRequestHandler {
     }
   }
 
-  async getAggregatedData(namespace?: string) {
+  async getAggregatedData(namespace?: string, notBefore?: number) {
     return await ServiceUtils.getInstance().getRealtimeAggregatedData(
-      namespace
+      namespace,
+      notBefore
     );
   }
 
-  async getHistoricalData(namespace?: string) {
+  async getHistoricalData(namespace?: string, notBefore?: number) {
     return await ServiceUtils.getInstance().getRealtimeHistoricalData(
-      namespace
+      namespace,
+      notBefore
     );
   }
 

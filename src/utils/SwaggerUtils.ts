@@ -92,6 +92,7 @@ export default class SwaggerUtils {
     const endpoints = DataCache.getInstance()
       .get<CLabelMapping>("LabelMapping")
       .getEndpointsFromLabel(endpoint.labelName!);
+    if (endpoints.length === 0) endpoints.push(endpoint.labelName!);
     const exampleUrls = endpoints
       .slice(0, 10)
       .map((e) => {

@@ -104,14 +104,19 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
     method: string,
     endpointDataType: EndpointDataType[]
   ) {
-    const names = new Set(
-      this.getEndpointsFromLabel(label).filter((n) =>
-        n.startsWith(`${uniqueServiceName}\t${method}`)
-      )
-    );
-    return endpointDataType.filter((d) =>
-      names.has(d.toJSON().uniqueEndpointName)
-    );
+    const filtered = endpointDataType.filter((dt) => {
+      const raw = dt.toJSON();
+      return (
+        raw.uniqueServiceName === uniqueServiceName && raw.method === method
+      );
+    });
+    const result = filtered.filter((dt) => {
+      return (
+        this.getLabelFromUniqueEndpointName(dt.toJSON().uniqueEndpointName) ===
+        label
+      );
+    });
+    return result;
   }
 
   getLabelFromUniqueEndpointName(uniqueName: string) {
@@ -125,12 +130,12 @@ export class CLabelMapping extends Cacheable<Map<string, string>> {
 
   getEndpointsFromLabel(label: string) {
     const labelMap = this.getData();
-    if (!labelMap) return [label];
+    if (!labelMap) return [];
     const map = new Map<string, string[]>();
     [...labelMap.entries()].forEach(([name, l]) => {
       map.set(l, (map.get(l) || []).concat([name]));
     });
-    return map.get(label) || [label];
+    return map.get(label) || [];
   }
 
   toJSON() {

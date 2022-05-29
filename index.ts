@@ -25,13 +25,21 @@ Logger.plain.verbose(
   process.env.KUBERNETES_SERVICE_PORT
 );
 
+if (GlobalSettings.ServeOnly) {
+  Logger.info(
+    "System running in ServeOnly mode, only webpage and wasm plugin are accessible."
+  );
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 app.use(compression());
 
-app.use(Routes.getInstance().getRoutes());
+if (!GlobalSettings.ServeOnly) {
+  app.use(Routes.getInstance().getRoutes());
+}
 
 // serve SPA webpage
 app.use("/wasm", express.static("wasm"));
@@ -41,31 +49,34 @@ app.get("*", (_, res) =>
 );
 
 (async () => {
-  if (GlobalSettings.IsRunningInKubernetes) {
-    await KubernetesService.getInstance().forceKMamizSync();
-  }
+  if (!GlobalSettings.ServeOnly) {
+    if (GlobalSettings.IsRunningInKubernetes) {
+      await KubernetesService.getInstance().forceKMamizSync();
+    }
 
-  const aggregatedData = await MongoOperator.getInstance().getAggregatedData();
+    const aggregatedData =
+      await MongoOperator.getInstance().getAggregatedData();
 
-  if (GlobalSettings.ResetEndpointDependencies) {
-    Logger.info("Resetting EndpointDependencies.");
-    await Initializer.getInstance().forceRecreateEndpointDependencies();
-  }
+    if (GlobalSettings.ResetEndpointDependencies) {
+      Logger.info("Resetting EndpointDependencies.");
+      await Initializer.getInstance().forceRecreateEndpointDependencies();
+    }
 
-  Logger.info("Running startup tasks.");
-  await Initializer.getInstance().serverStartUp();
+    Logger.info("Running startup tasks.");
+    await Initializer.getInstance().serverStartUp();
 
-  const rlData = DataCache.getInstance()
-    .get<CCombinedRealtimeData>("CombinedRealtimeData")
-    .getData();
+    const rlData = DataCache.getInstance()
+      .get<CCombinedRealtimeData>("CombinedRealtimeData")
+      .getData();
 
-  if (!aggregatedData && rlData?.toJSON().length === 0) {
-    Logger.info("Database is empty, running first time setup.");
-    try {
-      await Initializer.getInstance().firstTimeSetup();
-    } catch (err) {
-      Logger.error("Cannot run first time setup, skipping.");
-      Logger.plain.error("", err);
+    if (!aggregatedData && rlData?.toJSON().length === 0) {
+      Logger.info("Database is empty, running first time setup.");
+      try {
+        await Initializer.getInstance().firstTimeSetup();
+      } catch (err) {
+        Logger.error("Cannot run first time setup, skipping.");
+        Logger.plain.error("", err);
+      }
     }
   }
 
@@ -75,7 +86,7 @@ app.get("*", (_, res) =>
     exitHook(async (callback) => {
       Logger.info("Received termination signal, execute teardown procedures.");
 
-      if (!GlobalSettings.ReadOnlyMode) {
+      if (!GlobalSettings.ReadOnlyMode && !GlobalSettings.ServeOnly) {
         await DispatchStorage.getInstance().syncAll();
       } else {
         Logger.info("Readonly mode enabled, skipping teardown.");
