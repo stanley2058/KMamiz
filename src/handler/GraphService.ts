@@ -3,7 +3,7 @@ import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpo
 import { CLabelMapping } from "../classes/Cacheable/CLabelMapping";
 import EndpointDataType from "../classes/EndpointDataType";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
-import { TAreaLineChartData } from "../entities/TAreaLineChartData";
+import { TLineChartData } from "../entities/TLineChartData";
 import { TGraphData } from "../entities/TGraphData";
 import IRequestHandler from "../entities/TRequestHandler";
 import { TServiceCohesion } from "../entities/TServiceCohesion";
@@ -43,7 +43,7 @@ export default class GraphService extends IRequestHandler {
     this.addRoute("get", "/line/:namespace?", async (req, res) => {
       const notBeforeQuery = req.query["notBefore"] as string;
       const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
-      res.json(await this.getAreaLineData(req.params["namespace"], notBefore));
+      res.json(await this.getLineChartData(req.params["namespace"], notBefore));
     });
     this.addRoute("get", "/cohesion/:namespace?", async (req, res) => {
       res.json(this.getServiceCohesion(req.params["namespace"]));
@@ -117,10 +117,10 @@ export default class GraphService extends IRequestHandler {
     );
   }
 
-  async getAreaLineData(
+  async getLineChartData(
     namespace?: string,
     notBefore?: number
-  ): Promise<TAreaLineChartData[]> {
+  ): Promise<TLineChartData[]> {
     const historicalData =
       await ServiceUtils.getInstance().getRealtimeHistoricalData(
         namespace,

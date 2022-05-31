@@ -1,11 +1,11 @@
-export type TAreaLineChartDataFields =
+export type TLineChartDataFields =
   | "requests"
   | "serverErrors"
   | "requestErrors"
   | "risk"
   | "latencyCV";
 
-export type TAreaLineChartData = {
+export type TLineChartData = {
   name: string;
   x: Date;
   requests: number;
