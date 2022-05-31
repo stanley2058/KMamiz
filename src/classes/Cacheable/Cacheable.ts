@@ -3,11 +3,13 @@ export abstract class Cacheable<T> {
   private _data?: T;
   private _init?: () => Promise<void>;
   private _sync?: () => Promise<void>;
+  private _lastUpdate: number;
   readonly canExport: boolean = true;
 
   constructor(name: string, initData?: T) {
     this._name = name;
     this._data = initData;
+    this._lastUpdate = Date.now();
   }
 
   get name() {
@@ -21,6 +23,7 @@ export abstract class Cacheable<T> {
 
   // @ts-ignore
   setData(update: T, ...arg: any[]) {
+    this.updateTime();
     this._data = update;
   }
 
@@ -31,6 +34,10 @@ export abstract class Cacheable<T> {
     return this._sync;
   }
 
+  get lastUpdate() {
+    return this._lastUpdate;
+  }
+
   protected setInit(f: () => Promise<void>) {
     this._init = f;
   }
@@ -39,7 +46,12 @@ export abstract class Cacheable<T> {
   }
 
   protected clear() {
+    this.updateTime();
     this._data = undefined;
+  }
+
+  private updateTime() {
+    this._lastUpdate = Date.now();
   }
 
   toJSON() {
