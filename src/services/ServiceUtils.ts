@@ -123,6 +123,7 @@ export default class ServiceUtils {
       notBefore
     );
 
+    if (historicalData.length === 0) return undefined;
     const rlAggData = historicalData
       .map(
         (h) =>
