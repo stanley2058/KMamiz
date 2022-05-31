@@ -112,31 +112,27 @@ export default class ServiceUtils {
   async getRealtimeAggregatedData(namespace?: string, notBefore?: number) {
     const { labelMapping } = this.getCaches();
 
-    const aggregatedData = await MongoOperator.getInstance().getAggregatedData(
-      namespace
-    );
+    if (!notBefore) {
+      const aggregatedData =
+        await MongoOperator.getInstance().getAggregatedData(namespace);
+      return aggregatedData && labelMapping.labelAggregatedData(aggregatedData);
+    }
 
     const historicalData = await this.getRealtimeHistoricalData(
       namespace,
       notBefore
     );
-    if (historicalData.length === 0) {
-      if (notBefore) return undefined;
-      return aggregatedData && labelMapping.labelAggregatedData(aggregatedData);
-    }
-    const rlHistoricalData = historicalData[historicalData.length - 1];
-    const rlAggregatedData = new HistoricalData(
-      rlHistoricalData
-    ).toAggregatedData(labelMapping.getData());
 
-    if (!aggregatedData)
-      return labelMapping.labelAggregatedData(rlAggregatedData);
-
-    return labelMapping.labelAggregatedData(
-      new AggregatedData(labelMapping.labelAggregatedData(aggregatedData))
-        .combine(rlAggregatedData)
-        .toJSON()
-    );
+    const rlAggData = historicalData
+      .map(
+        (h) =>
+          new AggregatedData(
+            new HistoricalData(h).toAggregatedData(labelMapping.getData())
+          )
+      )
+      .reduce((prev, curr) => prev.combine(curr.toJSON()))
+      .toJSON();
+    return labelMapping.labelAggregatedData(rlAggData);
   }
 
   private fillInHistoricalData(historicalData: THistoricalData[]) {
