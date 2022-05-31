@@ -8,22 +8,12 @@ import { CUserDefinedLabel } from "../classes/Cacheable/CUserDefinedLabel";
 import { CTaggedInterfaces } from "../classes/Cacheable/CTaggedInterfaces";
 import { CEndpointDataType } from "../classes/Cacheable/CEndpointDataType";
 import ServiceUtils from "../services/ServiceUtils";
-import { CCombinedRealtimeData } from "../classes/Cacheable/CCombinedRealtimeData";
-import { CEndpointDependencies } from "../classes/Cacheable/CEndpointDependencies";
-import { CLabeledEndpointDependencies } from "../classes/Cacheable/CLabeledEndpointDependencies";
-import { CReplicas } from "../classes/Cacheable/CReplicas";
-import { CTaggedSwaggers } from "../classes/Cacheable/CTaggedSwaggers";
 import GlobalSettings from "../GlobalSettings";
-import MongoOperator from "../services/MongoOperator";
 import { tgz } from "compressing";
 import Logger from "../utils/Logger";
 import DispatchStorage from "../services/DispatchStorage";
-import { TAggregatedData } from "../entities/TAggregatedData";
-import { AggregatedDataModel } from "../entities/schema/AggregatedDataSchema";
-import { THistoricalData } from "../entities/THistoricalData";
-import { HistoricalDataModel } from "../entities/schema/HistoricalDataSchema";
 import ServiceOperator from "../services/ServiceOperator";
-import { CLookBackRealtimeData } from "../classes/Cacheable/CLookBackRealtimeData";
+import ImportExportHandler from "../services/ImportExportHandler";
 
 export default class DataService extends IRequestHandler {
   constructor() {
@@ -51,6 +41,21 @@ export default class DataService extends IRequestHandler {
         else res.sendStatus(404);
       }
     });
+
+    this.registerLabelEndpoints();
+    this.registerInterfaceEndpoints();
+
+    this.addRoute("post", "/sync", async (_, res) => {
+      await DispatchStorage.getInstance().syncAll();
+      res.sendStatus(200);
+    });
+
+    if (GlobalSettings.EnableTestingEndpoints) {
+      this.registerTestingEndpoints();
+    }
+  }
+
+  private registerLabelEndpoints() {
     this.addRoute("get", "/label", async (_, res) => {
       res.json(this.getLabelMap());
     });
@@ -79,17 +84,29 @@ export default class DataService extends IRequestHandler {
       );
       res.sendStatus(204);
     });
+  }
+
+  private registerInterfaceEndpoints() {
     this.addRoute("get", "/interface", async (req, res) => {
       const { uniqueLabelName } = req.query as {
         uniqueLabelName: string;
       };
       if (!uniqueLabelName) return res.sendStatus(400);
-      res.json(this.getTaggedInterface(decodeURIComponent(uniqueLabelName)));
+
+      const result = DataCache.getInstance()
+        .get<CTaggedInterfaces>("TaggedInterfaces")
+        .getData(decodeURIComponent(uniqueLabelName));
+
+      res.json(result);
     });
     this.addRoute("post", "/interface", async (req, res) => {
       const tagged = req.body as TTaggedInterface;
       if (!tagged) return res.sendStatus(400);
-      this.addTaggedInterface(tagged);
+
+      DataCache.getInstance()
+        .get<CTaggedInterfaces>("TaggedInterfaces")
+        .add(tagged);
+
       res.sendStatus(201);
     });
     this.addRoute("delete", "/interface", async (req, res) => {
@@ -101,53 +118,50 @@ export default class DataService extends IRequestHandler {
       const result = this.deleteTaggedInterface(uniqueLabelName, userLabel);
       res.sendStatus(result ? 204 : 400);
     });
+  }
 
-    this.addRoute("post", "/sync", async (_, res) => {
-      await DispatchStorage.getInstance().syncAll();
+  private registerTestingEndpoints() {
+    this.addRoute("delete", "/clear", async (_, res) => {
+      await ImportExportHandler.getInstance().clearData();
       res.sendStatus(200);
     });
-
-    if (GlobalSettings.EnableTestingEndpoints) {
-      this.addRoute("delete", "/clear", async (_, res) => {
-        await this.clearData();
-        res.sendStatus(200);
+    this.addRoute("get", "/export", async (_, res) => {
+      res.contentType("application/tar+gzip");
+      const json = await ImportExportHandler.getInstance().exportData();
+      const stream = new tgz.Stream();
+      stream.addEntry(Buffer.from(json, "utf8"), {
+        relativePath: "KMamiz.cache.json",
       });
-      this.addRoute("get", "/export", async (_, res) => {
-        res.contentType("application/tar+gzip");
-        const json = await this.exportData();
-        const stream = new tgz.Stream();
-        stream.addEntry(Buffer.from(json, "utf8"), {
-          relativePath: "KMamiz.cache.json",
-        });
-        stream.on("end", () => res.end());
-        stream.pipe(res);
-      });
-      this.addRoute("post", "/import", async (req, res) => {
-        try {
-          const chunks: any[] = [];
-          const stream = new tgz.UncompressStream();
-          stream.on("entry", (_, s) => {
-            s.on("data", (chunk: any) => chunks.push(chunk));
-            s.on("end", async () => {
-              const caches = JSON.parse(
-                Buffer.concat(chunks).toString("utf8")
-              ) as [string, any][];
-              const result = await this.importData(caches);
-              res.sendStatus(result ? 201 : 400);
-            });
+      stream.on("end", () => res.end());
+      stream.pipe(res);
+    });
+    this.addRoute("post", "/import", async (req, res) => {
+      try {
+        const chunks: any[] = [];
+        const stream = new tgz.UncompressStream();
+        stream.on("entry", (_, s) => {
+          s.on("data", (chunk: any) => chunks.push(chunk));
+          s.on("end", async () => {
+            const caches = JSON.parse(
+              Buffer.concat(chunks).toString("utf8")
+            ) as [string, any][];
+            const result = await ImportExportHandler.getInstance().importData(
+              caches
+            );
+            res.sendStatus(result ? 201 : 400);
           });
-          req.pipe(stream);
-        } catch (err) {
-          Logger.error("Error parsing import");
-          Logger.plain.verbose("", err);
-          res.sendStatus(400);
-        }
-      });
-      this.addRoute("post", "/aggregate", async (_, res) => {
-        await ServiceOperator.getInstance().createHistoricalAndAggregatedData();
-        res.sendStatus(204);
-      });
-    }
+        });
+        req.pipe(stream);
+      } catch (err) {
+        Logger.error("Error parsing import");
+        Logger.plain.verbose("", err);
+        res.sendStatus(400);
+      }
+    });
+    this.addRoute("post", "/aggregate", async (_, res) => {
+      await ServiceOperator.getInstance().createHistoricalAndAggregatedData();
+      res.sendStatus(204);
+    });
   }
 
   async getAggregatedData(namespace?: string, notBefore?: number) {
@@ -221,18 +235,6 @@ export default class DataService extends IRequestHandler {
     ServiceUtils.getInstance().updateLabel();
   }
 
-  getTaggedInterface(uniqueLabelName: string) {
-    return DataCache.getInstance()
-      .get<CTaggedInterfaces>("TaggedInterfaces")
-      .getData(uniqueLabelName);
-  }
-
-  addTaggedInterface(tagged: TTaggedInterface) {
-    DataCache.getInstance()
-      .get<CTaggedInterfaces>("TaggedInterfaces")
-      .add(tagged);
-  }
-
   deleteTaggedInterface(uniqueLabelName: string, userLabel: string) {
     const existing = DataCache.getInstance()
       .get<CTaggedInterfaces>("TaggedInterfaces")
@@ -243,72 +245,6 @@ export default class DataService extends IRequestHandler {
     DataCache.getInstance()
       .get<CTaggedInterfaces>("TaggedInterfaces")
       .delete(uniqueLabelName, userLabel);
-    return true;
-  }
-
-  async exportData() {
-    const caches = DataCache.getInstance().export();
-    const aggregatedData =
-      await MongoOperator.getInstance().getAggregatedData();
-    const historicalData =
-      await MongoOperator.getInstance().getHistoricalData();
-    const json = JSON.stringify([
-      ...caches,
-      ["AggregatedData", aggregatedData],
-      ["HistoricalData", historicalData],
-    ]);
-    return json;
-  }
-
-  async clearData() {
-    DataCache.getInstance().clear();
-    DataCache.getInstance().register([
-      new CLabelMapping(),
-      new CEndpointDataType(),
-      new CCombinedRealtimeData(),
-      new CEndpointDependencies(),
-      new CReplicas(),
-      new CTaggedInterfaces(),
-      new CTaggedSwaggers(),
-      new CLabeledEndpointDependencies(),
-      new CUserDefinedLabel(),
-      new CLookBackRealtimeData(),
-    ]);
-    await MongoOperator.getInstance().clearDatabase();
-  }
-
-  async importData(importData: [string, any][]) {
-    if (!importData) return false;
-
-    await MongoOperator.getInstance().clearDatabase();
-
-    // fix Date being converted into string
-    const dataType = importData.find(
-      ([name]) => name === "EndpointDataType"
-    )![1];
-    dataType.forEach((dt: any) =>
-      dt.schemas.forEach((s: any) => (s.time = new Date(s.time)))
-    );
-
-    DataCache.getInstance().import(importData);
-    DataCache.getInstance().register([new CLookBackRealtimeData()]);
-
-    const [, aggregatedData] =
-      importData.find(([name]) => name === "AggregatedData") || [];
-    const [, historicalData] =
-      importData.find(([name]) => name === "HistoricalData") || [];
-
-    await MongoOperator.getInstance().insertMany(
-      [aggregatedData as TAggregatedData],
-      AggregatedDataModel
-    );
-    await MongoOperator.getInstance().insertMany(
-      historicalData as THistoricalData[],
-      HistoricalDataModel
-    );
-
-    await DispatchStorage.getInstance().syncAll();
-    ServiceUtils.getInstance().updateLabel();
     return true;
   }
 }
