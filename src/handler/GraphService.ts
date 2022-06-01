@@ -10,6 +10,7 @@ import { TServiceCohesion } from "../entities/TServiceCohesion";
 import { TTotalServiceInterfaceCohesion } from "../entities/TTotalServiceInterfaceCohesion";
 import DataCache from "../services/DataCache";
 import ServiceUtils from "../services/ServiceUtils";
+import { TRequestInfoChartData } from "../entities/TRequestInfoChartData";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
@@ -53,6 +54,9 @@ export default class GraphService extends IRequestHandler {
     });
     this.addRoute("get", "/coupling/:namespace?", async (req, res) => {
       res.json(this.getServiceCoupling(req.params["namespace"]));
+    });
+    this.addRoute("get", "/requests/:uniqueName", async (req, res) => {
+      res.json(await this.getRequestInfoChartData(req.params["uniqueName"]));
     });
   }
 
@@ -120,28 +124,56 @@ export default class GraphService extends IRequestHandler {
   async getLineChartData(
     namespace?: string,
     notBefore?: number
-  ): Promise<TLineChartData[]> {
+  ): Promise<TLineChartData> {
     const historicalData =
       await ServiceUtils.getInstance().getRealtimeHistoricalData(
         namespace,
         notBefore
       );
-    return historicalData
-      .map((h) => {
-        return h.services.map((s) => {
-          const name = `${s.service}.${s.namespace} (${s.version})`;
-          return {
-            name,
-            x: s.date,
-            requests: s.requests,
-            serverErrors: s.serverErrors,
-            requestErrors: s.requestErrors,
-            latencyCV: s.latencyCV,
-            risk: s.risk,
-          };
-        });
-      })
-      .flat();
+
+    if (historicalData.length === 0) {
+      return {
+        dates: [],
+        metrics: [],
+        services: [],
+      };
+    }
+
+    historicalData.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const dates: number[] = [];
+    const metrics: [number, number, number, number, number][][] = [];
+    const services = historicalData[0].services
+      .sort((a, b) => a.uniqueServiceName.localeCompare(b.uniqueServiceName))
+      .map((s) => `${s.service}.${s.namespace} (${s.version})`);
+
+    historicalData.forEach((h) => {
+      dates.push(h.date.getTime());
+      h.services.sort((a, b) =>
+        a.uniqueServiceName.localeCompare(b.uniqueServiceName)
+      );
+      const metric = h.services.map(
+        (s): [number, number, number, number, number] => {
+          const requestErrors = s.requestErrors;
+          const serverErrors = s.serverErrors;
+          const requests = s.requests - requestErrors - serverErrors;
+
+          return [
+            requests,
+            requestErrors,
+            serverErrors,
+            s.latencyCV,
+            s.risk || 0,
+          ];
+        }
+      );
+      metrics.push(metric);
+    });
+
+    return {
+      dates,
+      services,
+      metrics,
+    };
   }
 
   getServiceCohesion(namespace?: string) {
@@ -207,5 +239,59 @@ export default class GraphService extends IRequestHandler {
     return dependencies
       .toServiceCoupling()
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async getRequestInfoChartData(uniqueName: string) {
+    const [service, namespace, version, method, labelName] =
+      uniqueName.split("\t");
+    const isEndpoint = method && labelName;
+    const uniqueServiceName = `${service}\t${namespace}\t${version}`;
+    const historicalData =
+      await ServiceUtils.getInstance().getRealtimeHistoricalData();
+    const filtered = historicalData
+      .flatMap((h) => h.services)
+      .filter((s) => s.uniqueServiceName === uniqueServiceName);
+
+    const chartData: TRequestInfoChartData = {
+      time: [],
+      requests: [],
+      clientErrors: [],
+      serverErrors: [],
+      latencyCV: [],
+      totalRequestCount: 0,
+      totalClientErrors: 0,
+      totalServerErrors: 0,
+    };
+
+    filtered.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const source = isEndpoint
+      ? filtered.map((s) => {
+          const endpoint = s.endpoints.find(
+            (e) => e.labelName === labelName && e.method === method
+          );
+          return {
+            date: s.date,
+            ...endpoint,
+          };
+        })
+      : filtered;
+
+    source.forEach((s) => {
+      const clientError = s.requestErrors || 0;
+      const serverError = s.serverErrors || 0;
+      const request = (s.requests || 0) - serverError - clientError;
+
+      chartData.time.push(s.date.getTime());
+      chartData.requests.push(request);
+      chartData.clientErrors.push(clientError);
+      chartData.serverErrors.push(serverError);
+      chartData.latencyCV.push(s.latencyCV || 0);
+
+      chartData.totalRequestCount += request;
+      chartData.totalClientErrors += clientError;
+      chartData.totalServerErrors += serverError;
+    });
+
+    return chartData;
   }
 }
