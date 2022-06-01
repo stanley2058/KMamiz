@@ -56,7 +56,15 @@ export default class GraphService extends IRequestHandler {
       res.json(this.getServiceCoupling(req.params["namespace"]));
     });
     this.addRoute("get", "/requests/:uniqueName", async (req, res) => {
-      res.json(await this.getRequestInfoChartData(req.params["uniqueName"]));
+      const notBeforeQuery = req.query["notBefore"] as string;
+      const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
+      res.json(
+        await this.getRequestInfoChartData(
+          decodeURIComponent(req.params["uniqueName"]),
+          req.query["ignoreServiceVersion"] === "true",
+          notBefore
+        )
+      );
     });
   }
 
@@ -241,16 +249,28 @@ export default class GraphService extends IRequestHandler {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async getRequestInfoChartData(uniqueName: string) {
+  async getRequestInfoChartData(
+    uniqueName: string,
+    ignoreServiceVersion = false,
+    notBefore: number = 86400000
+  ) {
     const [service, namespace, version, method, labelName] =
       uniqueName.split("\t");
     const isEndpoint = method && labelName;
     const uniqueServiceName = `${service}\t${namespace}\t${version}`;
     const historicalData =
-      await ServiceUtils.getInstance().getRealtimeHistoricalData();
+      await ServiceUtils.getInstance().getRealtimeHistoricalData(
+        undefined,
+        notBefore
+      );
     const filtered = historicalData
       .flatMap((h) => h.services)
-      .filter((s) => s.uniqueServiceName === uniqueServiceName);
+      .filter((s) => {
+        if (ignoreServiceVersion) {
+          return s.service === service && s.namespace === namespace;
+        }
+        return s.uniqueServiceName === uniqueServiceName;
+      });
 
     const chartData: TRequestInfoChartData = {
       time: [],
@@ -258,6 +278,7 @@ export default class GraphService extends IRequestHandler {
       clientErrors: [],
       serverErrors: [],
       latencyCV: [],
+      risks: isEndpoint ? undefined : [],
       totalRequestCount: 0,
       totalClientErrors: 0,
       totalServerErrors: 0,
@@ -271,6 +292,7 @@ export default class GraphService extends IRequestHandler {
           );
           return {
             date: s.date,
+            risk: undefined,
             ...endpoint,
           };
         })
@@ -286,6 +308,9 @@ export default class GraphService extends IRequestHandler {
       chartData.clientErrors.push(clientError);
       chartData.serverErrors.push(serverError);
       chartData.latencyCV.push(s.latencyCV || 0);
+      if (!isEndpoint) {
+        chartData.risks!.push(s.risk || 0);
+      }
 
       chartData.totalRequestCount += request;
       chartData.totalClientErrors += clientError;

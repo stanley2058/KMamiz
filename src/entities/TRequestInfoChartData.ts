@@ -4,6 +4,7 @@ export type TRequestInfoChartData = {
   clientErrors: number[];
   serverErrors: number[];
   latencyCV: number[];
+  risks?: number[];
   totalRequestCount: number;
   totalClientErrors: number;
   totalServerErrors: number;
