@@ -52,7 +52,7 @@ export default class AlertService extends IRequestHandler {
     const servicesWithViolation = this.getServicesWithViolation(historicalData);
     const violations = servicesWithViolation.map((s): TRiskViolation => {
       const highlightNodeName =
-        this.determineEndpointToHighlight(s) || s.uniqueServiceName;
+        this.determineEndpointToHighlight(s) || `${s.service}\t${s.namespace}`;
       const id = `${s.uniqueServiceName}\t${highlightNodeName}`;
       const displayName = `${s.service}.${s.namespace} (${s.version})`;
       return {
