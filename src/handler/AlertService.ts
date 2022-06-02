@@ -71,6 +71,7 @@ export default class AlertService extends IRequestHandler {
   }
 
   private getServicesWithViolation(historicalData: THistoricalData[]) {
+    if (historicalData.length === 0) return [];
     historicalData.sort((a, b) => a.date.getTime() - b.date.getTime());
     const serviceMap = new Map<
       string,
