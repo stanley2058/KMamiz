@@ -1,4 +1,5 @@
 import { Router } from "express";
+import cacheControl from "express-cache-controller";
 import GlobalSettings from "../GlobalSettings";
 import * as Handlers from "../handler";
 import Logger from "../utils/Logger";
@@ -12,10 +13,7 @@ export default class Routes {
 
   private constructor() {
     this.apiPrefix = `/api/v${GlobalSettings.ApiVersion}`;
-    this.router.use((_, res, next) => {
-      res.cacheControl = { maxAge: 15 };
-      next();
-    });
+    this.router.use(cacheControl({ maxAge: 15 }));
     this.setRoutes();
   }
 

@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Router } from "express";
 import cors from "cors";
 import compression from "compression";
 import Routes from "./src/routes/Routes";
@@ -37,18 +37,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 app.use(compression());
-app.use(cacheControl({ maxAge: 3600 }));
 
 if (!GlobalSettings.ServeOnly) {
   app.use(Routes.getInstance().getRoutes());
 }
 
 // serve SPA webpage
-app.use("/wasm", express.static("wasm"));
-app.use(express.static("dist"));
-app.get("*", (_, res) =>
+const spaRouter = Router();
+spaRouter.use(cacheControl({ maxAge: 3600 }));
+spaRouter.use("/wasm", express.static("wasm"));
+spaRouter.use(express.static("dist"));
+spaRouter.get("*", (_, res) =>
   res.sendFile(path.resolve(__dirname, "dist/index.html"))
 );
+app.use(spaRouter);
 
 (async () => {
   if (!GlobalSettings.ServeOnly) {
