@@ -39,16 +39,16 @@ app.use(cors());
 app.use(compression());
 app.use(cacheControl({ maxAge: 3600 }));
 
+if (!GlobalSettings.ServeOnly) {
+  app.use(Routes.getInstance().getRoutes());
+}
+
 // serve SPA webpage
 app.use("/wasm", express.static("wasm"));
 app.use(express.static("dist"));
 app.get("*", (_, res) =>
   res.sendFile(path.resolve(__dirname, "dist/index.html"))
 );
-
-if (!GlobalSettings.ServeOnly) {
-  app.use(Routes.getInstance().getRoutes());
-}
 
 (async () => {
   if (!GlobalSettings.ServeOnly) {
