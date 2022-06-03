@@ -12,6 +12,7 @@ import DispatchStorage from "./src/services/DispatchStorage";
 import { CCombinedRealtimeData } from "./src/classes/Cacheable/CCombinedRealtimeData";
 import path from "path";
 import KubernetesService from "./src/services/KubernetesService";
+import cacheControl from "express-cache-controller";
 
 Logger.setGlobalLogLevel(GlobalSettings.LogLevel);
 Logger.verbose("Configuration loaded:");
@@ -36,10 +37,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 app.use(compression());
-
-if (!GlobalSettings.ServeOnly) {
-  app.use(Routes.getInstance().getRoutes());
-}
+app.use(cacheControl({ maxAge: 3600 }));
 
 // serve SPA webpage
 app.use("/wasm", express.static("wasm"));
@@ -47,6 +45,10 @@ app.use(express.static("dist"));
 app.get("*", (_, res) =>
   res.sendFile(path.resolve(__dirname, "dist/index.html"))
 );
+
+if (!GlobalSettings.ServeOnly) {
+  app.use(Routes.getInstance().getRoutes());
+}
 
 (async () => {
   if (!GlobalSettings.ServeOnly) {
