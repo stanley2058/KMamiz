@@ -112,9 +112,10 @@ export default class ServiceUtils {
   async getRealtimeAggregatedData(namespace?: string, notBefore?: number) {
     const { labelMapping } = this.getCaches();
 
+    const aggregatedData = await MongoOperator.getInstance().getAggregatedData(
+      namespace
+    );
     if (!notBefore) {
-      const aggregatedData =
-        await MongoOperator.getInstance().getAggregatedData(namespace);
       return aggregatedData && labelMapping.labelAggregatedData(aggregatedData);
     }
 
@@ -123,7 +124,9 @@ export default class ServiceUtils {
       notBefore
     );
 
-    if (historicalData.length === 0) return undefined;
+    if (historicalData.length === 0) {
+      return aggregatedData && new AggregatedData(aggregatedData).toPlain();
+    }
     const rlAggData = historicalData
       .map(
         (h) =>

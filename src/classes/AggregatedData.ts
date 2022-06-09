@@ -77,6 +77,27 @@ export class AggregatedData {
     return [...endpointMap.values()];
   }
 
+  toPlain() {
+    return {
+      ...this._aggregatedData,
+      services: this._aggregatedData.services.map((s) => ({
+        ...s,
+        avgRisk: 0,
+        totalRequests: 0,
+        totalRequestErrors: 0,
+        totalServerErrors: 0,
+        avgLatencyCV: 0,
+        endpoints: s.endpoints.map((e) => ({
+          ...e,
+          totalRequests: 0,
+          totalRequestErrors: 0,
+          totalServerErrors: 0,
+          avgLatencyCV: 0,
+        })),
+      })),
+    };
+  }
+
   private decideFromDate(date: Date) {
     const { fromDate } = this._aggregatedData;
     return fromDate > date ? date : fromDate;
