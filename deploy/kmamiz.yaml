@@ -13,7 +13,7 @@ spec:
       serviceAccountName: kmamiz-reader
       containers:
         - name: kmamiz
-          image: "reg.stw.tw/kmamiz:latest"
+          image: "docker.stw.tw/kmamiz"
           ports:
             - containerPort: 3000
           env:
@@ -22,7 +22,7 @@ spec:
             - name: SERVICE_PORT # this needs to match port set in Service
               value: "80"
             - name: MONGODB_URI
-              value: "{your-mongodb-uri}"
+              value: "mongodb://admin:admin@192.168.100.110:27017/monitoring?authSource=monitoring"
             - name: ZIPKIN_URL
               value: "http://zipkin.istio-system:9411"
             - name: LOG_LEVEL
@@ -35,6 +35,10 @@ spec:
               value: "false"
             - name: ENABLE_TESTING_ENDPOINTS
               value: "false"
+            - name: SERVE_ONLY
+              value: "true"
+      imagePullSecrets:
+        - name: regcred
   selector:
     matchLabels:
       app: kmamiz
@@ -50,5 +54,5 @@ spec:
     app: kmamiz
   ports:
     - protocol: TCP
-      port: 80 # this needs to match SERVICE_PORT
+      port: 8080
       targetPort: 3000

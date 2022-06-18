@@ -4,7 +4,7 @@
 
 ## Deployment
 
-1. Run the `build.sh` first then build KMamiz, the `KMamizEnvoyFilter.wasm` file will be exposed on `/wasm/KMamizEnvoyFilter.wasm`.
+1. First, run the `build.sh` script then build KMamiz, the `KMamizEnvoyFilter.wasm` file will be exposed on `/wasm/KMamizEnvoyFilter.wasm`.
 
 ## Development
 
@@ -23,7 +23,7 @@ go mod download github.com/tetratelabs/proxy-wasm-go-sdk
 docker run -it --rm -v "$PWD"/envoy.yaml:/etc/envoy/envoy.yaml -v "$PWD"/KMamizEnvoyFilter.wasm:/etc/envoy/optimized.wasm -p 9901:9901 -p 10000:10000 envoyproxy/envoy:v1.17.0
 ```
 
-5. Poke the endpoint at `http://localhost:10000` to see actions in terminal.
+5. Poke the endpoint at `http://localhost:10000` to see actions in the terminal.
 
 ```
 curl -X POST localhost:10000 -H 'Content-Type: application/json' --data '{"id": "xxx", "token": "xxx"}'
