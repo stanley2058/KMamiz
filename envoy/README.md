@@ -66,4 +66,4 @@ kubectl -n book logs deploy/reviews-v2 istio-proxy
 
 If you want to build KMamiz yourself, you'll have to build the EnvoyFilter first.
 
-_See [here](./wasm/README.md)._
+_See [here](./wasm)._

@@ -42,7 +42,7 @@ See [b3-propagation](https://github.com/openzipkin/b3-propagation) for more info
 
 ### Using Templates
 
-Follow the deployment instructions [here](./deploy/README.md).
+Follow the deployment instructions [here](./deploy).
 
 ### Build KMamiz Yourself
 

@@ -38,7 +38,7 @@ spec:
       serviceAccountName: kmamiz-reader
       containers:
         - name: kmamiz
-          # if built your own image, swap this out
+          # if you have built your own image, swap this out
           image: "reg.stw.tw/kmamiz:latest"
           ports:
             - containerPort: 3000
@@ -114,7 +114,7 @@ If you encounter any problem, try switching the `LOG_LEVEL` to `verbose` for mor
 
 NOTICE: This step is essential and can only be done after KMamiz is up and running.
 
-Follow instructions [here](../envoy/README.md).
+Follow instructions [here](../envoy).
 
 ## Update KMamiz
 
