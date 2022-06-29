@@ -102,7 +102,7 @@ export default class AlertService extends IRequestHandler {
     const servicesWithViolation = [...serviceMap.entries()]
       .filter(([uniqueServiceName, { count, sum, quadraticSum }]) => {
         const mean = sum / count;
-        const stdDev = Math.sqrt(quadraticSum - Math.pow(mean, 2));
+        const stdDev = Math.sqrt(quadraticSum / count - Math.pow(mean, 2));
         return latestMap.get(uniqueServiceName)! > mean + 3 * stdDev;
       })
       .map(([s]) => s);
