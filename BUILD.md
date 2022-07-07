@@ -2,7 +2,7 @@
 
 ## Pre-build
 
-To build KMamiz, you'll have to build [KMamiz-Web](https://github.com/stanley2058/KMamiz-Web) image first, then build the [KMAmiz WASM EnvoyFilter](./envoy/wasm/README.md).
+To build KMamiz, you'll have to build [KMamiz-Web](https://github.com/stanley2058/KMamiz-Web) image first, then build the [KMamiz WASM EnvoyFilter](./envoy/wasm/README.md).
 
 ## Build KMamiz
 
