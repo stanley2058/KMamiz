@@ -107,7 +107,7 @@ export default class GraphService extends IRequestHandler {
     const dependencies = DataCache.getInstance()
       .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
       .getData(namespace);
-    if (!dependencies) return [];
+    if (!dependencies) return { nodes: [], links: [] };
     const dep = dependencies.toJSON();
     return new EndpointDependencies(
       dep.map((ep) => {
@@ -125,7 +125,7 @@ export default class GraphService extends IRequestHandler {
       DataCache.getInstance()
         .get<CLabeledEndpointDependencies>("LabeledEndpointDependencies")
         .getData(namespace)
-        ?.toChordData() || []
+        ?.toChordData() || { nodes: [], links: [] }
     );
   }
 
