@@ -13,7 +13,7 @@ export default class Routes {
 
   private constructor() {
     this.apiPrefix = `/api/v${GlobalSettings.ApiVersion}`;
-    this.router.use(cacheControl({ maxAge: 15 }));
+    this.router.use(cacheControl({ maxAge: 5 }));
     this.setRoutes();
   }
 
