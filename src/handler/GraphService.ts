@@ -19,7 +19,10 @@ export default class GraphService extends IRequestHandler {
       "get",
       "/dependency/endpoint/:namespace?",
       async (req, res) => {
-        const graph = await this.getDependencyGraph(req.params["namespace"]);
+        const namespace = req.params["namespace"];
+        const graph = await this.getDependencyGraph(
+          namespace && decodeURIComponent(namespace)
+        );
         if (graph) res.json(graph);
         else res.sendStatus(404);
       }
@@ -28,32 +31,58 @@ export default class GraphService extends IRequestHandler {
       "get",
       "/dependency/service/:namespace?",
       async (req, res) => {
+        const namespace = req.params["namespace"];
         const graph = await this.getServiceDependencyGraph(
-          req.params["namespace"]
+          namespace && decodeURIComponent(namespace)
         );
         if (graph) res.json(graph);
         else res.sendStatus(404);
       }
     );
     this.addRoute("get", "/chord/direct/:namespace?", async (req, res) => {
-      res.json(await this.getDirectServiceChord(req.params["namespace"]));
+      const namespace = req.params["namespace"];
+      res.json(
+        await this.getDirectServiceChord(
+          namespace && decodeURIComponent(namespace)
+        )
+      );
     });
     this.addRoute("get", "/chord/indirect/:namespace?", async (req, res) => {
-      res.json(await this.getInDirectServiceChord(req.params["namespace"]));
+      const namespace = req.params["namespace"];
+      res.json(
+        await this.getInDirectServiceChord(
+          namespace && decodeURIComponent(namespace)
+        )
+      );
     });
     this.addRoute("get", "/line/:namespace?", async (req, res) => {
       const notBeforeQuery = req.query["notBefore"] as string;
       const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
-      res.json(await this.getLineChartData(req.params["namespace"], notBefore));
+      const namespace = req.params["namespace"];
+      res.json(
+        await this.getLineChartData(
+          namespace && decodeURIComponent(namespace),
+          notBefore
+        )
+      );
     });
     this.addRoute("get", "/cohesion/:namespace?", async (req, res) => {
-      res.json(this.getServiceCohesion(req.params["namespace"]));
+      const namespace = req.params["namespace"];
+      res.json(
+        this.getServiceCohesion(namespace && decodeURIComponent(namespace))
+      );
     });
     this.addRoute("get", "/instability/:namespace?", async (req, res) => {
-      res.json(this.getServiceInstability(req.params["namespace"]));
+      const namespace = req.params["namespace"];
+      res.json(
+        this.getServiceInstability(namespace && decodeURIComponent(namespace))
+      );
     });
     this.addRoute("get", "/coupling/:namespace?", async (req, res) => {
-      res.json(this.getServiceCoupling(req.params["namespace"]));
+      const namespace = req.params["namespace"];
+      res.json(
+        this.getServiceCoupling(namespace && decodeURIComponent(namespace))
+      );
     });
     this.addRoute("get", "/requests/:uniqueName", async (req, res) => {
       const notBeforeQuery = req.query["notBefore"] as string;

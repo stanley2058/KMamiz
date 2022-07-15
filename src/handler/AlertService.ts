@@ -17,8 +17,12 @@ export default class AlertService extends IRequestHandler {
     this.addRoute("get", "/violation/:namespace?", async (req, res) => {
       const notBeforeQuery = req.query["notBefore"] as string;
       const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
+      const namespace = req.params["namespace"];
 
-      await this.gatherRiskViolations(req.params["namespace"], notBefore);
+      await this.gatherRiskViolations(
+        namespace && decodeURIComponent(namespace),
+        notBefore
+      );
 
       const result = [...this._violation.values()].sort(
         (a, b) => b.timeoutAt - a.timeoutAt

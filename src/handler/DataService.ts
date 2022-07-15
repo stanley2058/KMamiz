@@ -22,15 +22,24 @@ export default class DataService extends IRequestHandler {
       const notBeforeQuery = req.query["notBefore"] as string;
       const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
       const filter = decodeURIComponent(req.query["filter"] as string);
+      const namespace = req.params["namespace"];
       res.json(
-        await this.getAggregatedData(req.params["namespace"], notBefore, filter)
+        await this.getAggregatedData(
+          namespace && decodeURIComponent(namespace),
+          notBefore,
+          filter
+        )
       );
     });
     this.addRoute("get", "/history/:namespace?", async (req, res) => {
       const notBeforeQuery = req.query["notBefore"] as string;
       const notBefore = notBeforeQuery ? parseInt(notBeforeQuery) : undefined;
+      const namespace = req.params["namespace"];
       res.json(
-        await this.getHistoricalData(req.params["namespace"], notBefore)
+        await this.getHistoricalData(
+          namespace && decodeURIComponent(namespace),
+          notBefore
+        )
       );
     });
     this.addRoute("get", "/datatype/:uniqueLabelName", async (req, res) => {
