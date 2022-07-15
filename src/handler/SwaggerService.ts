@@ -44,7 +44,8 @@ export default class SwaggerService extends IRequestHandler {
       const tagged = req.body as TTaggedSwagger;
       if (!tagged) res.sendStatus(400);
       else {
-        res.json(this.addTaggedSwagger(tagged));
+        this.addTaggedSwagger(tagged);
+        res.sendStatus(200);
       }
     });
     this.addRoute("delete", "/tags", async (req, res) => {
@@ -54,7 +55,8 @@ export default class SwaggerService extends IRequestHandler {
       };
       if (!uniqueServiceName || !tag) res.sendStatus(400);
       else {
-        res.json(this.deleteTaggedSwagger(uniqueServiceName, tag));
+        this.deleteTaggedSwagger(uniqueServiceName, tag);
+        res.sendStatus(200);
       }
     });
   }
