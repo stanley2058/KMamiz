@@ -19,7 +19,12 @@ export default class SwaggerService extends IRequestHandler {
       const { tag } = req.query as { tag: string };
       if (!uniqueServiceName) res.sendStatus(400);
       else {
-        res.json(this.getSwagger(decodeURIComponent(uniqueServiceName), tag));
+        res.json(
+          this.getSwagger(
+            decodeURIComponent(uniqueServiceName),
+            decodeURIComponent(tag)
+          )
+        );
       }
     });
     this.addRoute("get", "/yaml/:uniqueServiceName", async (req, res) => {
@@ -28,7 +33,10 @@ export default class SwaggerService extends IRequestHandler {
       if (!uniqueServiceName) res.sendStatus(400);
       else {
         const yaml = YAML.stringify(
-          this.getSwagger(decodeURIComponent(uniqueServiceName), tag)
+          this.getSwagger(
+            decodeURIComponent(uniqueServiceName),
+            decodeURIComponent(tag)
+          )
         );
         res.type("yaml").send(yaml);
       }
