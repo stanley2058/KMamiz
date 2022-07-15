@@ -65,7 +65,7 @@ Prefix: `/api/v1/graph`
 | `GET`  | `/api/v1/graph/cohesion/:namespace?`            | [Cohesion metrics](#get_cohesion)                           |
 | `GET`  | `/api/v1/graph/instability/:namespace?`         | [Instability metrics](#get_instability)                     |
 | `GET`  | `/api/v1/graph/coupling/:namespace?`            | [Coupling metrics](#get_coupling)                           |
-| `GET`  | `/api/v1/graph/requests/:uniqueName`            | [Request detail info](#get_requests)                        |
+| `GET`  | `/api/v1/graph/requests/:uniqueName`            | [Request detail info(#get_requests)                         |
 
 ## Swagger
 
@@ -99,126 +99,492 @@ Prefix: `/api/v1/health`
 
 ## Details
 
-<span id="get_data_aggregated"></span>
+### Get Aggregated Data <span id="get_data_aggregated"></span>
 
-### Get Aggregated Data
+`GET /api/v1/data/aggregate/{namespace}`
 
-<span id="get_data_historical"></span>
+#### Request
 
-### Get Historical Data
+| Parameters  | Type  | Requirement | Description                                                  |
+| ----------- | ----- | ----------- | ------------------------------------------------------------ |
+| `namespace` | Path  | Optional    | Namespace filter (URL encoded)                               |
+| `notBefore` | Query | Optional    | Look back time in ms                                         |
+| `filter`    | Query | Optional    | Return services only if starting with `filter` (URL encoded) |
 
-<span id="get_datatype_by_label"></span>
+#### Response
 
-### Get DataType by Label
+- [TAggregatedData](../src/entities/TAggregatedData.ts)
+- `undefined`
 
-<span id="post_force_data_sync"></span>
+### Get Historical Data <span id="get_data_historical"></span>
 
-### Force Data Sync
+`GET /api/v1/data/history/{namespace}`
 
-<span id="get_endpoint_mappings"></span>
+#### Request
 
-### Get All Endpoint Mappings
+| Parameters  | Type  | Requirement | Description                    |
+| ----------- | ----- | ----------- | ------------------------------ |
+| `namespace` | Path  | Optional    | Namespace filter (URL encoded) |
+| `notBefore` | Query | Optional    | Look back time in ms           |
 
-<span id="get_user_mappings"></span>
+#### Response
 
-### Get User-Defined Mappings
+- [THistoricalData[]](../src/entities/THistoricalData.ts)
 
-<span id="create_user_mappings"></span>
+### Get DataType by Label <span id="get_datatype_by_label"></span>
 
-### Create User-Defined Mappings
+`GET /api/v1/data/datatype/{uniqueLabelName}`
 
-<span id="delete_user_mappings"></span>
+#### Request
 
-### Delete User-Defined Mappings
+| Parameters        | Type | Requirement | Description                     |
+| ----------------- | ---- | ----------- | ------------------------------- |
+| `uniqueLabelName` | Path | Required    | Unique label name (URL encoded) |
 
-<span id="get_tagged_interfaces"></span>
+- Unique label name: `{service}\t{namespace}\t{version}\t{method}\t{labelName}`
 
-### Get Tagged Interfaces
+#### Response
 
-<span id="create_tagged_interface"></span>
+- [TEndpointDataType](../src/entities/TEndpointDataType.ts)
+- HTTP 400, if label name not provided.
+- HTTP 404, if the provided label cannot be resolved into its data type.
 
-### Create Tagged Interfaces
+### Force Data Sync <span id="post_force_data_sync"></span>
 
-<span id="delete_tagged_interface"></span>
+`POST /api/v1/data/sync`
 
-### Delete Tagged Interfaces
+> This endpoint will automatically be called on startup if KMamiz is currently operating in Kubernetes, forcing data synchronization before launching a new instance.
 
-<span id="testing_clear_database"></span>
+#### Response
 
-### Clear Database (Testing)
+- HTTP 200, return after the sync operation is finished.
 
-<span id="testing_export"></span>
+### Get All Endpoint Mappings <span id="get_endpoint_mappings"></span>
 
-### Export All Data (Testing)
+`GET /api/v1/data/label`
 
-<span id="testing_import"></span>
+#### Response
 
-### Import And Overwrite Data (Testing)
+- Label mapping: `[string, string][]` (`[{request path}, {endpoint label}][]`)
 
-<span id="testing_aggregate"></span>
+### Get User-Defined Mappings <span id="get_user_mappings"></span>
 
-### Force Data Aggregation Schedule (Testing)
+`GET /api/v1/data/label/user`
 
-<span id="get_endpoint_dependency_graph"></span>
+#### Response
 
-### Get Endpoint Dependency Graph
+- [TEndpointLabel](../src/entities/TEndpointLabel.ts)
+- HTTP 404, if user-defined labels do not exist.
 
-<span id="get_service_dependency_graph"></span>
+### Create User-Defined Mappings <span id="create_user_mappings"></span>
 
-### Get Service Dependency Graph
+`POST /api/v1/data/label/user`
 
-<span id="get_chord_direct"></span>
+#### Request
 
-### Get Direct Chord Diagram
+- [TEndpointLabel](../src/entities/TEndpointLabel.ts)
 
-<span id="get_chord_indirect"></span>
+#### Response
 
-### Get Indirect Chord Diagram
+- HTTP 201, if created successfully.
+- HTTP 400, else.
 
-<span id="get_metrics"></span>
+### Delete User-Defined Mappings <span id="delete_user_mappings"></span>
 
-### Get Real-time Metrics
+`DELETE /api/v1/data/label/user`
 
-<span id="get_cohesion"></span>
+#### Request
 
-### Get Cohesion Metrics
+```typescript
+{
+  uniqueServiceName: string;
+  method: string;
+  label: string;
+}
+```
 
-<span id="get_instability"></span>
+#### Response
 
-### Get Instability Metrics
+- HTTP 204, if deleted successfully.
+- HTTP 400, else.
 
-<span id="get_coupling"></span>
+### Get Tagged Interfaces <span id="get_tagged_interfaces"></span>
 
-### Get Coupling Metrics
+`GET /api/v1/data/interface`
 
-<span id="get_requests"></span>
+#### Request
 
-### Get Request Detail Information
+| Parameters        | Type  | Requirement | Description                     |
+| ----------------- | ----- | ----------- | ------------------------------- |
+| `uniqueLabelName` | Query | Required    | Unique label name (URL encoded) |
 
-<span id="get_service_swagger_json"></span>
+#### Response
 
-### Get Service Swagger (JSON)
+- [TTaggedInterface[]](../src/entities/TTaggedInterface.ts)
+- HTTP 400, if label name not provided.
 
-<span id="get_service_swagger_yaml"></span>
+### Create Tagged Interfaces <span id="create_tagged_interface"></span>
 
-### Get Service Swagger (YAML)
+`POST /api/v1/data/interface`
 
-<span id="get_version_tags"></span>
+#### Request
 
-### Get Swagger Version Tags
+- [TTaggedInterface](../src/entities/TTaggedInterface.ts)
 
-<span id="create_version_tags"></span>
+#### Response
 
-### Create Swagger Version Tag
+- HTTP 201, if created successfully.
+- HTTP 400, if request body not provided.
 
-<span id="delete_version_tags"></span>
+### Delete Tagged Interfaces <span id="delete_tagged_interface"></span>
 
-### Delete Swagger Version Tag
+`DELETE /api/v1/data/interface`
 
-<span id="get_violation_alert"></span>
+#### Request
 
-### Get Risk Violation Alerts
+```typescript
+{
+  uniqueLabelName: string;
+  userLabel: string;
+}
+```
 
-<span id="get_health"></span>
+#### Response
 
-### Get Service Health
+- HTTP 204, if deleted successfully.
+- HTTP 400, else.
+
+### Clear Database (Testing) <span id="testing_clear_database"></span>
+
+`DELETE /api/v1/data/clear`
+
+#### Response
+
+- HTTP 200, return after the database is cleared.
+
+### Export All Data (Testing) <span id="testing_export"></span>
+
+`GET /api/v1/data/export`
+
+#### Response
+
+- ContentType: `application/tar+gzip`
+- GZip content:
+  ```
+  export (GZipped)
+  └── KMamiz.cache.json
+  ```
+
+### Import And Overwrite Data (Testing) <span id="testing_import"></span>
+
+`POST /api/v1/data/import`
+
+#### Request
+
+- ContentType: `application/tar+gzip`
+- GZip content:
+  ```
+  export (GZipped)
+  └── KMamiz.cache.json
+  ```
+
+#### Response
+
+- HTTP 201, if imported successfully.
+- HTTP 400, else.
+
+### Force Data Aggregation Schedule (Testing) <span id="testing_aggregate"></span>
+
+`POST /api/v1/data/aggregate`
+
+#### Response
+
+- HTTP 204, return after the aggregation operation is finished.
+
+### Get Endpoint Dependency Graph <span id="get_endpoint_dependency_graph"></span>
+
+`GET /api/v1/graph/dependency/endpoint/{namespace}`
+
+#### Request
+
+| Parameters  | Type | Requirement | Description                    |
+| ----------- | ---- | ----------- | ------------------------------ |
+| `namespace` | Path | Optional    | Namespace filter (URL encoded) |
+
+#### Response
+
+- [TGraphData](../src/entities/TGraphData.ts)
+- HTTP 404, if not found.
+
+### Get Service Dependency Graph <span id="get_service_dependency_graph"></span>
+
+`GET /api/v1/graph/dependency/service/{namespace}`
+
+#### Request
+
+| Parameters  | Type | Requirement | Description                    |
+| ----------- | ---- | ----------- | ------------------------------ |
+| `namespace` | Path | Optional    | Namespace filter (URL encoded) |
+
+#### Response
+
+- [TGraphData](../src/entities/TGraphData.ts)
+- HTTP 404, if not found.
+
+### Get Direct Chord Diagram <span id="get_chord_direct"></span>
+
+`GET /api/v1/graph/chord/direct/{namespace}`
+
+#### Request
+
+| Parameters  | Type | Requirement | Description                    |
+| ----------- | ---- | ----------- | ------------------------------ |
+| `namespace` | Path | Optional    | Namespace filter (URL encoded) |
+
+#### Response
+
+```typescript
+{
+  nodes: {
+    id: string;
+    name: string;
+  }
+  [];
+  links: {
+    from: string;
+    to: string;
+    value: number;
+  }
+  [];
+}
+```
+
+### Get Indirect Chord Diagram <span id="get_chord_indirect"></span>
+
+`GET /api/v1/graph/chord/indirect/{namespace}`
+
+#### Request
+
+| Parameters  | Type | Requirement | Description                    |
+| ----------- | ---- | ----------- | ------------------------------ |
+| `namespace` | Path | Optional    | Namespace filter (URL encoded) |
+
+#### Response
+
+```typescript
+{
+  nodes: {
+    id: string;
+    name: string;
+  }
+  [];
+  links: {
+    from: string;
+    to: string;
+    value: number;
+  }
+  [];
+}
+```
+
+### Get Real-time Metrics <span id="get_metrics"></span>
+
+`GET /api/v1/graph/line/{namespace}`
+
+#### Request
+
+| Parameters  | Type  | Requirement | Description                    |
+| ----------- | ----- | ----------- | ------------------------------ |
+| `namespace` | Path  | Optional    | Namespace filter (URL encoded) |
+| `notBefore` | Query | Optional    | Look back time in ms           |
+
+#### Response
+
+- [TLineChartData](../src/entities/TLineChartData.ts)
+
+### Get Cohesion Metrics <span id="get_cohesion"></span>
+
+`GET /api/v1/graph/cohesion/{namespace}`
+
+#### Request
+
+| Parameters  | Type | Requirement | Description                    |
+| ----------- | ---- | ----------- | ------------------------------ |
+| `namespace` | Path | Optional    | Namespace filter (URL encoded) |
+
+#### Response
+
+- [TTotalServiceInterfaceCohesion[]](../src/entities/TTotalServiceInterfaceCohesion.ts)
+
+### Get Instability Metrics <span id="get_instability"></span>
+
+`GET /api/v1/graph/instability/{namespace}`
+
+#### Request
+
+| Parameters  | Type | Requirement | Description                    |
+| ----------- | ---- | ----------- | ------------------------------ |
+| `namespace` | Path | Optional    | Namespace filter (URL encoded) |
+
+#### Response
+
+```typescript
+{
+  uniqueServiceName: string;
+  name: string;
+  dependingBy: number;
+  dependingOn: number;
+  instability: number;
+}
+[];
+```
+
+### Get Coupling Metrics <span id="get_coupling"></span>
+
+`GET /api/v1/graph/coupling/{namespace}`
+
+#### Request
+
+| Parameters  | Type | Requirement | Description                    |
+| ----------- | ---- | ----------- | ------------------------------ |
+| `namespace` | Path | Optional    | Namespace filter (URL encoded) |
+
+#### Response
+
+```typescript
+{
+  uniqueServiceName: string;
+  name: string;
+  ais: number;
+  ads: number;
+  acs: number;
+}
+[];
+```
+
+### Get Request Detail Information <span id="get_requests"></span>
+
+`GET /api/v1/graph/requests/{uniqueName}`
+
+#### Request
+
+| Parameters   | Type  | Requirement | Description                     |
+| ------------ | ----- | ----------- | ------------------------------- |
+| `uniqueName` | Path  | Required    | Unique label name (URL encoded) |
+| `notBefore`  | Query | Optional    | Look back time in ms            |
+
+#### Response
+
+- [TRequestInfoChartData](../src/entities/TRequestInfoChartData.ts)
+
+### Get Service Swagger (JSON) <span id="get_service_swagger_json"></span>
+
+`GET /api/v1/swagger/{uniqueServiceName}`
+
+#### Request
+
+| Parameters          | Type  | Requirement | Description                          |
+| ------------------- | ----- | ----------- | ------------------------------------ |
+| `uniqueServiceName` | Path  | Required    | Unique service name (URL encoded)    |
+| `tag`               | Query | Optional    | Tagged swagger version (URL encoded) |
+
+- Unique service name: `{service}\t{namespace}\t{version}`
+
+#### Response
+
+- OpenAPIV3_1.Document
+- HTTP 400, if service not found.
+
+### Get Service Swagger (YAML) <span id="get_service_swagger_yaml"></span>
+
+`GET /api/v1/swagger/yaml/{uniqueServiceName}`
+
+#### Request
+
+| Parameters          | Type  | Requirement | Description                          |
+| ------------------- | ----- | ----------- | ------------------------------------ |
+| `uniqueServiceName` | Path  | Required    | Unique service name (URL encoded)    |
+| `tag`               | Query | Optional    | Tagged swagger version (URL encoded) |
+
+- Unique service name: `{service}\t{namespace}\t{version}`
+
+#### Response
+
+- OpenAPIV3_1.Document (in YAML form)
+- HTTP 400, if service not found.
+
+### Get Swagger Version Tags <span id="get_version_tags"></span>
+
+`GET /api/v1/swagger/tags/{uniqueServiceName}`
+
+#### Request
+
+| Parameters          | Type | Requirement | Description                       |
+| ------------------- | ---- | ----------- | --------------------------------- |
+| `uniqueServiceName` | Path | Required    | Unique service name (URL encoded) |
+
+- Unique service name: `{service}\t{namespace}\t{version}`
+
+#### Response
+
+- `string[]`
+- HTTP 400, if service not found.
+
+### Create Swagger Version Tag <span id="create_version_tags"></span>
+
+`POST /api/v1/swagger/tags`
+
+#### Request
+
+- [TTaggedSwagger](../src/entities/TTaggedSwagger.ts)
+
+#### Response
+
+- HTTP 200
+- HTTP 400, if body not presented.
+
+### Delete Swagger Version Tag <span id="delete_version_tags"></span>
+
+`DELETE /api/v1/swagger/tags`
+
+#### Request
+
+```typescript
+{
+  uniqueServiceName: string;
+  tag: string;
+}
+```
+
+#### Response
+
+- HTTP 200
+- HTTP 400, if body not presented.
+
+### Get Risk Violation Alerts <span id="get_violation_alert"></span>
+
+`GET /api/v1/alert/violation/{namespace}`
+
+#### Request
+
+| Parameters  | Type  | Requirement | Description                    |
+| ----------- | ----- | ----------- | ------------------------------ |
+| `namespace` | Path  | Optional    | Namespace filter (URL encoded) |
+| `notBefore` | Query | Optional    | Look back time in ms           |
+
+#### Response
+
+- [TRiskViolation[]](../src/entities/TRiskViolation.ts)
+
+### Get Service Health <span id="get_health"></span>
+
+`GET /api/v1/health`
+
+#### Response
+
+```typescript
+{
+  status: "UP";
+  serverTime: number;
+}
+```
