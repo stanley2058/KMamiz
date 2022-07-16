@@ -1,8 +1,9 @@
 # KMamiz
 
-> Kubernetes based Microservices Analyzing and Monitoring system using Istio and Zipkin
+> Kubernetes-based Microservices Analyzing and Monitoring system using Istio and Zipkin
 
-_NOTICE: This project is currently under heavy development and is not ready for production._
+The core concept of KMamiz is to provide endpoint-level system analyzing and monitoring features, making the work for the DevOps team much more effortless.
+![Concept Diagram of KMamiz](./docs/images/KMamiz%20Arch-Concept.svg)
 
 ## Preconditions
 
@@ -34,13 +35,26 @@ KMamiz is implemented in such a way that the SUM only needs minimal intrusive ch
 - `x-b3-parentspanid`
 - `x-b3-sampled`
 - `x-b3-flags`
+- `b3`
 - `x-ot-span-context`
 
-See [b3-propagation](https://github.com/openzipkin/b3-propagation) for more information.
+See the [b3-propagation](https://github.com/openzipkin/b3-propagation) for more information and the [Envoy HTTP header manipulation](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers.html) for details on these headers.
 
 ## Try KMamiz
 
-### Using Templates
+### Online Demo
+
+We currently have two online demo systems:
+
+> We do [check the health](https://uptime.stw.tw/status/kmamiz) of these sites periodically. Nevertheless, we do not have high availability guarantee on these sites. Feel free to open an issue if any of them are down.
+
+- [Bookinfo (Istio)](https://istio.io/latest/docs/examples/bookinfo/)
+  - [Demo Site](https://kmamiz-demo.stw.tw)
+- Personal Data Authorization System (PDAS)
+  - This is a system previously developed by our team. The details are published in _2020 International Computer Symposium (ICS)_ and accessible [here](https://doi.org/10.1109/ICS51289.2020.00106).
+  - [Demo Site](https://kmamiz-pdas-demo.stw.tw)
+
+### Deploy Using Templates
 
 Follow the deployment instructions [here](./deploy).
 
