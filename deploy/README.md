@@ -7,8 +7,30 @@ To deploy KMamiz in your Kubernetes cluster, follow the steps below.
 1. [Istio](https://istio.io/latest/docs/setup/getting-started/) is installed in your cluster.
 2. [Zipkin](https://istio.io/latest/docs/ops/integrations/zipkin/) is set up and enabled in Istio.
 3. An available MongoDB instance (doesn't necessarily need to be local).
+4. Namespace `kmamiz-system` exists.
+   ```
+   kubectl create ns kmamiz-system
+   ```
 
-If you don't have a MongoDB instance or don't bother to set one up, you can use a [free MongoDB Atlas](https://www.mongodb.com/atlas/database) instance.
+If you don't have a MongoDB instance or don't bother to set one up, you can use the provided demo template or a [free MongoDB Atlas](https://www.mongodb.com/atlas/database) instance.
+
+### Use MongoDB template
+
+> WARNING: ONLY use this setup for development purpose
+
+First, setup the mongo-init script.
+
+```bash
+kubectl -n kmamiz-system create configmap mongo-init --from-file mongo-init.js
+```
+
+And deploy the MongoDB demo statefulset:
+
+```bash
+kubectl apply -f kmamiz-demo-mongodb.yaml
+```
+
+After the deployment is done, change the `{your-mongodb-uri}` to `mongodb://admin:admin@mongo.kmamiz-system:27017/monitoring?authSource=monitoring`.
 
 ## Change the deployment template
 
@@ -74,7 +96,6 @@ spec:
 ## Deploy KMamiz
 
 ```bash
-kubectl create ns kmamiz-system
 kubectl apply -f kmamiz-rbac.yaml
 kubectl apply -f kmamiz.yaml
 ```
