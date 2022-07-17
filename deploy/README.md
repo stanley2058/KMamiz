@@ -93,6 +93,8 @@ spec:
       app: kmamiz
 ```
 
+For more detailed information on the available environment variables, see [ENVIRONMENT](../docs/ENVIRONMENT.md).
+
 ## Deploy KMamiz
 
 ```bash
