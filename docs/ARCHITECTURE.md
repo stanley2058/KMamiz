@@ -100,3 +100,9 @@ The backend uses [Mongoose](https://mongoosejs.com/) for database binding and [J
 KMamiz uses [EnvoyFilter](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/filter/filter) to extend Envoy's functionalities. There are two ways to create a custom EnvoyFilter: a Lua script or a WASM binary. Considering privacy and security reason, we do not want to log all the details of requests and responses, so KMamiz's EnvoyFilter needs to desensitize the request and response JSON body. Lua has limited features and cannot distinguish between JSON object and array, so our only option is to use WASM. We chose the most used SDK for the job, the [Go SDK](https://github.com/tetratelabs/proxy-wasm-go-sdk) (check out the [wasm](../envoy/wasm/) folder for more detail). The following figure shows the raw JSON (left) and the desensitized one (right).
 
 ![Desensitize JSON](./images/desensitized-json.png)
+
+### Envoy Log
+
+The extended EnvoyFilter logs the request and response detail, and the structure is shown in the following figure.
+
+![Structure of KMamiz's Envoy log](./images/KMamiz%20Arch-Envoy%20Log.svg)
