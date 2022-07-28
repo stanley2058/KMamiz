@@ -95,6 +95,8 @@ spec:
 
 For more detailed information on the available environment variables, see [ENVIRONMENT](../docs/ENVIRONMENT.md).
 
+If you encounter any problem, try switching the `LOG_LEVEL` to `verbose` for more information.
+
 ## Deploy KMamiz
 
 ```bash
@@ -112,7 +114,21 @@ kmamiz-859465ddd-jwhmb   1/1     Running   0          7s
 
 To access the webpage, you'll have to set up an Ingress route to KMamiz or assign an external IP to the Service.
 
-To add an external IP to the Service:
+### Use Istio Ingress Gateway
+
+> This method will hijack the Ingress, use carefully.
+
+> In a production environment, probably modify this configuration and add a hostname to the ingress to solve the problem.
+
+```bash
+kubectl apply -f kmamiz-vs.yaml
+```
+
+Then, access KMamiz on the Istio Ingress Gateway.
+
+### Use an External IP
+
+> If you are a Mac user, you will probably be facing issues with ip binding while using Minikube in docker mode. Read more: https://github.com/kubernetes/minikube/issues/11193
 
 ```bash
 kubectl -n kmamiz-system edit svc kmamiz
@@ -130,8 +146,6 @@ spec:
 ```
 
 Now you can access KMamiz at `http://<external-ip>:<service-port>`.
-
-If you encounter any problem, try switching the `LOG_LEVEL` to `verbose` for more information.
 
 ## Deploy EnvoyFilter
 

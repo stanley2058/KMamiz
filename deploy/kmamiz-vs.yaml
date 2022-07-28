@@ -1,0 +1,42 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: kmamiz-gateway
+  namespace: kmamiz-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kmamiz-route
+  namespace: kmamiz-system
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - kmamiz-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: kmamiz
+      corsPolicy:
+        allowOrigins:
+          - regex: .*
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
