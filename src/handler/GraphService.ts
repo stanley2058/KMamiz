@@ -11,6 +11,7 @@ import { TTotalServiceInterfaceCohesion } from "../entities/TTotalServiceInterfa
 import DataCache from "../services/DataCache";
 import ServiceUtils from "../services/ServiceUtils";
 import { TRequestInfoChartData } from "../entities/TRequestInfoChartData";
+import Logger from "../utils/Logger";
 
 export default class GraphService extends IRequestHandler {
   constructor() {
@@ -239,23 +240,33 @@ export default class GraphService extends IRequestHandler {
 
     const usageCohesions = dependencies.toServiceEndpointCohesion();
 
-    const results = usageCohesions.map((u): TTotalServiceInterfaceCohesion => {
-      const uniqueServiceName = u.uniqueServiceName;
-      const [service, namespace, version] = uniqueServiceName.split("\t");
-      const dCohesion = dataCohesion.get(uniqueServiceName)!;
-      return {
-        uniqueServiceName,
-        name: `${service}.${namespace} (${version})`,
-        dataCohesion: dCohesion.cohesiveness,
-        usageCohesion: u.endpointUsageCohesion,
-        totalInterfaceCohesion:
-          (dCohesion.cohesiveness + u.endpointUsageCohesion) / 2,
-        endpointCohesion: dCohesion.endpointCohesion,
-        totalEndpoints: u.totalEndpoints,
-        consumers: u.consumers,
-      };
-    });
-    return results.sort((a, b) => a.name.localeCompare(b.name));
+    const results = usageCohesions.map(
+      (u): TTotalServiceInterfaceCohesion | null => {
+        const uniqueServiceName = u.uniqueServiceName;
+        const [service, namespace, version] = uniqueServiceName.split("\t");
+        const dCohesion = dataCohesion.get(uniqueServiceName);
+        if (!dCohesion) {
+          Logger.error(
+            `Mismatching service cohesion information with unique service: ${uniqueServiceName}`
+          );
+          return null;
+        }
+        return {
+          uniqueServiceName,
+          name: `${service}.${namespace} (${version})`,
+          dataCohesion: dCohesion.cohesiveness,
+          usageCohesion: u.endpointUsageCohesion,
+          totalInterfaceCohesion:
+            (dCohesion.cohesiveness + u.endpointUsageCohesion) / 2,
+          endpointCohesion: dCohesion.endpointCohesion,
+          totalEndpoints: u.totalEndpoints,
+          consumers: u.consumers,
+        };
+      }
+    );
+    return results
+      .filter((r) => !!r)
+      .sort((a, b) => a!.name.localeCompare(b!.name));
   }
 
   getServiceInstability(namespace?: string) {
