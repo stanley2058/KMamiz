@@ -105,11 +105,11 @@ export default class MongoOperator {
     arr = arr.filter((a) => !!a);
     arr.forEach((a) => (a._id = undefined));
     if (arr.length === 0) return;
-    return (await model.insertMany(arr)).map((r) => r.toJSON());
+    return (await model.insertMany(arr)).map((r) => r.toObject());
   }
 
   async findAll<T>(model: Model<T>) {
-    return (await model.find({}).exec()).map((r) => r.toJSON()) as T[];
+    return (await model.find({}).exec()).map((r) => r.toObject()) as T[];
   }
 
   async save<T extends { _id?: Types.ObjectId }>(
