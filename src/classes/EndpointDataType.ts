@@ -228,7 +228,7 @@ export default class EndpointDataType {
           }
 
           if (curr.responseContentType === "application/json") {
-            prev.request = { ...prev.request, ...curr.responseSample };
+            prev.response = { ...prev.response, ...curr.responseSample };
           } else if (curr.responseContentType) {
             contentTypes.add(curr.responseContentType);
           }
