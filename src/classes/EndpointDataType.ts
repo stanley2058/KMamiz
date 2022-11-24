@@ -279,9 +279,9 @@ export default class EndpointDataType {
           b.contentTypes
         );
 
-        if (requestSim) scores.push(requestSim);
-        if (responseSim) scores.push(responseSim);
-        if (typeSim) scores.push(typeSim);
+        if (requestSim !== null) scores.push(requestSim);
+        if (responseSim !== null) scores.push(responseSim);
+        if (typeSim !== null) scores.push(typeSim);
         endpointCohesion.push({
           aName: a.endpointName,
           bName: b.endpointName,
