@@ -17,6 +17,10 @@ export default class ZipkinService {
     this.zipkinClient = new Axios({
       baseURL: `${this.zipkinHost}/zipkin/api/v2`,
       responseType: "json",
+      decompress: true,
+      headers: {
+        Accept: "application/json",
+      },
       transformResponse: (data) => {
         try {
           return JSON.parse(data);

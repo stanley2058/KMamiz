@@ -1,4 +1,4 @@
-import { connect, Model, Types, FilterQuery } from "mongoose";
+import { connect, Model, Types, FilterQuery, set } from "mongoose";
 import { EndpointDependencies } from "../classes/EndpointDependencies";
 import { TAggregatedData } from "../entities/TAggregatedData";
 import { THistoricalData } from "../entities/THistoricalData";
@@ -19,6 +19,7 @@ export default class MongoOperator {
   static getInstance = () => this.instance || (this.instance = new this());
 
   private constructor() {
+    set("strictQuery", false);
     connect(GlobalSettings.MongoDBUri)
       .then(() => Logger.info("Successfully connected to MongoDB"))
       .catch((error) => Logger.error(error));
