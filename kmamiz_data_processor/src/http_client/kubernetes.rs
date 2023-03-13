@@ -2,30 +2,15 @@ use std::{ error::Error, fs::File, io::Read };
 
 use reqwest::{ Client, Certificate, header::HeaderMap };
 
-use crate::{
-    env::Env,
-    data::{ replica_count::ReplicaCount, envoy_log::{ EnvoyLog, StructuredEnvoyLog } },
-};
+use crate::{ env::Env, data::{ replica_count::ReplicaCount, envoy_log::EnvoyLog } };
 
 #[derive(Debug)]
-pub struct ZipkinClient<'a> {
-    client: Client,
-    zipkin_url: &'a String,
-}
-
-impl<'a> ZipkinClient<'a> {
-    pub fn new(env: &'a Env) -> Self {
-        ZipkinClient { client: Client::new(), zipkin_url: &env.zipkin_url }
-    }
-}
-
-#[derive(Debug)]
-pub struct K8sClient<'a> {
+pub struct KubernetesClient<'a> {
     client: Client,
     kube_api_host: &'a String,
 }
 
-impl<'a> K8sClient<'a> {
+impl<'a> KubernetesClient<'a> {
     pub fn new(env: &'a Env) -> Self {
         let client = if env.is_k8s {
             let service_account = "/var/run/secrets/kubernetes.io/serviceaccount";
@@ -34,24 +19,28 @@ impl<'a> K8sClient<'a> {
 
             Client::builder()
                 .add_root_certificate(
-                    K8sClient::read_certificate(&ca_cert_path).expect("cannot read certificate")
+                    KubernetesClient::read_certificate(&ca_cert_path).expect(
+                        "cannot read certificate"
+                    )
                 )
-                .default_headers(K8sClient::read_jwt_token(&token).expect("cannot read auth token"))
+                .default_headers(
+                    KubernetesClient::read_jwt_token(&token).expect("cannot read auth token")
+                )
                 .build()
                 .expect("failed to build client")
         } else {
             Client::new()
         };
-        K8sClient { client, kube_api_host: &env.kube_api_host }
+        KubernetesClient { client, kube_api_host: &env.kube_api_host }
     }
 
     fn read_certificate(path: &String) -> Result<Certificate, Box<dyn Error>> {
-        let buf = K8sClient::read(path)?;
+        let buf = KubernetesClient::read(path)?;
         Ok(Certificate::from_pem(&buf)?)
     }
 
     fn read_jwt_token(path: &String) -> Result<HeaderMap, Box<dyn Error>> {
-        let buf = K8sClient::read(path)?;
+        let buf = KubernetesClient::read(path)?;
         let token = String::from_utf8_lossy(&buf).into_owned();
 
         let mut headers = HeaderMap::new();
