@@ -9,3 +9,4 @@ pub mod record;
 pub mod replica_count;
 pub mod request_type;
 pub mod envoy_log;
+pub mod trace;
