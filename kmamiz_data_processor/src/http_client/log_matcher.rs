@@ -3,7 +3,7 @@ use std::{ sync::Arc, str::FromStr, error::Error, fmt::Display };
 use chrono::prelude::DateTime;
 use regex::Regex;
 
-use crate::data::{ record::{ RecordType, Record }, request_type::RequestType };
+use crate::data::{ request_type::RequestType, envoy_log::{ EnvoyLog, LogType } };
 
 static RE_METADATA: &str =
     r"\[(Request|Response) ([[:alnum:]-_]+)/([[:alnum:]_]+)/([[:alnum:]_]+)/([[:alnum:]_]+)\]";
@@ -84,7 +84,7 @@ impl LogMatcher {
             .collect::<Vec<&str>>()
     }
 
-    pub fn parse_log(&self, log: String) -> Result<Record, Box<dyn Error>> {
+    pub fn parse_log(&self, log: String) -> Result<EnvoyLog, Box<dyn Error>> {
         let splits = log.split("\t").collect::<Vec<&str>>();
         if splits.len() < 4 {
             return Err(LogParsingError::new("incorrect log tokens"));
@@ -99,7 +99,7 @@ impl LogMatcher {
         if metadata.len() < 6 {
             return Err(LogParsingError::new("incorrect metadata tokens"));
         }
-        let record_type = RecordType::from_str(metadata[1])?;
+        let log_type = LogType::from_str(metadata[1])?;
 
         let body = Self::pattern_match(self.matcher(MatcherType::Body), log_body)
             .into_iter()
@@ -119,15 +119,15 @@ impl LogMatcher {
 
         let method = method_and_path.nth(1).and_then(|m| RequestType::from_str(&m).ok());
 
-        let record = Record {
+        let envoy_log = EnvoyLog {
             namespace,
             pod_name,
-            r#type: record_type,
+            r#type: log_type,
             request_id: String::from(metadata[2]),
             trace_id: String::from(metadata[3]),
             span_id: String::from(metadata[4]),
             parent_span_id: String::from(metadata[5]),
-            timestamp: time.timestamp_millis(),
+            timestamp: time.timestamp_millis() as u64,
             body,
             content_type,
             status,
@@ -135,6 +135,6 @@ impl LogMatcher {
             path: method_and_path.nth(0),
         };
 
-        Ok(record)
+        Ok(envoy_log)
     }
 }
