@@ -4,10 +4,13 @@ use reqwest::{ Client, Certificate, header::HeaderMap };
 
 use crate::{ env::Env, data::{ replica_count::ReplicaCount, envoy_log::EnvoyLog } };
 
+use super::log_matcher::LogMatcher;
+
 #[derive(Debug)]
 pub struct KubernetesClient<'a> {
     client: Client,
     kube_api_host: &'a String,
+    log_matcher: LogMatcher,
 }
 
 impl<'a> KubernetesClient<'a> {
@@ -31,7 +34,11 @@ impl<'a> KubernetesClient<'a> {
         } else {
             Client::new()
         };
-        KubernetesClient { client, kube_api_host: &env.kube_api_host }
+        KubernetesClient {
+            client,
+            kube_api_host: &env.kube_api_host,
+            log_matcher: LogMatcher::new(),
+        }
     }
 
     fn read_certificate(path: &String) -> Result<Certificate, Box<dyn Error>> {

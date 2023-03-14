@@ -1,5 +1,5 @@
 use serde::{ Deserialize, Serialize };
-use std::str::FromStr;
+use std::{ str::FromStr, fmt::Display, error::Error };
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum RequestType {
@@ -14,8 +14,17 @@ pub enum RequestType {
     Trace,
 }
 
+#[derive(Debug)]
+pub struct RequestTypeParseError;
+impl Error for RequestTypeParseError {}
+impl Display for RequestTypeParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "error parsing from string to request type")
+    }
+}
+
 impl FromStr for RequestType {
-    type Err = ();
+    type Err = RequestTypeParseError;
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         match input.to_uppercase().as_str() {
             "GET" => Ok(Self::Get),
@@ -27,7 +36,7 @@ impl FromStr for RequestType {
             "OPTIONS" => Ok(Self::Options),
             "CONNECT" => Ok(Self::Connect),
             "TRACE" => Ok(Self::Trace),
-            _ => Err(()),
+            _ => Err(RequestTypeParseError {}),
         }
     }
 }
