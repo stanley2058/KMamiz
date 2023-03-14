@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use reqwest::{ Client, header::HeaderMap };
+use reqwest::{ Client, header::{ HeaderMap, HeaderValue } };
 
 use crate::{ env::Env, data::trace::Trace };
 
@@ -14,7 +14,7 @@ pub struct ZipkinClient<'a> {
 impl<'a> ZipkinClient<'a> {
     pub fn new(env: &'a Env) -> Self {
         let mut headers = HeaderMap::new();
-        headers.insert("Accept", "application/json".parse().unwrap());
+        headers.insert("Accept", HeaderValue::from_static("application/json"));
         ZipkinClient {
             client: Client::builder().default_headers(headers).gzip(true).build().unwrap(),
             zipkin_url: &env.zipkin_url,

@@ -1,8 +1,20 @@
-use std::{ error::Error, fs::File, io::Read };
+use std::{ error::Error, fs::File, io::Read, collections::{ HashMap, HashSet } };
 
-use reqwest::{ Client, Certificate, header::HeaderMap };
+use regex::Regex;
+use reqwest::{ Client, Certificate, header::{ HeaderMap, HeaderValue } };
+use serde::de::DeserializeOwned;
+use serde_json::Value;
 
-use crate::{ env::Env, data::{ replica_count::ReplicaCount, envoy_log::EnvoyLog } };
+use crate::{
+    env::Env,
+    data::{
+        replica_count::ReplicaCount,
+        envoy_log::EnvoyLog,
+        pod_list::PodList,
+        service_list::ServiceList,
+        namespace_list::NamespaceList,
+    },
+};
 
 use super::log_matcher::LogMatcher;
 
@@ -51,7 +63,11 @@ impl<'a> KubernetesClient<'a> {
         let token = String::from_utf8_lossy(&buf).into_owned();
 
         let mut headers = HeaderMap::new();
-        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        headers.insert(
+            "Authorization",
+            HeaderValue::from_str(format!("Bearer {}", token).as_str())?
+        );
         Ok(headers)
     }
 
@@ -61,19 +77,105 @@ impl<'a> KubernetesClient<'a> {
         Ok(buf)
     }
 
-    pub fn get_replicas(&self, namespaces: &Vec<String>) -> Result<ReplicaCount, Box<dyn Error>> {
-        todo!()
+    pub async fn get_replicas(
+        &self,
+        namespaces: Option<HashSet<String>>
+    ) -> Result<Vec<ReplicaCount>, Box<dyn Error>> {
+        let namespaces = namespaces.unwrap_or(self.get_namespaces().await?.into_iter().collect());
+        let mut replicas = vec![];
+        for ns in namespaces.iter() {
+            replicas = [replicas, self.get_replicas_from_pod_list(ns).await?].concat();
+        }
+        Ok(replicas)
     }
 
-    pub fn get_pod_names(&self, namespace: &String) -> Result<Vec<String>, Box<dyn Error>> {
-        todo!()
+    pub async fn get_pod_names(&self, namespace: &String) -> Result<Vec<String>, Box<dyn Error>> {
+        Ok(
+            self
+                .get_pod_list(namespace).await?
+                .items.into_iter()
+                .map(|p| p.metadata.name)
+                .collect()
+        )
     }
 
-    pub fn get_envoy_logs(
+    pub async fn get_envoy_logs(
         &self,
         namespace: &String,
         pod_name: &String
-    ) -> Result<EnvoyLog, Box<dyn Error>> {
-        todo!()
+    ) -> Result<Vec<EnvoyLog>, Box<dyn Error>> {
+        let url = format!(
+            "{}/api/v1/namespaces/{namespace}/pods/{pod_name}/log?container=istio-proxy&tailLines={}`",
+            self.kube_api_host,
+            10000
+        );
+        let re = Regex::new(r"\twarning\tenvoy (lua|wasm)\t(script|wasm) log[^:]*: ").unwrap();
+        Ok(
+            self
+                .get_str(&url).await?
+                .split("\n")
+                .into_iter()
+                .filter(|l| (l.contains("script log: ") || l.contains("wasm log ")))
+                .filter_map(|l| self.log_matcher.parse_log(re.replace(l, "\t").to_string()).ok())
+                .collect::<Vec<_>>()
+        )
+    }
+
+    async fn get_replicas_from_pod_list(
+        &self,
+        namespace: &String
+    ) -> Result<Vec<ReplicaCount>, Box<dyn Error>> {
+        let pods = self.get_pod_list(namespace).await?;
+        let mut replica_map: HashMap<String, ReplicaCount> = HashMap::new();
+        for item in pods.items.into_iter() {
+            let (service, namespace, version) = (
+                item.metadata.labels.service_istio_io_canonical_name,
+                item.metadata.namespace,
+                item.metadata.labels.service_istio_io_canonical_revision,
+            );
+            let unique_service_name = format!("{service}\t{namespace}\t{version}");
+
+            let existing = replica_map.get(&unique_service_name).and_then(|x| Some(x.replicas));
+            replica_map.insert(unique_service_name.clone(), ReplicaCount {
+                unique_service_name,
+                service,
+                namespace,
+                version,
+                replicas: existing.unwrap_or(0) + 1,
+            });
+        }
+
+        Ok(replica_map.into_values().collect())
+    }
+
+    async fn get_pod_list(&self, namespace: &String) -> Result<PodList, Box<dyn Error>> {
+        let url = format!("{}/api/v1/namespaces/{}/pods", self.kube_api_host, namespace);
+        self.get(&url).await
+    }
+
+    async fn get_service_list(&self, namespace: &String) -> Result<ServiceList, Box<dyn Error>> {
+        let url = format!("{}/api/v1/namespaces/{}/services", self.kube_api_host, namespace);
+        self.get(&url).await
+    }
+
+    async fn get_namespaces(&self) -> Result<Vec<String>, Box<dyn Error>> {
+        let url = format!("{}/api/v1/namespaces", self.kube_api_host);
+        let namespaces: NamespaceList = self.get(&url).await?;
+        Ok(
+            namespaces.items
+                .into_iter()
+                .map(|n| n.metadata.name)
+                .collect()
+        )
+    }
+
+    async fn get<T: DeserializeOwned + Default>(&self, url: &String) -> Result<T, Box<dyn Error>> {
+        let res = self.client.get(url).send().await?.text().await?;
+        let res = serde_json::from_str::<T>(res.as_str()).unwrap_or_default();
+        Ok(res)
+    }
+
+    async fn get_str(&self, url: &String) -> Result<String, Box<dyn Error>> {
+        Ok(self.client.get(url).send().await?.text().await?)
     }
 }

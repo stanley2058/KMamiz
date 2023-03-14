@@ -9,3 +9,6 @@ pub mod replica_count;
 pub mod request_type;
 pub mod envoy_log;
 pub mod trace;
+pub mod pod_list;
+pub mod service_list;
+pub mod namespace_list;
