@@ -17,5 +17,5 @@ pub struct RealtimeData {
     pub request_content_type: Option<String>,
     pub response_body: Option<String>,
     pub response_content_type: Option<String>,
-    pub replica: u32,
+    pub replica: Option<u32>,
 }
