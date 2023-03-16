@@ -1,4 +1,4 @@
-use std::{ collections::{ HashSet, HashMap }, str::FromStr };
+use std::{ collections::{ HashSet, HashMap }, str::FromStr, cell::RefCell, borrow::BorrowMut };
 
 use serde::{ Deserialize, Serialize };
 
@@ -8,7 +8,7 @@ use super::{
     envoy_log::StructuredEnvoyLog,
     replica_count::ReplicaCount,
     realtime_data::RealtimeData,
-    endpoint_dependency::EndpointDependency,
+    endpoint_dependency::{ EndpointDependency, EndpointDependencyItem, EndpointDependencyType },
     endpoint_info::EndpointInfo,
 };
 
@@ -110,7 +110,94 @@ impl Trace {
         traces: &Vec<Vec<Trace>>,
         url_matcher: &UrlMatcher
     ) -> Vec<EndpointDependency> {
-        todo!()
+        let mut span_dep_depth = HashMap::new();
+        for span in traces.iter().flatten() {
+            span_dep_depth.insert(&span.id, SpanDependency {
+                span,
+                upper: RefCell::new(HashMap::new()),
+                lower: RefCell::new(HashMap::new()),
+            });
+        }
+
+        let mut endpoint_info_map = HashMap::new();
+        for (span_id, dep) in span_dep_depth.iter() {
+            endpoint_info_map.insert(span_id.to_string(), dep.span.to_endpoint_info(url_matcher));
+        }
+
+        span_dep_depth
+            .iter()
+            .filter(|(_, v)| v.span.kind == "SERVER".to_owned())
+            .for_each(|(span_id, dep)| {
+                let mut parent_id = &dep.span.parent_id;
+                let mut depth = 1;
+                while let Some(id) = parent_id.as_ref() {
+                    let parent_node = span_dep_depth.get(id);
+                    if parent_node.is_none() {
+                        break;
+                    }
+                    let parent_node = parent_node.unwrap();
+                    if parent_node.span.kind == "CLIENT".to_owned() {
+                        parent_id = &parent_node.span.parent_id;
+                        continue;
+                    }
+                    dep.upper.borrow_mut().insert(parent_node.span.id.clone(), depth);
+                    parent_node.lower.borrow_mut().insert(span_id.to_string(), depth);
+                    parent_id = &parent_node.span.parent_id;
+                    depth += 1;
+                }
+            });
+
+        let mut dependencies = vec![];
+        for (_, dep) in span_dep_depth
+            .into_iter()
+            .filter(|(_, v)| v.span.kind == "SERVER".to_owned()) {
+            let upper_map = Self::to_info_map(&dep.upper, &endpoint_info_map);
+            let lower_map = Self::to_info_map(&dep.lower, &endpoint_info_map);
+
+            let depending_by = Self::to_depending(upper_map, EndpointDependencyType::Client);
+            let depending_on = Self::to_depending(lower_map, EndpointDependencyType::Server);
+
+            dependencies.push(EndpointDependency {
+                endpoint: dep.span.to_endpoint_info(url_matcher),
+                depending_by,
+                depending_on,
+                _id: None,
+            });
+        }
+
+        dependencies
+    }
+
+    fn to_info_map<'a>(
+        dep: &'a RefCell<HashMap<String, u32>>,
+        endpoint_info_map: &'a HashMap<String, EndpointInfo>
+    ) -> HashMap<String, &'a EndpointInfo> {
+        let mut map = HashMap::new();
+
+        dep.borrow()
+            .iter()
+            .for_each(|(s, dist)| {
+                let endpoint = endpoint_info_map.get(s).unwrap();
+                map.insert(format!("{}\t{dist}", endpoint.unique_endpoint_name), endpoint);
+            });
+        map
+    }
+
+    fn to_depending(
+        map: HashMap<String, &EndpointInfo>,
+        r#type: EndpointDependencyType
+    ) -> Vec<EndpointDependencyItem> {
+        map.into_iter()
+            .map(|(id, endpoint)| {
+                let token = id.split("\t");
+                let distance = u32::from_str(token.last().unwrap_or(&"")).unwrap_or(0);
+                EndpointDependencyItem {
+                    endpoint: endpoint.clone(),
+                    distance,
+                    r#type: r#type.clone(),
+                }
+            })
+            .collect()
     }
 
     pub fn to_endpoint_info(&self, url_matcher: &UrlMatcher) -> EndpointInfo {
@@ -203,4 +290,11 @@ pub struct Tags {
     #[serde(rename = "upstream_cluster.name")]
     pub upstream_cluster_name: String,
     pub user_agent: String,
+}
+
+#[derive(Debug)]
+struct SpanDependency<'a> {
+    pub span: &'a Trace,
+    pub upper: RefCell<HashMap<String, u32>>,
+    pub lower: RefCell<HashMap<String, u32>>,
 }
