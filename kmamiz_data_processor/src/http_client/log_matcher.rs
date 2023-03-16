@@ -57,7 +57,7 @@ impl LogMatcher {
         }
     }
 
-    fn create_matcher(pattern: &str) -> Arc<Regex> {
+    pub fn create_matcher(pattern: &str) -> Arc<Regex> {
         Arc::new(Regex::new(pattern).unwrap())
     }
 
