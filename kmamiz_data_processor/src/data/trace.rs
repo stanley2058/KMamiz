@@ -1,15 +1,20 @@
-use std::{ collections::{ HashSet, HashMap }, str::FromStr, cell::RefCell, borrow::BorrowMut };
+use std::{
+    borrow::BorrowMut,
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
-use crate::{ data::request_type::RequestType, http_client::url_matcher::UrlMatcher };
+use crate::{data::request_type::RequestType, http_client::url_matcher::UrlMatcher};
 
 use super::{
-    envoy_log::StructuredEnvoyLog,
-    replica_count::ReplicaCount,
-    realtime_data::RealtimeData,
-    endpoint_dependency::{ EndpointDependency, EndpointDependencyItem, EndpointDependencyType },
+    endpoint_dependency::{EndpointDependency, EndpointDependencyItem, EndpointDependencyType},
     endpoint_info::EndpointInfo,
+    envoy_log::StructuredEnvoyLog,
+    realtime_data::RealtimeData,
+    replica_count::ReplicaCount,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -40,7 +45,7 @@ impl Trace {
     pub fn combine_to_realtime_data(
         traces: &[Vec<Trace>],
         s_logs: Vec<StructuredEnvoyLog>,
-        replicas: &[ReplicaCount]
+        replicas: &[ReplicaCount],
     ) -> Vec<RealtimeData> {
         let mut replica_map = HashMap::new();
         for replica in replicas.iter() {
@@ -73,9 +78,7 @@ impl Trace {
                 let unique_service_name = format!("{service}\t{namespace}\t{version}");
 
                 let mut log = log_map.get(&trace.trace_id).and_then(|t| t.get(&trace.id));
-                if
-                    (log.is_none() || log.as_ref().unwrap().is_fallback) &&
-                    trace.parent_id.is_some()
+                if (log.is_none() || log.as_ref().unwrap().is_fallback) && trace.parent_id.is_some()
                 {
                     log = log_map
                         .get(&trace.trace_id)
@@ -96,8 +99,7 @@ impl Trace {
                     response_content_type: log.and_then(|l| l.response.content_type.clone()),
                     unique_endpoint_name: format!(
                         "{unique_service_name}\t{}\t{}",
-                        trace.tags.http_method,
-                        trace.tags.http_url
+                        trace.tags.http_method, trace.tags.http_url
                     ),
                     replica: replica_map.get(&unique_service_name).copied(),
                     unique_service_name,
@@ -108,15 +110,18 @@ impl Trace {
 
     pub fn to_endpoint_dependencies(
         traces: &[Vec<Trace>],
-        url_matcher: &UrlMatcher
+        url_matcher: &UrlMatcher,
     ) -> Vec<EndpointDependency> {
         let mut span_dep_depth = HashMap::new();
         for span in traces.iter().flatten() {
-            span_dep_depth.insert(&span.id, SpanDependency {
-                span,
-                upper: RefCell::new(HashMap::new()),
-                lower: RefCell::new(HashMap::new()),
-            });
+            span_dep_depth.insert(
+                &span.id,
+                SpanDependency {
+                    span,
+                    upper: RefCell::new(HashMap::new()),
+                    lower: RefCell::new(HashMap::new()),
+                },
+            );
         }
 
         let mut endpoint_info_map = HashMap::new();
@@ -140,15 +145,23 @@ impl Trace {
                         parent_id = &parent_node.span.parent_id;
                         continue;
                     }
-                    dep.upper.borrow_mut().insert(parent_node.span.id.clone(), depth);
-                    parent_node.lower.borrow_mut().insert(span_id.to_string(), depth);
+                    dep.upper
+                        .borrow_mut()
+                        .insert(parent_node.span.id.clone(), depth);
+                    parent_node
+                        .lower
+                        .borrow_mut()
+                        .insert(span_id.to_string(), depth);
                     parent_id = &parent_node.span.parent_id;
                     depth += 1;
                 }
             });
 
         let mut dependencies = vec![];
-        for (_, dep) in span_dep_depth.into_iter().filter(|(_, v)| v.span.kind == *"SERVER") {
+        for (_, dep) in span_dep_depth
+            .into_iter()
+            .filter(|(_, v)| v.span.kind == *"SERVER")
+        {
             let upper_map = Self::to_info_map(&dep.upper, &endpoint_info_map);
             let lower_map = Self::to_info_map(&dep.lower, &endpoint_info_map);
 
@@ -168,22 +181,23 @@ impl Trace {
 
     fn to_info_map<'a>(
         dep: &'a RefCell<HashMap<String, u32>>,
-        endpoint_info_map: &'a HashMap<String, EndpointInfo>
+        endpoint_info_map: &'a HashMap<String, EndpointInfo>,
     ) -> HashMap<String, &'a EndpointInfo> {
         let mut map = HashMap::new();
 
-        dep.borrow()
-            .iter()
-            .for_each(|(s, dist)| {
-                let endpoint = endpoint_info_map.get(s).unwrap();
-                map.insert(format!("{}\t{dist}", endpoint.unique_endpoint_name), endpoint);
-            });
+        dep.borrow().iter().for_each(|(s, dist)| {
+            let endpoint = endpoint_info_map.get(s).unwrap();
+            map.insert(
+                format!("{}\t{dist}", endpoint.unique_endpoint_name),
+                endpoint,
+            );
+        });
         map
     }
 
     fn to_depending(
         map: HashMap<String, &EndpointInfo>,
-        r#type: EndpointDependencyType
+        r#type: EndpointDependencyType,
     ) -> Vec<EndpointDependencyItem> {
         map.into_iter()
             .map(|(id, endpoint)| {

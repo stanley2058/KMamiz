@@ -1,9 +1,12 @@
-use std::{ sync::Arc, str::FromStr, error::Error, fmt::Display };
+use std::{error::Error, fmt::Display, str::FromStr, sync::Arc};
 
 use chrono::prelude::DateTime;
 use regex::Regex;
 
-use crate::data::{ request_type::RequestType, envoy_log::{ EnvoyLog, LogType } };
+use crate::data::{
+    envoy_log::{EnvoyLog, LogType},
+    request_type::RequestType,
+};
 
 static RE_METADATA: &str =
     r"\[(Request|Response) ([[:alnum:]-_]+)/([[:alnum:]_]+)/([[:alnum:]_]+)/([[:alnum:]_]+)\]";
@@ -117,7 +120,9 @@ impl LogMatcher {
             .into_iter()
             .map(String::from);
 
-        let method = method_and_path.nth(1).and_then(|m| RequestType::from_str(&m).ok());
+        let method = method_and_path
+            .nth(1)
+            .and_then(|m| RequestType::from_str(&m).ok());
 
         let envoy_log = EnvoyLog {
             namespace,

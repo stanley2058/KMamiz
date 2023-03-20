@@ -80,42 +80,54 @@ impl UrlMatcher {
 pub fn test_url_matcher() {
     let matcher = UrlMatcher::new();
     let res = matcher.explode_url("http://example.com:8080/test/test", false);
-    assert_eq!(res, ExplodedUrl {
-        host: Some("example.com".to_owned()),
-        port: Some(":8080".to_owned()),
-        path: Some("/test/test".to_owned()),
-        service_name: None,
-        namespace: None,
-        cluster_name: None,
-    });
+    assert_eq!(
+        res,
+        ExplodedUrl {
+            host: Some("example.com".to_owned()),
+            port: Some(":8080".to_owned()),
+            path: Some("/test/test".to_owned()),
+            service_name: None,
+            namespace: None,
+            cluster_name: None,
+        }
+    );
 
     let res = matcher.explode_url("https://192.168.1.1/test#123", false);
-    assert_eq!(res, ExplodedUrl {
-        host: Some("192.168.1.1".to_owned()),
-        port: Some("".to_owned()),
-        path: Some("/test#123".to_owned()),
-        service_name: None,
-        namespace: None,
-        cluster_name: None,
-    });
+    assert_eq!(
+        res,
+        ExplodedUrl {
+            host: Some("192.168.1.1".to_owned()),
+            port: Some("".to_owned()),
+            path: Some("/test#123".to_owned()),
+            service_name: None,
+            namespace: None,
+            cluster_name: None,
+        }
+    );
 
     let res = matcher.explode_url("service.test.svc.cluster.local:80/test/endpoint", false);
-    assert_eq!(res, ExplodedUrl {
-        host: Some("service.test.svc.cluster.local".to_owned()),
-        port: Some(":80".to_owned()),
-        path: Some("/test/endpoint".to_owned()),
-        service_name: None,
-        namespace: None,
-        cluster_name: None,
-    });
+    assert_eq!(
+        res,
+        ExplodedUrl {
+            host: Some("service.test.svc.cluster.local".to_owned()),
+            port: Some(":80".to_owned()),
+            path: Some("/test/endpoint".to_owned()),
+            service_name: None,
+            namespace: None,
+            cluster_name: None,
+        }
+    );
 
     let res = matcher.explode_url("service.test.svc.cluster.local:80/test/endpoint", true);
-    assert_eq!(res, ExplodedUrl {
-        host: Some("service.test.svc.cluster.local".to_owned()),
-        port: Some(":80".to_owned()),
-        path: Some("/test/endpoint".to_owned()),
-        service_name: Some("service".to_owned()),
-        namespace: Some("test".to_owned()),
-        cluster_name: Some("cluster.local".to_owned()),
-    });
+    assert_eq!(
+        res,
+        ExplodedUrl {
+            host: Some("service.test.svc.cluster.local".to_owned()),
+            port: Some(":80".to_owned()),
+            path: Some("/test/endpoint".to_owned()),
+            service_name: Some("service".to_owned()),
+            namespace: Some("test".to_owned()),
+            cluster_name: Some("cluster.local".to_owned()),
+        }
+    );
 }

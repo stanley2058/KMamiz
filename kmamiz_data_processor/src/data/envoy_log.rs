@@ -1,6 +1,11 @@
 use super::request_type::RequestType;
-use serde::{ Deserialize, Serialize };
-use std::{ str::FromStr, error::Error, fmt::Display, collections::{ HashMap, HashSet } };
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fmt::Display,
+    str::FromStr,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -38,9 +43,13 @@ impl EnvoyLog {
         for ((request_id, trace_id), span_map) in log_map.iter() {
             let mut traces = vec![];
             for (span_id, log) in span_map.iter() {
-                let existing = span_map
-                    .get(&log.parent_span_id)
-                    .and_then(|l| if l.r#type == LogType::Req { Some(l) } else { None });
+                let existing = span_map.get(&log.parent_span_id).and_then(|l| {
+                    if l.r#type == LogType::Req {
+                        Some(l)
+                    } else {
+                        None
+                    }
+                });
                 if log.r#type == LogType::Res && existing.is_some() {
                     traces.push(StructuredEnvoyLogTrace {
                         trace_id: trace_id.to_string(),
@@ -79,14 +88,17 @@ impl EnvoyLog {
                     LogType::Req => trace_stack.push(log),
                     LogType::Res => {
                         if let Some(req) = trace_stack.pop() {
-                            trace_map.insert(&req.span_id, StructuredEnvoyLogTrace {
-                                trace_id: trace_id.to_string(),
-                                span_id: req.span_id.clone(),
-                                parent_span_id: req.parent_span_id.clone(),
-                                request: (*req).clone(),
-                                response: (*log).clone(),
-                                is_fallback: true,
-                            });
+                            trace_map.insert(
+                                &req.span_id,
+                                StructuredEnvoyLogTrace {
+                                    trace_id: trace_id.to_string(),
+                                    span_id: req.span_id.clone(),
+                                    parent_span_id: req.parent_span_id.clone(),
+                                    request: (*req).clone(),
+                                    response: (*log).clone(),
+                                    is_fallback: true,
+                                },
+                            );
                         } else {
                             trace_stack.clear();
                         }
@@ -109,7 +121,8 @@ impl EnvoyLog {
     }
 
     fn combine_structured_logs<T>(s_logs: T) -> Vec<StructuredEnvoyLog>
-        where T: Iterator<Item = Vec<StructuredEnvoyLog>>
+    where
+        T: Iterator<Item = Vec<StructuredEnvoyLog>>,
     {
         let mut log_map = HashMap::new();
 
@@ -122,11 +135,13 @@ impl EnvoyLog {
 
         let mut combined = vec![];
         for (request_id, mut traces) in log_map.into_iter() {
-            traces.sort_by(|a, b| a.request.timestamp.partial_cmp(&b.request.timestamp).unwrap());
-            combined.push(StructuredEnvoyLog {
-                request_id,
-                traces,
+            traces.sort_by(|a, b| {
+                a.request
+                    .timestamp
+                    .partial_cmp(&b.request.timestamp)
+                    .unwrap()
             });
+            combined.push(StructuredEnvoyLog { request_id, traces });
         }
 
         combined
@@ -141,14 +156,15 @@ impl EnvoyLog {
                 }
                 id_map.insert(
                     (log.request_id.to_string(), trace.span_id.to_string()),
-                    trace.parent_span_id.to_string()
+                    trace.parent_span_id.to_string(),
                 );
             }
         }
 
         logs.into_iter()
             .map(|l| {
-                let traces = l.traces
+                let traces = l
+                    .traces
                     .into_iter()
                     .map(|mut t| {
                         let parent_id = id_map
@@ -160,7 +176,10 @@ impl EnvoyLog {
                     })
                     .collect();
 
-                StructuredEnvoyLog { request_id: l.request_id, traces }
+                StructuredEnvoyLog {
+                    request_id: l.request_id,
+                    traces,
+                }
             })
             .collect()
     }

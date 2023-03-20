@@ -1,5 +1,5 @@
-use serde::{ Deserialize, Serialize };
-use std::{ str::FromStr, fmt::Display, error::Error };
+use serde::{Deserialize, Serialize};
+use std::{error::Error, fmt::Display, str::FromStr};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum RequestType {

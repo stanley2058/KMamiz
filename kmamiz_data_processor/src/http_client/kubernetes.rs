@@ -1,19 +1,24 @@
-use std::{ error::Error, fs::File, io::Read, collections::{ HashMap, HashSet } };
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fs::File,
+    io::Read,
+};
 
 use regex::Regex;
-use reqwest::{ Client, Certificate, header::{ HeaderMap, HeaderValue } };
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Certificate, Client,
+};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::{
-    env::Env,
     data::{
-        replica_count::ReplicaCount,
-        envoy_log::EnvoyLog,
-        pod_list::PodList,
-        service_list::ServiceList,
-        namespace_list::NamespaceList,
+        envoy_log::EnvoyLog, namespace_list::NamespaceList, pod_list::PodList,
+        replica_count::ReplicaCount, service_list::ServiceList,
     },
+    env::Env,
 };
 
 use super::log_matcher::LogMatcher;
@@ -34,12 +39,11 @@ impl<'a> KubernetesClient<'a> {
 
             Client::builder()
                 .add_root_certificate(
-                    KubernetesClient::read_certificate(&ca_cert_path).expect(
-                        "cannot read certificate"
-                    )
+                    KubernetesClient::read_certificate(&ca_cert_path)
+                        .expect("cannot read certificate"),
                 )
                 .default_headers(
-                    KubernetesClient::read_jwt_token(&token).expect("cannot read auth token")
+                    KubernetesClient::read_jwt_token(&token).expect("cannot read auth token"),
                 )
                 .build()
                 .expect("failed to build client")
@@ -66,7 +70,7 @@ impl<'a> KubernetesClient<'a> {
 
         headers.insert(
             "Authorization",
-            HeaderValue::from_str(format!("Bearer {}", token).as_str())?
+            HeaderValue::from_str(format!("Bearer {}", token).as_str())?,
         );
         Ok(headers)
     }
@@ -79,7 +83,7 @@ impl<'a> KubernetesClient<'a> {
 
     pub async fn get_replicas(
         &self,
-        namespaces: Option<HashSet<String>>
+        namespaces: Option<HashSet<String>>,
     ) -> Result<Vec<ReplicaCount>, Box<dyn Error>> {
         let namespaces = namespaces.unwrap_or(self.get_namespaces().await?.into_iter().collect());
         let mut replicas = vec![];
@@ -90,19 +94,19 @@ impl<'a> KubernetesClient<'a> {
     }
 
     pub async fn get_pod_names(&self, namespace: &String) -> Result<Vec<String>, Box<dyn Error>> {
-        Ok(
-            self
-                .get_pod_list(namespace).await?
-                .items.into_iter()
-                .map(|p| p.metadata.name)
-                .collect()
-        )
+        Ok(self
+            .get_pod_list(namespace)
+            .await?
+            .items
+            .into_iter()
+            .map(|p| p.metadata.name)
+            .collect())
     }
 
     pub async fn get_envoy_logs(
         &self,
         namespace: &String,
-        pod_name: &String
+        pod_name: &String,
     ) -> Result<Vec<EnvoyLog>, Box<dyn Error>> {
         let url = format!(
             "{}/api/v1/namespaces/{namespace}/pods/{pod_name}/log?container=istio-proxy&tailLines={}`",
@@ -110,19 +114,22 @@ impl<'a> KubernetesClient<'a> {
             10000
         );
         let re = Regex::new(r"\twarning\tenvoy (lua|wasm)\t(script|wasm) log[^:]*: ").unwrap();
-        Ok(
-            self
-                .get_str(&url).await?
-                .split('\n')
-                .filter(|l| (l.contains("script log: ") || l.contains("wasm log ")))
-                .filter_map(|l| self.log_matcher.parse_log(re.replace(l, "\t").to_string()).ok())
-                .collect::<Vec<_>>()
-        )
+        Ok(self
+            .get_str(&url)
+            .await?
+            .split('\n')
+            .filter(|l| (l.contains("script log: ") || l.contains("wasm log ")))
+            .filter_map(|l| {
+                self.log_matcher
+                    .parse_log(re.replace(l, "\t").to_string())
+                    .ok()
+            })
+            .collect::<Vec<_>>())
     }
 
     async fn get_replicas_from_pod_list(
         &self,
-        namespace: &String
+        namespace: &String,
     ) -> Result<Vec<ReplicaCount>, Box<dyn Error>> {
         let pods = self.get_pod_list(namespace).await?;
         let mut replica_map: HashMap<String, ReplicaCount> = HashMap::new();
@@ -135,37 +142,45 @@ impl<'a> KubernetesClient<'a> {
             let unique_service_name = format!("{service}\t{namespace}\t{version}");
 
             let existing = replica_map.get(&unique_service_name).map(|x| x.replicas);
-            replica_map.insert(unique_service_name.clone(), ReplicaCount {
-                unique_service_name,
-                service,
-                namespace,
-                version,
-                replicas: existing.unwrap_or(0) + 1,
-            });
+            replica_map.insert(
+                unique_service_name.clone(),
+                ReplicaCount {
+                    unique_service_name,
+                    service,
+                    namespace,
+                    version,
+                    replicas: existing.unwrap_or(0) + 1,
+                },
+            );
         }
 
         Ok(replica_map.into_values().collect())
     }
 
     async fn get_pod_list(&self, namespace: &String) -> Result<PodList, Box<dyn Error>> {
-        let url = format!("{}/api/v1/namespaces/{}/pods", self.kube_api_host, namespace);
+        let url = format!(
+            "{}/api/v1/namespaces/{}/pods",
+            self.kube_api_host, namespace
+        );
         self.get(&url).await
     }
 
     async fn get_service_list(&self, namespace: &String) -> Result<ServiceList, Box<dyn Error>> {
-        let url = format!("{}/api/v1/namespaces/{}/services", self.kube_api_host, namespace);
+        let url = format!(
+            "{}/api/v1/namespaces/{}/services",
+            self.kube_api_host, namespace
+        );
         self.get(&url).await
     }
 
     async fn get_namespaces(&self) -> Result<Vec<String>, Box<dyn Error>> {
         let url = format!("{}/api/v1/namespaces", self.kube_api_host);
         let namespaces: NamespaceList = self.get(&url).await?;
-        Ok(
-            namespaces.items
-                .into_iter()
-                .map(|n| n.metadata.name)
-                .collect()
-        )
+        Ok(namespaces
+            .items
+            .into_iter()
+            .map(|n| n.metadata.name)
+            .collect())
     }
 
     async fn get<T: DeserializeOwned + Default>(&self, url: &String) -> Result<T, Box<dyn Error>> {
