@@ -50,9 +50,9 @@ impl UrlMatcher {
         };
 
         if let Some(captures) = self.url_matcher.captures(&url) {
-            result.host = captures.get(1).and_then(|c| Some(String::from(c.as_str())));
-            result.port = captures.get(2).and_then(|c| Some(String::from(c.as_str())));
-            result.path = captures.get(3).and_then(|c| Some(String::from(c.as_str())));
+            result.host = captures.get(1).map(|c| String::from(c.as_str()));
+            result.port = captures.get(2).map(|c| String::from(c.as_str()));
+            result.path = captures.get(3).map(|c| String::from(c.as_str()));
         }
 
         if !is_service {
@@ -60,12 +60,12 @@ impl UrlMatcher {
         }
 
         if let Some(captures) = self.service_matcher.captures(result.host.as_ref().unwrap()) {
-            let service_full_name = captures.get(1).and_then(|c| Some(String::from(c.as_str())));
+            let service_full_name = captures.get(1).map(|c| String::from(c.as_str()));
             if let Some(service_full_name) = service_full_name {
-                let name_divider = service_full_name.rfind(".").unwrap_or_default();
+                let name_divider = service_full_name.rfind('.').unwrap_or_default();
                 let service_name = service_full_name[0..name_divider].to_string();
                 let namespace = service_full_name[name_divider + 1..].to_string();
-                let cluster_name = captures.get(2).and_then(|c| Some(String::from(c.as_str())));
+                let cluster_name = captures.get(2).map(|c| String::from(c.as_str()));
                 result.service_name = Some(service_name);
                 result.namespace = Some(namespace);
                 result.cluster_name = cluster_name;

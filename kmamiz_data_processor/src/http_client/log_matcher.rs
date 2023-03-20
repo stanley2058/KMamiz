@@ -85,7 +85,7 @@ impl LogMatcher {
     }
 
     pub fn parse_log(&self, log: String) -> Result<EnvoyLog, Box<dyn Error>> {
-        let splits = log.split("\t").collect::<Vec<&str>>();
+        let splits = log.split('\t').collect::<Vec<&str>>();
         if splits.len() < 4 {
             return Err(LogParsingError::new("incorrect log tokens"));
         }
@@ -132,7 +132,7 @@ impl LogMatcher {
             content_type,
             status,
             method,
-            path: method_and_path.nth(0),
+            path: method_and_path.next(),
         };
 
         Ok(envoy_log)

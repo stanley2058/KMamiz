@@ -13,7 +13,7 @@ impl Env {
     pub fn new() -> Self {
         dotenv().expect(".env file not found");
 
-        let is_k8s = Env::read_env("IS_RUNNING_IN_K8S") == "true".to_owned();
+        let is_k8s = Env::read_env("IS_RUNNING_IN_K8S") == *"true";
 
         let kube_api_host = if !is_k8s {
             Env::read_env("KUBEAPI_HOST")
@@ -31,6 +31,6 @@ impl Env {
     }
 
     fn read_env(key: &str) -> String {
-        env::var(key).expect(format!("{} not supplied", key).as_str())
+        env::var(key).unwrap_or_else(|_| panic!("{} not supplied", key))
     }
 }

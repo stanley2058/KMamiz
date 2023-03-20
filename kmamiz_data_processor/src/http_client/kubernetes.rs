@@ -113,8 +113,7 @@ impl<'a> KubernetesClient<'a> {
         Ok(
             self
                 .get_str(&url).await?
-                .split("\n")
-                .into_iter()
+                .split('\n')
                 .filter(|l| (l.contains("script log: ") || l.contains("wasm log ")))
                 .filter_map(|l| self.log_matcher.parse_log(re.replace(l, "\t").to_string()).ok())
                 .collect::<Vec<_>>()
@@ -135,7 +134,7 @@ impl<'a> KubernetesClient<'a> {
             );
             let unique_service_name = format!("{service}\t{namespace}\t{version}");
 
-            let existing = replica_map.get(&unique_service_name).and_then(|x| Some(x.replicas));
+            let existing = replica_map.get(&unique_service_name).map(|x| x.replicas);
             replica_map.insert(unique_service_name.clone(), ReplicaCount {
                 unique_service_name,
                 service,

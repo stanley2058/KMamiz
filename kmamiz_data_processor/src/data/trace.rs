@@ -29,7 +29,7 @@ pub struct Trace {
 }
 
 impl Trace {
-    pub fn extract_namespaces(traces: &Vec<Vec<Trace>>) -> HashSet<String> {
+    pub fn extract_namespaces(traces: &[Vec<Trace>]) -> HashSet<String> {
         traces
             .iter()
             .flatten()
@@ -38,9 +38,9 @@ impl Trace {
     }
 
     pub fn combine_to_realtime_data(
-        traces: &Vec<Vec<Trace>>,
+        traces: &[Vec<Trace>],
         s_logs: Vec<StructuredEnvoyLog>,
-        replicas: &Vec<ReplicaCount>
+        replicas: &[ReplicaCount]
     ) -> Vec<RealtimeData> {
         let mut replica_map = HashMap::new();
         for replica in replicas.iter() {
@@ -49,7 +49,7 @@ impl Trace {
 
         let mut log_map = HashMap::new();
         for s_log in s_logs.iter() {
-            if s_log.traces.len() == 0 {
+            if s_log.traces.is_empty() {
                 continue;
             }
 
@@ -99,7 +99,7 @@ impl Trace {
                         trace.tags.http_method,
                         trace.tags.http_url
                     ),
-                    replica: replica_map.get(&unique_service_name).and_then(|&i| Some(i)),
+                    replica: replica_map.get(&unique_service_name).copied(),
                     unique_service_name,
                 }
             })
@@ -107,7 +107,7 @@ impl Trace {
     }
 
     pub fn to_endpoint_dependencies(
-        traces: &Vec<Vec<Trace>>,
+        traces: &[Vec<Trace>],
         url_matcher: &UrlMatcher
     ) -> Vec<EndpointDependency> {
         let mut span_dep_depth = HashMap::new();
@@ -126,7 +126,7 @@ impl Trace {
 
         span_dep_depth
             .iter()
-            .filter(|(_, v)| v.span.kind == "SERVER".to_owned())
+            .filter(|(_, v)| v.span.kind == *"SERVER")
             .for_each(|(span_id, dep)| {
                 let mut parent_id = &dep.span.parent_id;
                 let mut depth = 1;
@@ -136,7 +136,7 @@ impl Trace {
                         break;
                     }
                     let parent_node = parent_node.unwrap();
-                    if parent_node.span.kind == "CLIENT".to_owned() {
+                    if parent_node.span.kind == *"CLIENT" {
                         parent_id = &parent_node.span.parent_id;
                         continue;
                     }
@@ -148,9 +148,7 @@ impl Trace {
             });
 
         let mut dependencies = vec![];
-        for (_, dep) in span_dep_depth
-            .into_iter()
-            .filter(|(_, v)| v.span.kind == "SERVER".to_owned()) {
+        for (_, dep) in span_dep_depth.into_iter().filter(|(_, v)| v.span.kind == *"SERVER") {
             let upper_map = Self::to_info_map(&dep.upper, &endpoint_info_map);
             let lower_map = Self::to_info_map(&dep.lower, &endpoint_info_map);
 
@@ -189,8 +187,8 @@ impl Trace {
     ) -> Vec<EndpointDependencyItem> {
         map.into_iter()
             .map(|(id, endpoint)| {
-                let token = id.split("\t");
-                let distance = u32::from_str(token.last().unwrap_or(&"")).unwrap_or(0);
+                let token = id.split('\t');
+                let distance = u32::from_str(token.last().unwrap_or("")).unwrap_or(0);
                 EndpointDependencyItem {
                     endpoint: endpoint.clone(),
                     distance,
@@ -233,7 +231,7 @@ impl Trace {
             path: url.path.unwrap_or_default(),
             port: url.port.unwrap_or("80".to_owned()),
             cluster_name: service_url.cluster_name.unwrap_or_default(),
-            method: RequestType::from_str(&method).expect("cannot parse http method"),
+            method: RequestType::from_str(method).expect("cannot parse http method"),
             unique_endpoint_name: format!("{unique_service_name}\t{method}\t{http_url}"),
             unique_service_name,
             label_name: None,

@@ -46,8 +46,8 @@ impl EnvoyLog {
                         trace_id: trace_id.to_string(),
                         span_id: span_id.to_string(),
                         parent_span_id: log.parent_span_id.to_string(),
-                        request: span_map.get(&log.parent_span_id).unwrap().clone().clone(),
-                        response: log.clone().clone(),
+                        request: (*span_map.get(&log.parent_span_id).unwrap()).clone(),
+                        response: (*log).clone(),
                         is_fallback: false,
                     });
                 }
@@ -74,7 +74,7 @@ impl EnvoyLog {
         for ((request_id, trace_id), logs) in log_map.iter() {
             let mut trace_stack = vec![];
             let mut trace_map = HashMap::new();
-            for log in logs.into_iter() {
+            for log in logs.iter() {
                 match log.r#type {
                     LogType::Req => trace_stack.push(log),
                     LogType::Res => {
@@ -83,8 +83,8 @@ impl EnvoyLog {
                                 trace_id: trace_id.to_string(),
                                 span_id: req.span_id.clone(),
                                 parent_span_id: req.parent_span_id.clone(),
-                                request: req.clone().clone(),
-                                response: log.clone().clone(),
+                                request: (*req).clone(),
+                                response: (*log).clone(),
                                 is_fallback: true,
                             });
                         } else {
@@ -103,7 +103,7 @@ impl EnvoyLog {
     }
 
     pub fn combine_logs(logs: Vec<Vec<EnvoyLog>>) -> Vec<StructuredEnvoyLog> {
-        let structured = logs.into_iter().map(|l| Self::to_structure(l));
+        let structured = logs.into_iter().map(Self::to_structure);
         let combined = Self::combine_structured_logs(structured);
         Self::fill_missing_ids(combined)
     }
@@ -153,7 +153,7 @@ impl EnvoyLog {
                     .map(|mut t| {
                         let parent_id = id_map
                             .get(&(l.request_id.to_string(), t.span_id.to_string()))
-                            .unwrap_or(&&t.parent_span_id)
+                            .unwrap_or(&t.parent_span_id)
                             .to_string();
                         t.parent_span_id = parent_id;
                         t
