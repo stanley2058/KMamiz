@@ -10,7 +10,7 @@ pub struct RequestPackage {
     pub unique_id: String,
     pub look_back: u64,
     pub time: u64,
-    pub existing_dep: Vec<EndpointDependency>,
+    pub existing_dep: Option<Vec<EndpointDependency>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
