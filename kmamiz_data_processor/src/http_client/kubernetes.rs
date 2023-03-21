@@ -83,9 +83,8 @@ impl<'a> KubernetesClient<'a> {
 
     pub async fn get_replicas(
         &self,
-        namespaces: Option<HashSet<String>>,
+        namespaces: &HashSet<String>,
     ) -> Result<Vec<ReplicaCount>, Box<dyn Error>> {
-        let namespaces = namespaces.unwrap_or(self.get_namespaces().await?.into_iter().collect());
         let mut replicas = vec![];
         for ns in namespaces.iter() {
             replicas = [replicas, self.get_replicas_from_pod_list(ns).await?].concat();
