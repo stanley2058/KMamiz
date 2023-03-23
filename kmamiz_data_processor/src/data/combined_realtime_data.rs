@@ -1,4 +1,4 @@
-use super::request_type::RequestType;
+use super::{endpoint_data_type::PartialEndpointDataType, request_type::RequestType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -50,4 +50,23 @@ pub struct PartialCombinedRealtimeData {
     pub response_body: Vec<String>,
     pub response_content_type: Option<String>,
     pub avg_replica: f64,
+}
+
+impl PartialCombinedRealtimeData {
+    pub fn partial_extract_datatype(
+        data: &Vec<PartialCombinedRealtimeData>,
+    ) -> Vec<PartialEndpointDataType> {
+        data.iter()
+            .map(|d| PartialEndpointDataType {
+                unique_service_name: d.unique_service_name.clone(),
+                unique_endpoint_name: d.unique_endpoint_name.clone(),
+                service: d.service.clone(),
+                namespace: d.namespace.clone(),
+                version: d.version.clone(),
+                method: d.method.clone(),
+                requests: d.request_body.clone(),
+                responses: d.response_body.clone(),
+            })
+            .collect()
+    }
 }
