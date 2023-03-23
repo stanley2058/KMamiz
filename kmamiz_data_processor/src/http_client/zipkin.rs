@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, sync::Arc};
 
 use reqwest::{
     header::{HeaderMap, HeaderValue},
@@ -9,13 +9,13 @@ use crate::{data::trace::Trace, env::Env};
 
 static SERVICE_NAME: &str = "istio-ingressgateway.istio-system";
 #[derive(Debug)]
-pub struct ZipkinClient<'a> {
+pub struct ZipkinClient {
     client: Client,
-    zipkin_url: &'a String,
+    zipkin_url: String,
 }
 
-impl<'a> ZipkinClient<'a> {
-    pub fn new(env: &'a Env) -> Self {
+impl ZipkinClient {
+    pub fn new(env: Arc<Env>) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert("Accept", HeaderValue::from_static("application/json"));
         ZipkinClient {
@@ -24,7 +24,7 @@ impl<'a> ZipkinClient<'a> {
                 .gzip(true)
                 .build()
                 .unwrap(),
-            zipkin_url: &env.zipkin_url,
+            zipkin_url: env.zipkin_url.clone(),
         }
     }
 

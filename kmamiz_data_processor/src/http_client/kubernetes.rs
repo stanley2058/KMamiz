@@ -3,6 +3,7 @@ use std::{
     error::Error,
     fs::File,
     io::Read,
+    sync::Arc,
 };
 
 use regex::Regex;
@@ -24,14 +25,14 @@ use crate::{
 use super::log_matcher::LogMatcher;
 
 #[derive(Debug)]
-pub struct KubernetesClient<'a> {
+pub struct KubernetesClient {
     client: Client,
-    kube_api_host: &'a String,
+    kube_api_host: String,
     log_matcher: LogMatcher,
 }
 
-impl<'a> KubernetesClient<'a> {
-    pub fn new(env: &'a Env) -> Self {
+impl KubernetesClient {
+    pub fn new(env: Arc<Env>) -> Self {
         let client = if env.is_k8s {
             let service_account = "/var/run/secrets/kubernetes.io/serviceaccount";
             let ca_cert_path = format!("{}/ca.crt", service_account);
@@ -52,7 +53,7 @@ impl<'a> KubernetesClient<'a> {
         };
         KubernetesClient {
             client,
-            kube_api_host: &env.kube_api_host,
+            kube_api_host: env.kube_api_host.clone(),
             log_matcher: LogMatcher::new(),
         }
     }
