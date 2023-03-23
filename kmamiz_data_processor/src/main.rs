@@ -7,11 +7,7 @@ use http_client::{kubernetes::KubernetesClient, zipkin::ZipkinClient};
 use std::{collections::HashMap, error::Error};
 
 use crate::{
-    data::{
-        endpoint_dependency::EndpointDependency,
-        envoy_log::EnvoyLog,
-        trace::{self, Trace},
-    },
+    data::{endpoint_dependency::EndpointDependency, envoy_log::EnvoyLog, trace::Trace},
     http_client::url_matcher::UrlMatcher,
 };
 
