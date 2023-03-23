@@ -54,7 +54,7 @@ pub struct PartialCombinedRealtimeData {
 
 impl PartialCombinedRealtimeData {
     pub fn partial_extract_datatype(
-        data: &Vec<PartialCombinedRealtimeData>,
+        data: &[PartialCombinedRealtimeData],
     ) -> Vec<PartialEndpointDataType> {
         data.iter()
             .map(|d| PartialEndpointDataType {

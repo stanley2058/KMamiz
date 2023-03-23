@@ -12,13 +12,9 @@ use reqwest::{
     Certificate, Client,
 };
 use serde::de::DeserializeOwned;
-use serde_json::Value;
 
 use crate::{
-    data::{
-        envoy_log::EnvoyLog, namespace_list::NamespaceList, pod_list::PodList,
-        replica_count::ReplicaCount, service_list::ServiceList,
-    },
+    data::{envoy_log::EnvoyLog, pod_list::PodList, replica_count::ReplicaCount},
     env::Env,
 };
 
@@ -163,24 +159,6 @@ impl KubernetesClient {
             self.kube_api_host, namespace
         );
         self.get(&url).await
-    }
-
-    async fn get_service_list(&self, namespace: &String) -> Result<ServiceList, Box<dyn Error>> {
-        let url = format!(
-            "{}/api/v1/namespaces/{}/services",
-            self.kube_api_host, namespace
-        );
-        self.get(&url).await
-    }
-
-    async fn get_namespaces(&self) -> Result<Vec<String>, Box<dyn Error>> {
-        let url = format!("{}/api/v1/namespaces", self.kube_api_host);
-        let namespaces: NamespaceList = self.get(&url).await?;
-        Ok(namespaces
-            .items
-            .into_iter()
-            .map(|n| n.metadata.name)
-            .collect())
     }
 
     async fn get<T: DeserializeOwned + Default>(&self, url: &String) -> Result<T, Box<dyn Error>> {
