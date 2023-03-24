@@ -70,8 +70,8 @@ impl PartialCombinedRealtimeData {
                 schema: PartialEndpointDataSchema {
                     status: d.status.clone(),
                     time: d.latest_timestamp / 1000,
-                    requests: d.request_body.clone(),
-                    responses: d.response_body.clone(),
+                    request_sample: d.request_body.clone(),
+                    response_sample: d.response_body.clone(),
                     request_content_type: d.request_content_type.clone(),
                     response_content_type: d.response_content_type.clone(),
                 },

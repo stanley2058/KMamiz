@@ -18,8 +18,8 @@ pub struct PartialEndpointDataType {
 pub struct PartialEndpointDataSchema {
     pub time: i64,
     pub status: String,
-    pub requests: Vec<String>,
+    pub request_sample: Vec<String>,
     pub request_content_type: Option<String>,
-    pub responses: Vec<String>,
+    pub response_sample: Vec<String>,
     pub response_content_type: Option<String>,
 }
