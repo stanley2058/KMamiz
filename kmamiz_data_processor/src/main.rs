@@ -5,6 +5,7 @@ mod http_client;
 
 use std::{
     collections::HashMap,
+    io::Result,
     sync::{Arc, Mutex},
 };
 
@@ -14,7 +15,10 @@ use actix_web::{
     App, HttpResponse, HttpServer, Responder,
 };
 use data::connection_package::RequestPackage;
+use env::Env;
 use http_client::{kubernetes::KubernetesClient, url_matcher::UrlMatcher, zipkin::ZipkinClient};
+use log::{debug, error};
+use tokio::join;
 
 use crate::data_processor::{collect_data, DataProcessorState};
 
@@ -24,22 +28,30 @@ async fn process_data(
     state: Data<DataProcessorState>,
 ) -> impl Responder {
     let resp = collect_data(request.0, state).await;
-    if let Ok(resp) = resp {
-        HttpResponse::Ok().json(resp)
-    } else {
-        HttpResponse::BadRequest().finish()
+    match resp {
+        Ok(resp) => HttpResponse::Ok().json(resp),
+        Err(err) => {
+            error!("{:?}", err);
+            HttpResponse::BadRequest().finish()
+        }
     }
 }
 
+async fn on_load(env: Arc<Env>) -> Result<()> {
+    debug!("Dumping environment:\n{:#?}", env);
+    Ok(())
+}
+
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<()> {
     let env = Arc::new(env::Env::new());
+    env_logger::init();
     let kubernetes = Arc::new(KubernetesClient::new(env.clone()));
     let zipkin = Arc::new(ZipkinClient::new(env.clone()));
     let url_matcher = Arc::new(UrlMatcher::new());
     let processed = Arc::new(Mutex::new(HashMap::new()));
 
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
             .app_data(Data::new(DataProcessorState {
                 kubernetes: kubernetes.clone(),
@@ -50,6 +62,8 @@ async fn main() -> std::io::Result<()> {
             .service(process_data)
     })
     .bind((env.bind_ip.as_str(), env.port))?
-    .run()
-    .await
+    .run();
+
+    let _ = join!(server, on_load(env.clone()));
+    Ok(())
 }
