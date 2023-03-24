@@ -49,7 +49,7 @@ async fn main() -> std::io::Result<()> {
             }))
             .service(process_data)
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind((env.bind_ip.as_str(), env.port))?
     .run()
     .await
 }
