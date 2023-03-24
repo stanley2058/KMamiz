@@ -19,3 +19,14 @@ export type TRequestTypeUpper =
   | "OPTIONS"
   | "CONNECT"
   | "TRACE";
+
+export type TRequestType =
+  | "Get"
+  | "Post"
+  | "Put"
+  | "Patch"
+  | "Delete"
+  | "Head"
+  | "Options"
+  | "Connect"
+  | "Trace";
