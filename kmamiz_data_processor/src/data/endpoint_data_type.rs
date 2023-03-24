@@ -10,6 +10,16 @@ pub struct PartialEndpointDataType {
     pub namespace: String,
     pub version: String,
     pub method: RequestType,
+    pub schema: PartialEndpointDataSchema,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PartialEndpointDataSchema {
+    pub time: i64,
+    pub status: String,
     pub requests: Vec<String>,
+    pub request_content_type: Option<String>,
     pub responses: Vec<String>,
+    pub response_content_type: Option<String>,
 }

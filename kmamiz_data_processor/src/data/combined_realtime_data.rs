@@ -1,4 +1,7 @@
-use super::{endpoint_data_type::PartialEndpointDataType, request_type::RequestType};
+use super::{
+    endpoint_data_type::{PartialEndpointDataSchema, PartialEndpointDataType},
+    request_type::RequestType,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -64,8 +67,14 @@ impl PartialCombinedRealtimeData {
                 namespace: d.namespace.clone(),
                 version: d.version.clone(),
                 method: d.method.clone(),
-                requests: d.request_body.clone(),
-                responses: d.response_body.clone(),
+                schema: PartialEndpointDataSchema {
+                    status: d.status.clone(),
+                    time: d.latest_timestamp / 1000,
+                    requests: d.request_body.clone(),
+                    responses: d.response_body.clone(),
+                    request_content_type: d.request_content_type.clone(),
+                    response_content_type: d.response_content_type.clone(),
+                },
             })
             .collect()
     }
