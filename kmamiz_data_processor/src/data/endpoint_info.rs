@@ -2,6 +2,7 @@ use super::request_type::RequestType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct EndpointInfo {
     pub unique_service_name: String,
     pub unique_endpoint_name: String,

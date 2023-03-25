@@ -290,17 +290,6 @@ pub struct Tags {
     pub istio_mesh_id: String,
     #[serde(rename = "istio.namespace")]
     pub istio_namespace: String,
-
-    pub node_id: String,
-    #[serde(rename = "peer.address")]
-    pub peer_address: String,
-    pub request_size: String,
-    pub response_flags: String,
-    pub response_size: String,
-    pub upstream_cluster: String,
-    #[serde(rename = "upstream_cluster.name")]
-    pub upstream_cluster_name: String,
-    pub user_agent: String,
 }
 
 #[derive(Debug)]

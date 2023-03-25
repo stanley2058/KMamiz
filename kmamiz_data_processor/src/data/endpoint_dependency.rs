@@ -1,12 +1,47 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fmt::Display,
+    str::FromStr,
+};
 
 use super::endpoint_info::EndpointInfo;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub enum EndpointDependencyType {
     Client,
     Server,
+}
+
+#[derive(Debug)]
+pub struct EndpointDependencyTypeParseError;
+impl Error for EndpointDependencyTypeParseError {}
+impl Display for EndpointDependencyTypeParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "error parsing from string to dependency type")
+    }
+}
+
+impl FromStr for EndpointDependencyType {
+    type Err = EndpointDependencyTypeParseError;
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input.to_uppercase().as_str() {
+            "CLIENT" => Ok(Self::Client),
+            "SERVER" => Ok(Self::Server),
+            _ => Err(EndpointDependencyTypeParseError {}),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for EndpointDependencyType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -19,6 +54,7 @@ pub struct EndpointDependency {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct EndpointDependencyItem {
     pub endpoint: EndpointInfo,
     pub distance: u32,

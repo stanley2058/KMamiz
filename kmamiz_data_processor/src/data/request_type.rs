@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use std::{error::Error, fmt::Display, str::FromStr};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Debug, PartialEq, Clone)]
 pub enum RequestType {
     Get,
     Post,
@@ -38,5 +38,15 @@ impl FromStr for RequestType {
             "TRACE" => Ok(Self::Trace),
             _ => Err(RequestTypeParseError {}),
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for RequestType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
     }
 }
