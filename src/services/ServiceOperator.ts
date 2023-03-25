@@ -45,6 +45,17 @@ export default class ServiceOperator {
     this.workerLatencyMap = new Map();
     this.externalProcessorClient = new Axios({
       baseURL: GlobalSettings.ExternalDataProcessor,
+      responseType: "json",
+      decompress: true,
+      transformResponse: (data) => {
+        try {
+          return JSON.parse(data);
+        } catch (err) {
+          Logger.error("Error parsing json from external data processor");
+          Logger.plain.verbose("", data);
+          throw err;
+        }
+      },
     });
   }
 

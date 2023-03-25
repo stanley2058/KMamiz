@@ -10,6 +10,7 @@ use std::{
 };
 
 use actix_web::{
+    middleware::Compress,
     post,
     web::{Data, Json},
     App, HttpResponse, HttpServer, Responder,
@@ -53,6 +54,7 @@ async fn main() -> Result<()> {
 
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(Compress::default())
             .app_data(Data::new(DataProcessorState {
                 kubernetes: kubernetes.clone(),
                 zipkin: zipkin.clone(),
