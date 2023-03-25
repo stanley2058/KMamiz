@@ -10,6 +10,7 @@ use std::{
 };
 
 use actix_web::{
+    get,
     middleware::Compress,
     post,
     web::{Data, Json},
@@ -22,6 +23,11 @@ use log::{debug, error};
 use tokio::join;
 
 use crate::data_processor::{collect_data, DataProcessorState};
+
+#[get("/")]
+async fn health() -> impl Responder {
+    HttpResponse::Ok().finish()
+}
 
 #[post("/")]
 async fn process_data(
@@ -54,13 +60,14 @@ async fn main() -> Result<()> {
 
     let server = HttpServer::new(move || {
         App::new()
-            .wrap(Compress::default())
             .app_data(Data::new(DataProcessorState {
                 kubernetes: kubernetes.clone(),
                 zipkin: zipkin.clone(),
                 url_matcher: url_matcher.clone(),
                 processed: processed.clone(),
             }))
+            .wrap(Compress::default())
+            .service(health)
             .service(process_data)
     })
     .bind((env.bind_ip.as_str(), env.port))?
