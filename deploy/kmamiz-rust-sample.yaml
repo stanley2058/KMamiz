@@ -22,7 +22,7 @@ spec:
             - name: SERVICE_PORT # this needs to match port set in Service
               value: "8080"
             - name: MONGODB_URI
-              value: "mongodb://admin:admin@mongo.kmamiz-system:27017/monitoring?authSource=monitoring"
+              value: "{your-mongodb-uri}"
             - name: ZIPKIN_URL
               value: "http://zipkin.istio-system:9411"
             - name: LOG_LEVEL
