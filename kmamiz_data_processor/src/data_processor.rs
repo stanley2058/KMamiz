@@ -46,9 +46,12 @@ fn filter_traces(
         .collect::<Vec<Vec<Trace>>>();
 
     let new_len = traces.len();
-    debug!("Got Traces: {}", ori_len);
-    debug!("To Process: {}", new_len);
-    debug!("Overlapping: {}", ori_len - new_len);
+    debug!(
+        "Traces: [Total: {}] [New: {}] [Filtered: {}]",
+        ori_len,
+        new_len,
+        ori_len - new_len
+    );
     (traces, ori_len, new_len)
 }
 
@@ -73,9 +76,6 @@ pub async fn collect_data(
     request: RequestPackage,
     state: Data<DataProcessorState>,
 ) -> Result<ResponsePackage, Box<dyn Error>> {
-    debug!("Request ID: {}", request.unique_id);
-    debug!("Looking back {} from {}", request.look_back, request.time);
-
     let url_matcher = state.url_matcher.clone();
     let zipkin = state.zipkin.clone();
     let kubernetes = state.kubernetes.clone();
@@ -108,6 +108,8 @@ pub async fn collect_data(
 
     clean_up_traces(state.processed.clone(), request.look_back as i128);
 
+    debug!("Request ID: {}", request.unique_id);
+    debug!("Looking back {} from {}", request.look_back, request.time);
     debug!(
         "Done data processing, with combined data: {}, dependencies: {}, datatype: {}",
         combined.len(),
