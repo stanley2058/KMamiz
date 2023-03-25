@@ -122,21 +122,23 @@ function convertDataType(
       responseContentType: d.schema.responseContentType,
     });
 
+    const schemas = [
+      {
+        status: d.schema.status,
+        time: new Date(d.schema.time),
+        requestParams,
+        requestContentType: d.schema.requestContentType,
+        responseContentType: d.schema.responseContentType,
+        ...schema,
+      },
+    ];
+
     const data: PartialBy<TPartialEndpointDataType, "schema"> = d;
     delete data.schema;
     return {
       ...data,
       method: data.method.toUpperCase() as TRequestTypeUpper,
-      schemas: [
-        {
-          status: d.schema.status,
-          time: new Date(d.schema.time),
-          requestParams,
-          requestContentType: d.schema.requestContentType,
-          responseContentType: d.schema.responseContentType,
-          ...schema,
-        },
-      ],
+      schemas,
     };
   });
 }
