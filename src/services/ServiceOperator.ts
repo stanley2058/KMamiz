@@ -47,14 +47,9 @@ export default class ServiceOperator {
       baseURL: GlobalSettings.ExternalDataProcessor,
       responseType: "json",
       decompress: true,
-      transformResponse: (data) => {
-        try {
-          return JSON.parse(data);
-        } catch (err) {
-          Logger.error("Error parsing json from external data processor");
-          Logger.plain.verbose("", data);
-          throw err;
-        }
+      headers: {
+        "Content-Type": "application/json",
+        "Accept-Encoding": "gzip",
       },
     });
   }
@@ -195,12 +190,18 @@ export default class ServiceOperator {
   }
 
   async externalRetrieve(request: TExternalDataProcessorRequest) {
-    const res = await this.externalProcessorClient.post("/", request);
+    const res = await this.externalProcessorClient.post(
+      "/",
+      JSON.stringify(request)
+    );
     if (res.status !== 200) {
+      Logger.verbose(`request failed with status: ${res.status}`);
+      Logger.plain.verbose("", res);
       throw new Error("request failed to external data processor");
     }
-    const { combined, datatype, dependencies, log, uniqueId } =
-      res.data as TExternalDataProcessorResponse;
+    const { combined, datatype, dependencies, log, uniqueId } = JSON.parse(
+      res.data
+    ) as TExternalDataProcessorResponse;
 
     this.postRetrieve({
       log,
@@ -233,6 +234,7 @@ export default class ServiceOperator {
       await this.externalRetrieve(request);
     } catch (err) {
       Logger.verbose("External data processor failed, fallback to worker.");
+      Logger.plain.verbose("", err);
       this.retrieve(request);
     }
   }
