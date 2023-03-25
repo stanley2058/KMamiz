@@ -60,7 +60,7 @@ export class RealtimeDataList {
               return acc;
             });
             const { requestBody, requestSchema, responseBody, responseSchema } =
-              this.parseRequestResponseBody(combined);
+              RealtimeDataList.parseRequestResponseBody(combined);
 
             const latencyDivBase = Utils.ToPrecise(
               subGroup.reduce(
@@ -107,34 +107,41 @@ export class RealtimeDataList {
     return new CombinedRealtimeDataList(combined);
   }
 
-  private parseRequestResponseBody(data: TRealtimeData) {
-    let requestBody: any | undefined;
-    let requestSchema: string | undefined;
-    let responseBody: any | undefined;
-    let responseSchema: string | undefined;
+  static parseRequestResponseBody(data: Partial<TRealtimeData>): {
+    requestBody?: unknown;
+    requestSchema?: string;
+    responseBody?: unknown;
+    responseSchema?: string;
+  } {
+    const result: {
+      requestBody?: unknown;
+      requestSchema?: string;
+      responseBody?: unknown;
+      responseSchema?: string;
+    } = {};
+
     if (data.requestContentType === "application/json") {
       try {
-        requestBody = JSON.parse(data.requestBody!);
-        requestSchema = Utils.ObjectToInterfaceString(requestBody);
+        result.requestBody = JSON.parse(data.requestBody!);
+        result.requestSchema = Utils.ObjectToInterfaceString(
+          result.requestBody
+        );
       } catch (e) {
         Logger.verbose(`Not a JSON, skipping: [${data.requestBody}]`);
-        requestBody = requestSchema = undefined;
+        result.requestBody = result.requestSchema = undefined;
       }
     }
     if (data.responseContentType === "application/json") {
       try {
-        responseBody = JSON.parse(data.responseBody!);
-        responseSchema = Utils.ObjectToInterfaceString(responseBody);
+        result.responseBody = JSON.parse(data.responseBody!);
+        result.responseSchema = Utils.ObjectToInterfaceString(
+          result.responseBody
+        );
       } catch (e) {
         Logger.verbose(`Not a JSON, skipping: [${data.responseBody}]`);
-        responseBody = responseSchema = undefined;
+        result.responseBody = result.responseSchema = undefined;
       }
     }
-    return {
-      requestBody,
-      requestSchema,
-      responseBody,
-      responseSchema,
-    };
+    return result;
   }
 }

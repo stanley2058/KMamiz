@@ -142,9 +142,8 @@ export class Traces {
       }
     }
 
-    const dependencies = filtered
-      .map(([, val]) => val)
-      .map(({ span, upper, lower }): TEndpointDependency => {
+    const dependencies = filtered.map(
+      ([, { span, upper, lower }]): TEndpointDependency => {
         const upperMap = new Map<string, TEndpointInfo>();
         [...upper.entries()].map(([s, distance]) => {
           const endpoint = Traces.ToEndpointInfo(
@@ -185,7 +184,8 @@ export class Traces {
           dependingBy,
           dependingOn,
         };
-      });
+      }
+    );
     return new EndpointDependencies(dependencies);
   }
 

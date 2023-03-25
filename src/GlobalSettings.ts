@@ -10,6 +10,7 @@ type Settings = {
   IsRunningInKubernetes: boolean;
   ZipkinUrl: string;
   MongoDBUri: string;
+  ExternalDataProcessor: string;
   AggregateInterval: string; // cron expression
   RealtimeInterval: string; // cron expression
   DispatchInterval: string; // cron expression
@@ -29,6 +30,7 @@ const {
   KUBEAPI_HOST,
   ZIPKIN_URL,
   MONGODB_URI,
+  EXTERNAL_DATA_PROCESSOR,
   AGGREGATE_INTERVAL,
   REALTIME_INTERVAL,
   DISPATCH_INTERVAL,
@@ -53,6 +55,7 @@ const GlobalSettings: Settings = {
   ZipkinUrl: ZIPKIN_URL || "http://localhost:9411",
   MongoDBUri:
     MONGODB_URI || "mongodb://admin:admin@localhost:27017/?authSource=admin",
+  ExternalDataProcessor: EXTERNAL_DATA_PROCESSOR || "",
   // default: every 5 minutes
   AggregateInterval: AGGREGATE_INTERVAL || "*/5 * * * *",
   // default: every 5 seconds

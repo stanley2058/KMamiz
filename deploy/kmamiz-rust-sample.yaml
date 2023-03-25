@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kmamiz
+  namespace: kmamiz-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kmamiz
+    spec:
+      serviceAccountName: kmamiz-reader
+      containers:
+        - name: kmamiz
+          image: "reg.stw.tw/kmamiz:rust-dp"
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: SERVICE_PORT # this needs to match port set in Service
+              value: "8080"
+            - name: MONGODB_URI
+              value: "{your-mongodb-uri}"
+            - name: ZIPKIN_URL
+              value: "http://zipkin.istio-system:9411"
+            - name: LOG_LEVEL
+              value: "verbose"
+            - name: IS_RUNNING_IN_K8S
+              value: "true"
+            - name: ENVOY_LOG_LEVEL
+              value: "warning" # accept: info | warning | error
+            - name: READ_ONLY_MODE
+              value: "false"
+            - name: ENABLE_TESTING_ENDPOINTS
+              value: "true"
+            - name: EXTERNAL_DATA_PROCESSOR
+              value: "http://127.0.0.1:8000"
+        - name: kmamiz-dp
+          image: "reg.stw.tw/kmamiz-dp"
+          ports:
+            - containerPort: 8000
+          env:
+            - name: RUST_LOG
+              # accept: error | warn | info | debug | trace
+              # see: https://docs.rs/env_logger/latest/env_logger/
+              value: "kmamiz_data_processor=debug,info"
+            - name: BIND_IP
+              value: "127.0.0.1"
+            - name: PORT
+              value: "8000"
+            - name: ZIPKIN_URL
+              value: "http://zipkin.istio-system:9411"
+            - name: IS_RUNNING_IN_K8S
+              value: "true"
+  selector:
+    matchLabels:
+      app: kmamiz
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kmamiz
+  namespace: kmamiz-system
+spec:
+  type: NodePort
+  selector:
+    app: kmamiz
+  ports:
+    - protocol: TCP
+      port: 8080 # this needs to match SERVICE_PORT
+      targetPort: 3000

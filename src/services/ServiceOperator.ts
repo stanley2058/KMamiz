@@ -23,38 +23,69 @@ import RiskAnalyzer from "../utils/RiskAnalyzer";
 import { TReplicaCount } from "../entities/TReplicaCount";
 import { TServiceDependency } from "../entities/TServiceDependency";
 import { CLookBackRealtimeData } from "../classes/Cacheable/CLookBackRealtimeData";
+import { Axios } from "axios";
+import GlobalSettings from "../GlobalSettings";
+import { TEndpointDependency } from "../entities/TEndpointDependency";
+import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
+import {
+  convert,
+  TExternalDataProcessorRequest,
+  TExternalDataProcessorResponse,
+} from "../entities/TExternalDataProcessor";
 
 export default class ServiceOperator {
   static RISK_LOOK_BACK_TIME = 1800000;
   private static instance?: ServiceOperator;
   static getInstance = () => this.instance || (this.instance = new this());
 
-  private realtimeWorker: Worker;
+  private externalProcessorClient: Axios;
+  private realtimeWorker?: Worker;
   private workerLatencyMap: Map<string, number>;
   private constructor() {
     this.workerLatencyMap = new Map();
+    this.externalProcessorClient = new Axios({
+      baseURL: GlobalSettings.ExternalDataProcessor,
+      responseType: "json",
+      decompress: true,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept-Encoding": "gzip",
+      },
+    });
+  }
+
+  private registerRealtimeWorker() {
     this.realtimeWorker = new Worker(
       path.resolve(__dirname, "./worker/RealtimeWorker.js")
     );
     this.realtimeWorker.on("message", (res) => {
-      const { uniqueId, rlDataList, dependencies, dataType, log } = res;
-
-      if (log) Logger.verbose(`Worker: ${log}`);
-
-      const startTime = this.workerLatencyMap.get(uniqueId);
-      if (startTime) {
-        Logger.verbose(
-          `Realtime schedule [${uniqueId}] done, in ${Date.now() - startTime}ms`
-        );
-        this.workerLatencyMap.delete(uniqueId);
-      }
-
-      ServiceOperator.getInstance().realtimeUpdateCache(
-        new CombinedRealtimeDataList(rlDataList),
-        new EndpointDependencies(dependencies),
-        (dataType as TEndpointDataType[]).map((dt) => new EndpointDataType(dt))
-      );
+      this.postRetrieve(res);
     });
+  }
+
+  private postRetrieve(data: {
+    log: string;
+    uniqueId: string;
+    rlDataList: TCombinedRealtimeData[];
+    dependencies: TEndpointDependency[];
+    dataType: TEndpointDataType[];
+  }) {
+    const { log, uniqueId, rlDataList, dependencies, dataType } = data;
+    if (log) Logger.verbose(`Worker: ${log}`);
+
+    const startTime = this.workerLatencyMap.get(uniqueId);
+    if (startTime) {
+      Logger.verbose(
+        `Realtime schedule [${uniqueId}] done, in ${Date.now() - startTime}ms`
+      );
+      this.workerLatencyMap.delete(uniqueId);
+    }
+
+    ServiceOperator.getInstance().realtimeUpdateCache(
+      new CombinedRealtimeDataList(rlDataList),
+      new EndpointDependencies(dependencies),
+      dataType.map((dt) => new EndpointDataType(dt))
+    );
   }
 
   private getDataForAggregate() {
@@ -153,6 +184,34 @@ export default class ServiceOperator {
     return result;
   }
 
+  retrieve(request: TExternalDataProcessorRequest) {
+    if (!this.realtimeWorker) this.registerRealtimeWorker();
+    this.realtimeWorker!.postMessage(request);
+  }
+
+  async externalRetrieve(request: TExternalDataProcessorRequest) {
+    const res = await this.externalProcessorClient.post(
+      "/",
+      JSON.stringify(request)
+    );
+    if (res.status !== 200) {
+      Logger.verbose(`request failed with status: ${res.status}`);
+      Logger.plain.verbose("", res);
+      throw new Error("request failed to external data processor");
+    }
+    const { combined, datatype, dependencies, log, uniqueId } = JSON.parse(
+      res.data
+    ) as TExternalDataProcessorResponse;
+
+    this.postRetrieve({
+      log,
+      uniqueId,
+      dependencies,
+      rlDataList: convert(combined),
+      dataType: convert(datatype),
+    });
+  }
+
   async retrieveRealtimeData() {
     const time = Date.now();
     const uniqueId = Math.floor(Math.random() * Math.pow(16, 4))
@@ -165,12 +224,19 @@ export default class ServiceOperator {
       .get<CEndpointDependencies>("EndpointDependencies")
       .getData();
 
-    ServiceOperator.getInstance().realtimeWorker.postMessage({
-      uniqueId,
+    const request = {
       lookBack: 30000,
+      uniqueId,
       time,
       existingDep: existingDep?.toJSON(),
-    });
+    };
+    try {
+      await this.externalRetrieve(request);
+    } catch (err) {
+      Logger.verbose("External data processor failed, fallback to worker.");
+      Logger.plain.verbose("", err);
+      this.retrieve(request);
+    }
   }
 
   private realtimeUpdateCache(
