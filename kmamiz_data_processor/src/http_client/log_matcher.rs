@@ -1,7 +1,7 @@
 use std::{error::Error, fmt::Display, str::FromStr, sync::Arc};
 
-use chrono::prelude::DateTime;
 use regex::Regex;
+use time::{format_description::well_known::Rfc3339, PrimitiveDateTime};
 
 use crate::data::{
     envoy_log::{EnvoyLog, LogType},
@@ -92,7 +92,12 @@ impl LogMatcher {
         if splits.len() < 4 {
             return Err(LogParsingError::new("incorrect log tokens"));
         }
-        let time = DateTime::parse_from_rfc3339(splits[0])?;
+
+        let time = PrimitiveDateTime::parse(splits[0], &Rfc3339)?;
+        let left = time.assume_utc().unix_timestamp();
+        let right = time.assume_utc().millisecond();
+        let time = (left * 1000) as u64 + right as u64;
+
         let namespace = String::from(splits[1]);
         let pod_name = String::from(splits[2]);
 
@@ -132,7 +137,7 @@ impl LogMatcher {
             trace_id: String::from(metadata[3]),
             span_id: String::from(metadata[4]),
             parent_span_id: String::from(metadata[5]),
-            timestamp: time.timestamp_millis() as u64,
+            timestamp: time,
             body,
             content_type,
             status,
@@ -142,4 +147,16 @@ impl LogMatcher {
 
         Ok(envoy_log)
     }
+}
+
+#[test]
+fn test_create_log() {
+    let matcher = LogMatcher::new();
+    let res = matcher.parse_log("2023-01-03T06:03:38.005654Z\tpdas\tuser-service-abc123-def456\t[Request 669084db-e52d-9825-8d03-aab35afa6f4a/dad62e0cb93a980cc6bba3d0762fefc8/d40b8bb597882141/c6bba3d0762fefc8] [GET /internal/user/verify] [ContentType application/json]".to_owned());
+    assert!(res.is_ok());
+    let res = res.unwrap();
+    assert_eq!(res.timestamp, 1672725818005);
+    let res = matcher.parse_log("2023-01-03T06:03:38.005671Z\tpdas\tuser-service-abc123-def456\t[Response 669084db-e52d-9825-8d03-aab35afa6f4a/dad62e0cb93a980cc6bba3d0762fefc8/3f0ebe8b94ab3156/ab22aec8ee300093] [Status] 200 [ContentType application/json] [Body] null".to_owned());
+    assert!(res.is_ok());
+    println!("{:?}", res.unwrap());
 }
