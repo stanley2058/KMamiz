@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::json_utils;
 
 use super::{
-    combined_realtime_data::{CombinedLatency, CombinedRealtimeData, PartialCombinedRealtimeData},
+    combined_realtime_data::{CombinedLatency, CombinedRealtimeData},
     request_type::RequestType,
 };
 use serde::{Deserialize, Serialize};
@@ -30,10 +30,6 @@ pub struct RealtimeData {
 
 impl RealtimeData {
     pub fn combine(data: Vec<RealtimeData>) -> Vec<CombinedRealtimeData> {
-        Self::complete_partial(Self::partial_combine(data))
-    }
-
-    pub fn partial_combine(data: Vec<RealtimeData>) -> Vec<PartialCombinedRealtimeData> {
         let mut name_mapping = HashMap::new();
         data.into_iter().for_each(|d| {
             let id = format!(
@@ -84,7 +80,10 @@ impl RealtimeData {
                 };
                 let latency = CombinedLatency { mean, div_base, cv };
 
-                PartialCombinedRealtimeData {
+                let request_body = Self::process_body(request_body);
+                let response_body = Self::process_body(response_body);
+
+                CombinedRealtimeData {
                     unique_service_name: sample.unique_service_name,
                     unique_endpoint_name: sample.unique_endpoint_name,
                     service: sample.service,
@@ -97,53 +96,23 @@ impl RealtimeData {
                     combined: combined as usize,
                     latency,
                     latest_timestamp,
-                    request_body,
-                    response_body,
+                    request_body: serde_json::to_string(&request_body).ok(),
+                    response_body: serde_json::to_string(&response_body).ok(),
+                    request_schema: Some(json_utils::to_types(request_body)),
+                    response_schema: Some(json_utils::to_types(response_body)),
                     avg_replica: total_replicas as f64 / combined,
+                    _id: None,
                 }
             })
             .collect()
     }
 
-    pub fn complete_partial(data: Vec<PartialCombinedRealtimeData>) -> Vec<CombinedRealtimeData> {
-        data.into_iter()
-            .map(|d| {
-                let request_body = d
-                    .request_body
-                    .into_iter()
-                    .filter_map(|req| serde_json::from_str(&req).ok())
-                    .collect::<Vec<Value>>();
-                let request_body = json_utils::merge(request_body);
-
-                let response_body = d
-                    .response_body
-                    .into_iter()
-                    .filter_map(|res| serde_json::from_str(&res).ok())
-                    .collect::<Vec<Value>>();
-                let response_body = json_utils::merge(response_body);
-
-                CombinedRealtimeData {
-                    _id: None,
-                    unique_service_name: d.unique_service_name,
-                    unique_endpoint_name: d.unique_endpoint_name,
-                    latest_timestamp: d.latest_timestamp,
-                    method: d.method,
-                    service: d.service,
-                    namespace: d.namespace,
-                    version: d.version,
-                    latency: d.latency,
-                    combined: d.combined,
-                    status: d.status,
-                    request_body: serde_json::to_string(&request_body).ok(),
-                    request_schema: Some(json_utils::to_types(request_body)),
-                    request_content_type: d.request_content_type,
-                    response_body: serde_json::to_string(&response_body).ok(),
-                    response_schema: Some(json_utils::to_types(response_body)),
-                    response_content_type: d.response_content_type,
-                    avg_replica: d.avg_replica,
-                }
-            })
-            .collect()
+    fn process_body(samples: Vec<String>) -> Value {
+        let samples = samples
+            .into_iter()
+            .filter_map(|req| serde_json::from_str(&req).ok())
+            .collect::<Vec<Value>>();
+        json_utils::merge(samples)
     }
 
     fn to_precise(num: f64) -> f64 {
