@@ -33,8 +33,10 @@ kubectl apply -f kmamiz-demo-mongodb.yaml
 After the deployment is done, change the `{your-mongodb-uri}` to `mongodb://admin:admin@mongo.kmamiz-system:27017/monitoring?authSource=monitoring`.
 
 ## Change the deployment template
+> If you are interested in using an external Data Processor for better performance under high demand, visit [README-DP.md](README-DP.md).
 
 Copy the `kmamiz-sample.yaml` file to `kmamiz.yaml` and edit it.
+> The current `.gitignore` rule exclude any file ending with `.local.yaml`, so you can have as much local configurations as you want.
 
 ```bash
 cp kmamiz-sample.yaml kmamiz.yaml
