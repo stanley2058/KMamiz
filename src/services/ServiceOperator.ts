@@ -28,7 +28,6 @@ import GlobalSettings from "../GlobalSettings";
 import { TEndpointDependency } from "../entities/TEndpointDependency";
 import { TCombinedRealtimeData } from "../entities/TCombinedRealtimeData";
 import {
-  convert,
   TExternalDataProcessorRequest,
   TExternalDataProcessorResponse,
 } from "../entities/TExternalDataProcessor";
@@ -203,12 +202,18 @@ export default class ServiceOperator {
       res.data
     ) as TExternalDataProcessorResponse;
 
+    datatype.forEach((d) => {
+      const tokens = d.uniqueEndpointName.split("\t");
+      const requestParams = Utils.GetParamsFromUrl(tokens[tokens.length - 1]);
+      d.schemas[0].requestParams = requestParams;
+    });
+
     this.postRetrieve({
       log,
       uniqueId,
       dependencies,
-      rlDataList: convert(combined),
-      dataType: convert(datatype),
+      rlDataList: combined,
+      dataType: datatype,
     });
   }
 

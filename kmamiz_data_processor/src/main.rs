@@ -2,6 +2,7 @@ mod data;
 mod data_processor;
 mod env;
 mod http_client;
+mod json_utils;
 
 use std::{
     collections::HashMap,

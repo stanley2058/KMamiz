@@ -234,6 +234,12 @@ impl Trace {
 
         let http_url = &self.tags.http_url;
         let method = &self.tags.http_method;
+        let port = url.port.unwrap_or_default();
+        let port = if port.is_empty() {
+            "80".to_owned()
+        } else {
+            port
+        };
 
         EndpointInfo {
             version,
@@ -242,7 +248,7 @@ impl Trace {
             url: http_url.clone(),
             host: url.host.unwrap_or_default(),
             path: url.path.unwrap_or_default(),
-            port: url.port.unwrap_or("80".to_owned()),
+            port,
             cluster_name: service_url.cluster_name.unwrap_or_default(),
             method: RequestType::from_str(method).expect("cannot parse http method"),
             unique_endpoint_name: format!("{unique_service_name}\t{method}\t{http_url}"),

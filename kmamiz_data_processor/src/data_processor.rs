@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     data::{
-        combined_realtime_data::PartialCombinedRealtimeData,
+        combined_realtime_data::CombinedRealtimeData,
         connection_package::{RequestPackage, ResponsePackage},
         endpoint_dependency::EndpointDependency,
         envoy_log::EnvoyLog,
@@ -103,8 +103,8 @@ pub async fn collect_data(
         dependencies
     };
 
-    let combined = RealtimeData::partial_combine(rl_data);
-    let datatype = PartialCombinedRealtimeData::partial_extract_datatype(&combined);
+    let combined = RealtimeData::combine(rl_data);
+    let datatype = CombinedRealtimeData::extract_datatype(&combined);
 
     clean_up_traces(state.processed.clone(), request.look_back as i128);
 

@@ -1,6 +1,6 @@
 use super::{
-    combined_realtime_data::PartialCombinedRealtimeData,
-    endpoint_data_type::PartialEndpointDataType, endpoint_dependency::EndpointDependency,
+    combined_realtime_data::CombinedRealtimeData, endpoint_data_type::EndpointDataType,
+    endpoint_dependency::EndpointDependency,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,8 +17,8 @@ pub struct RequestPackage {
 #[serde(rename_all = "camelCase")]
 pub struct ResponsePackage {
     pub unique_id: String,
-    pub combined: Vec<PartialCombinedRealtimeData>,
+    pub combined: Vec<CombinedRealtimeData>,
     pub dependencies: Vec<EndpointDependency>,
-    pub datatype: Vec<PartialEndpointDataType>,
+    pub datatype: Vec<EndpointDataType>,
     pub log: String,
 }
