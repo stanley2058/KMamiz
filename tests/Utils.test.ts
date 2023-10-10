@@ -99,6 +99,10 @@ describe("Utils", () => {
       Normalizer.Numbers(input, Normalizer.Strategy.BetweenFixedNumber)
     ).toEqual([0.1, 0.55, 1]);
 
+    expect(
+      Normalizer.Numbers(input, Normalizer.Strategy.Linear)
+    ).toEqual([0.4, 0.7, 1]);
+
     expect(Normalizer.Numbers(input, Normalizer.Strategy.Sigmoid)).toEqual(
       input.map(sigmoid)
     );
