@@ -156,7 +156,9 @@ fn test_create_log() {
     assert!(res.is_ok());
     let res = res.unwrap();
     assert_eq!(res.timestamp, 1672725818005);
+    println!("{}", serde_json::to_string_pretty(&res).unwrap());
     let res = matcher.parse_log("2023-01-03T06:03:38.005671Z\tpdas\tuser-service-abc123-def456\t[Response 669084db-e52d-9825-8d03-aab35afa6f4a/dad62e0cb93a980cc6bba3d0762fefc8/3f0ebe8b94ab3156/ab22aec8ee300093] [Status] 200 [ContentType application/json] [Body] null".to_owned());
     assert!(res.is_ok());
-    println!("{:?}", res.unwrap());
+    let res = res.unwrap();
+    println!("{}", serde_json::to_string_pretty(&res).unwrap());
 }
