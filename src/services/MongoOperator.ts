@@ -49,7 +49,8 @@ export default class MongoOperator {
   }
 
   async getHistoricalData(namespace?: string, time = 86400000 * 30) {
-    const notBefore = new Date(Date.now() - time);
+    const inAMonth = Date.now() - time
+    const notBefore = new Date(GlobalSettings.ReadOnlyMode ? 0 : inAMonth);
     if (!namespace) {
       return (
         await HistoricalDataModel.find({
