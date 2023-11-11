@@ -36,12 +36,12 @@ export default class KubernetesService {
         });
 
         this.currentNamespace = readFileSync(
-          `${this.serviceAccount}/namespace`
+          `${this.serviceAccount}/namespace`,
         ).toString();
       } catch (err) {
         Logger.fatal(
           "Cannot retrieve authorization token for Kubernetes API server.",
-          err
+          err,
         );
       }
     }
@@ -54,17 +54,17 @@ export default class KubernetesService {
   private async mustSuccessRequest<Type>(
     method: "get" | "post" | "delete" | "put" | "head" | "patch" | "options",
     path: string,
-    config?: AxiosRequestConfig<any>
+    config?: AxiosRequestConfig<any>,
   ) {
     const response = await Utils.AxiosRequest<Type>(
       this.logClient,
       method,
       path,
-      config
+      config,
     );
     if (!response) {
       Logger.fatal(
-        "Cannot retrieve necessary data from Kubernetes API server."
+        "Cannot retrieve necessary data from Kubernetes API server.",
       );
     }
     return response!.data;
@@ -77,7 +77,7 @@ export default class KubernetesService {
       {
         responseType: "json",
         transformResponse: (data) => JSON.parse(data),
-      }
+      },
     );
   }
 
@@ -88,7 +88,7 @@ export default class KubernetesService {
       {
         responseType: "json",
         transformResponse: (data) => JSON.parse(data),
-      }
+      },
     );
   }
 
@@ -124,7 +124,7 @@ export default class KubernetesService {
 
   async getPodNames(namespace: string) {
     return (await this.getPodList(namespace)).items.map(
-      (pod) => pod.metadata.name
+      (pod) => pod.metadata.name,
     );
   }
 
@@ -134,7 +134,7 @@ export default class KubernetesService {
       transformResponse: (data) => JSON.parse(data),
     });
     return data.items.map(
-      (namespace: any) => namespace.metadata.name
+      (namespace: any) => namespace.metadata.name,
     ) as string[];
   }
 
@@ -154,23 +154,22 @@ export default class KubernetesService {
   async getEnvoyLogs(
     namespace: string,
     podName: string,
-    limit: number = this.DEFAULT_LOG_LIMIT
+    limit: number = this.DEFAULT_LOG_LIMIT,
   ) {
     const data = await this.mustSuccessRequest<string>(
       "get",
       `/namespaces/${namespace}/pods/${podName}/log?container=istio-proxy&tailLines=${limit}`,
-      { responseType: "text" }
+      { responseType: "text" },
     );
     const logs = data
       .split("\n")
       .filter(
-        (line) => line.includes("script log: ") || line.includes("wasm log ")
+        (line) => line.includes("script log: ") || line.includes("wasm log "),
       )
       .map((line) =>
-        line.replace(
-          /\twarning\tenvoy (lua|wasm)\t(script|wasm) log[^:]*: /,
-          "\t"
-        )
+        line
+          .replace(/\t.*envoy (lua|wasm).*\t(script|wasm) log[^:]*: /, "\t")
+          .replace("\t.*", ""),
       );
     return KubernetesService.ParseEnvoyLogs(logs, namespace, podName);
   }
@@ -182,7 +181,7 @@ export default class KubernetesService {
         const [time, log] = l.split("\t");
         const [, type, requestId, traceId, spanId, parentSpanId] =
           log.match(
-            /\[(Request|Response) ([\w-_]+)\/([\w_]+)\/([\w_]+)\/([\w_]+)\]/
+            /\[(Request|Response) ([\w-_]+)\/([\w_]+)\/([\w_]+)\/([\w_]+)\]/,
           ) || [];
         if (!requestId) return null;
         const [, status] = log.match(/\[Status\] ([0-9]+)/) || [];

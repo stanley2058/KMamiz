@@ -110,15 +110,16 @@ impl KubernetesClient {
             10000
         );
         let re = Regex::new(r"\twarning\tenvoy (lua|wasm)\t(script|wasm) log[^:]*: ").unwrap();
+        let re_post = Regex::new(r"\t.*").unwrap();
         Ok(self
             .get_str(&url)
             .await?
             .split('\n')
             .filter(|l| (l.contains("script log: ") || l.contains("wasm log ")))
             .filter_map(|l| {
-                self.log_matcher
-                    .parse_log(re.replace(l, "\t").to_string())
-                    .ok()
+                let replaced = re.replace(l, "\t").to_string();
+                let replaced = re_post.replace(&replaced, "").to_string();
+                self.log_matcher.parse_log(replaced).ok()
             })
             .collect::<Vec<_>>())
     }
