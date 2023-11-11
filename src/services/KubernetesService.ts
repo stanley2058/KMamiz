@@ -169,7 +169,7 @@ export default class KubernetesService {
       .map((line) =>
         line
           .replace(/\t.*envoy (lua|wasm).*\t(script|wasm) log[^:]*: /, "\t")
-          .replace("\t.*", ""),
+          .replace("\tthread.*", ""),
       );
     return KubernetesService.ParseEnvoyLogs(logs, namespace, podName);
   }

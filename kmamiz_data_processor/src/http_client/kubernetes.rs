@@ -109,8 +109,8 @@ impl KubernetesClient {
             self.kube_api_host,
             10000
         );
-        let re = Regex::new(r"\twarning\tenvoy (lua|wasm)\t(script|wasm) log[^:]*: ").unwrap();
-        let re_post = Regex::new(r"\t.*").unwrap();
+        let re = Regex::new(r"\t.*envoy (lua|wasm).*\t(script|wasm) log[^:]*: ").unwrap();
+        let re_post = Regex::new(r"\tthread.*").unwrap();
         Ok(self
             .get_str(&url)
             .await?
