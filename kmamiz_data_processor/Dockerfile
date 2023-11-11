@@ -1,4 +1,4 @@
-FROM rust:latest as builder
+FROM rust:bookworm as builder
 
 WORKDIR /usr/src/kmamiz
 RUN mkdir src && echo "fn main() {}" > src/main.rs
@@ -9,8 +9,9 @@ RUN rm -rf ./src ./target/release
 COPY src src
 RUN cargo install --path .
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 WORKDIR /usr/app/kmamiz
 COPY .env .
 COPY --from=builder /usr/local/cargo/bin/kmamiz_data_processor /usr/local/bin/kmamiz_data_processor
+RUN apt-get update && apt install -y openssl
 CMD [ "kmamiz_data_processor" ]
